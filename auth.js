@@ -144,7 +144,7 @@ function updateAuthUI() {
   } else {
     container.innerHTML = `
       <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-        <div style="width: 32px; height: 32px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0;">
+        <div style="width: 32px; height: 32px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; cursor: default;">
           <i data-lucide="user"></i>
         </div>
         <div>

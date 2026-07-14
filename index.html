@@ -1023,6 +1023,12 @@
       box-shadow: 0 1px 4px rgba(15, 23, 42, 0.1);
     }
 
+    .tab-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
     .view-content-wrapper {
       position: relative;
       flex: 1;
@@ -2366,8 +2372,8 @@
             <h2><i data-lucide="eye"></i> Live Simulation Previews</h2>
             <div class="viewport-tabs">
               <button class="tab-btn active" onclick="switchTab('2d')"><i data-lucide="layers"></i> 2D Stack</button>
-              <button class="tab-btn" onclick="switchTab('3d')"><i data-lucide="box"></i> 3D Render</button>
-              <button class="tab-btn" onclick="switchTab('filament')"><i data-lucide="sliders-horizontal"></i>
+              <button class="tab-btn" id="tab-3d" onclick="switchTab('3d')"><i data-lucide="box"></i> 3D Render</button>
+              <button class="tab-btn" id="tab-filament" onclick="switchTab('filament')"><i data-lucide="sliders-horizontal"></i>
                 Filament</button>
             </div>
           </div>
@@ -2645,6 +2651,9 @@
 
     // Custom tab switcher
     window.switchTab = function (tab) {
+      if (tab === '3d' && document.getElementById('tab-3d')?.disabled) return;
+      if (tab === 'filament' && document.getElementById('tab-filament')?.disabled) return;
+
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.viewport-pane').forEach(pane => pane.classList.remove('active'));
 

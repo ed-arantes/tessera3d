@@ -159,6 +159,15 @@ function showEmptyState() {
   const ffTb = document.getElementById('ff-toolbar');
   if (ffTb) ffTb.style.display = 'none';
   updateCardShadow();
+  updateTabsForImage();
+}
+
+function updateTabsForImage() {
+  const hasImage = !!state.image;
+  const tab3d = document.getElementById('tab-3d');
+  const tabFil = document.getElementById('tab-filament');
+  if (tab3d) tab3d.disabled = !hasImage;
+  if (tabFil) tabFil.disabled = !hasImage;
 }
 
 if (document.readyState === 'loading') {
@@ -854,6 +863,7 @@ function processImage() {
   }
 
   debounceUpdate();
+  updateTabsForImage();
 }
 
 function syncColorCountUI() {
