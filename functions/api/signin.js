@@ -35,5 +35,5 @@ export async function onRequest(context) {
     .bind(token, username)
     .run();
 
-  return jsonResponse({ token, username: user.username });
+  return jsonResponse({ token, username: user.username, createdAt: user.createdAt });
 }

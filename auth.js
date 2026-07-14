@@ -87,13 +87,20 @@ const Auth = {
   async verifySession() {
     const token = this.token;
     if (!token) return null;
-    const res = await fetch(`${AUTH_URL}/api/session`, {
-      headers: { 'Authorization': token }
-    });
-    if (!res.ok) { this.setToken(null, null); return null; }
-    const parsed = await parseResponse(res);
-    this.setToken(token, parsed.data && parsed.data.username, parsed.data && parsed.data.createdAt);
-    return parsed.data;
+    try {
+      const res = await fetch(`${AUTH_URL}/api/session`, {
+        headers: { 'Authorization': token }
+      });
+      if (!res.ok) {
+        if (res.status === 401) { this.setToken(null, null); return null; }
+        return null;
+      }
+      const parsed = await parseResponse(res);
+      this.setToken(token, parsed.data && parsed.data.username, parsed.data && parsed.data.createdAt);
+      return parsed.data;
+    } catch {
+      return null;
+    }
   }
 };
 
