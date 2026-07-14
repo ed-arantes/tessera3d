@@ -1,4 +1,4 @@
-import { jsonResponse, getDb, readJsonBody, hashPassword, createToken, getUserByToken, getUserByUsername } from './_auth.js';
+import { jsonResponse, getDb, readJsonBody, hashPassword, createToken, getUserByToken, getUserByUsername, extractToken } from './_auth.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -10,7 +10,7 @@ export async function onRequest(context) {
   const body = await readJsonBody(request);
   const newUsername = (body?.newUsername || '').toString().trim();
   const password = (body?.password || '').toString();
-  const token = request.headers.get('Authorization');
+  const token = extractToken(request);
 
   if (!newUsername || !password || !token) {
     return jsonResponse({ error: 'New username, password, and token are required' }, 400);

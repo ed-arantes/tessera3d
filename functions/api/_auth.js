@@ -43,3 +43,9 @@ export async function getUserByToken(db, token) {
     .bind(token)
     .first();
 }
+
+export function extractToken(request) {
+  const header = request.headers.get('Authorization') || '';
+  if (header.startsWith('Bearer ')) return header.slice(7).trim();
+  return header.trim() || null;
+}

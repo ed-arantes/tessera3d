@@ -1,4 +1,4 @@
-import { jsonResponse, getDb, readJsonBody, hashPassword, getUserByToken } from './_auth.js';
+import { jsonResponse, getDb, readJsonBody, hashPassword, getUserByToken, extractToken } from './_auth.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -9,7 +9,7 @@ export async function onRequest(context) {
 
   const body = await readJsonBody(request);
   const password = (body?.password || '').toString();
-  const token = request.headers.get('Authorization');
+  const token = extractToken(request);
 
   if (!token || !password) {
     return jsonResponse({ error: 'Token and password are required' }, 400);

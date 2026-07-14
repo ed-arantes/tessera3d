@@ -1,4 +1,4 @@
-import { jsonResponse, getDb, getUserByToken } from './_auth.js';
+import { jsonResponse, getDb, getUserByToken, extractToken } from './_auth.js';
 
 export async function onRequest(context) {
   const { request, env } = context;
@@ -7,7 +7,7 @@ export async function onRequest(context) {
     return jsonResponse({ error: 'Method not allowed' }, 405);
   }
 
-  const token = request.headers.get('Authorization');
+  const token = extractToken(request);
   if (!token) {
     return jsonResponse({ error: 'Missing token' }, 401);
   }

@@ -89,14 +89,18 @@ const Auth = {
     if (!token) return null;
     try {
       const res = await fetch(`${AUTH_URL}/api/session`, {
-        headers: { 'Authorization': token }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
         if (res.status === 401) { this.setToken(null, null); return null; }
         return null;
       }
       const parsed = await parseResponse(res);
-      this.setToken(token, parsed.data && parsed.data.username, parsed.data && parsed.data.createdAt);
+      if (parsed.data && parsed.data.username) {
+        this.setToken(token, parsed.data.username, parsed.data.createdAt);
+      } else {
+        this._token = token;
+      }
       return parsed.data;
     } catch {
       return null;
@@ -248,8 +252,7 @@ async function submitAuthForm() {
   }
 }
 
-// Handle Enter key in modal inputs and initialize UI
-document.addEventListener('DOMContentLoaded', () => {
+function initAuth() {
   const overlay = document.getElementById('auth-modal-overlay');
   if (overlay) {
     overlay.addEventListener('keydown', (e) => {
@@ -262,10 +265,16 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
-  // Show guest state immediately, then verify session in background
   updateAuthUI();
   Auth.verifySession().then(() => updateAuthUI()).catch(() => updateAuthUI());
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAuth);
+} else {
+  initAuth();
+}
+window.addEventListener('load', updateAuthUI);
 
 // ── User Dashboard ────────────────────────────────────────────────────────
 
@@ -412,7 +421,7 @@ async function dashChangeUsername() {
   try {
     const res = await fetch(`${AUTH_URL}/api/change-username`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': Auth.token },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Auth.token}` },
       body: JSON.stringify({ newUsername, password })
     });
     const parsed = await parseResponse(res);
@@ -445,7 +454,7 @@ async function dashChangePassword() {
   try {
     const res = await fetch(`${AUTH_URL}/api/change-password`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': Auth.token },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Auth.token}` },
       body: JSON.stringify({ currentPassword: curPassword, newPassword })
     });
     const parsed = await parseResponse(res);
@@ -468,7 +477,7 @@ async function dashDeleteAccount() {
   try {
     const res = await fetch(`${AUTH_URL}/api/account`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json', 'Authorization': Auth.token },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Auth.token}` },
       body: JSON.stringify({ password })
     });
     const parsed = await parseResponse(res);
