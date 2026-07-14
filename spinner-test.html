@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Spinner Test Page</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f172a;
+    color: #e2e8f0;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+  h1 { font-size: 24px; margin-bottom: 8px; font-weight: 600; }
+  .subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 40px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px;
+    max-width: 1000px;
+    width: 100%;
+  }
+  .card {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 16px;
+    padding: 40px 20px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: #55ba08; }
+  .card h3 { font-size: 14px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px; }
+  .spinner-area {
+    width: 80px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── 1. Wireframe Cube ─────────────────────────── */
+  .wireframe-scene {
+    width: 60px;
+    height: 60px;
+    perspective: 200px;
+  }
+  .wireframe-cube {
+    width: 40px;
+    height: 40px;
+    position: relative;
+    transform-style: preserve-3d;
+    animation: wireRotate 2s linear infinite;
+  }
+  .wireframe-cube .face {
+    position: absolute;
+    width: 40px;
+    height: 40px;
+    border: 2px solid #55ba08;
+    background: transparent;
+  }
+  .wireframe-cube .front  { transform: translateZ(20px); }
+  .wireframe-cube .back   { transform: translateZ(-20px) rotateY(180deg); }
+  .wireframe-cube .left   { transform: translateX(-20px) rotateY(-90deg); }
+  .wireframe-cube .right  { transform: translateX(20px) rotateY(90deg); }
+  .wireframe-cube .top    { transform: translateY(-20px) rotateX(90deg); }
+  .wireframe-cube .bottom { transform: translateY(20px) rotateX(-90deg); }
+  @keyframes wireRotate {
+    0%   { transform: rotateX(20deg) rotateY(0deg); }
+    100% { transform: rotateX(20deg) rotateY(360deg); }
+  }
+
+  /* ── 2. Grid Fill ──────────────────────────────── */
+  .grid-fill {
+    display: grid;
+    grid-template-columns: repeat(4, 12px);
+    grid-template-rows: repeat(4, 12px);
+    gap: 3px;
+  }
+  .grid-fill .cell {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    background: #334155;
+    animation: cellFill 2s ease-in-out infinite;
+  }
+  .grid-fill .cell:nth-child(1)  { animation-delay: 0s; }
+  .grid-fill .cell:nth-child(2)  { animation-delay: 0.06s; }
+  .grid-fill .cell:nth-child(3)  { animation-delay: 0.12s; }
+  .grid-fill .cell:nth-child(4)  { animation-delay: 0.18s; }
+  .grid-fill .cell:nth-child(5)  { animation-delay: 0.24s; }
+  .grid-fill .cell:nth-child(6)  { animation-delay: 0.3s; }
+  .grid-fill .cell:nth-child(7)  { animation-delay: 0.36s; }
+  .grid-fill .cell:nth-child(8)  { animation-delay: 0.42s; }
+  .grid-fill .cell:nth-child(9)  { animation-delay: 0.48s; }
+  .grid-fill .cell:nth-child(10) { animation-delay: 0.54s; }
+  .grid-fill .cell:nth-child(11) { animation-delay: 0.6s; }
+  .grid-fill .cell:nth-child(12) { animation-delay: 0.66s; }
+  .grid-fill .cell:nth-child(13) { animation-delay: 0.72s; }
+  .grid-fill .cell:nth-child(14) { animation-delay: 0.78s; }
+  .grid-fill .cell:nth-child(15) { animation-delay: 0.84s; }
+  .grid-fill .cell:nth-child(16) { animation-delay: 0.9s; }
+  @keyframes cellFill {
+    0%, 20%  { background: #334155; transform: scale(0.8); }
+    40%, 60% { background: #55ba08; transform: scale(1); }
+    80%, 100% { background: #334155; transform: scale(0.8); }
+  }
+
+  /* ── 3. Polygon Draw ───────────────────────────── */
+  .polygon-spinner {
+    width: 60px;
+    height: 60px;
+  }
+  .polygon-spinner svg {
+    width: 60px;
+    height: 60px;
+  }
+  .polygon-spinner .tri-outline {
+    fill: transparent;
+    stroke: #55ba08;
+    stroke-width: 2;
+    stroke-dasharray: 220;
+    stroke-dashoffset: 220;
+    animation: drawTri 1.5s ease-in-out infinite;
+  }
+  .polygon-spinner .tri-fill {
+    fill: rgba(85, 186, 8, 0.2);
+    stroke: none;
+    opacity: 0;
+    animation: fillTri 1.5s ease-in-out infinite;
+  }
+  @keyframes drawTri {
+    0%   { stroke-dashoffset: 220; }
+    50%  { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -220; }
+  }
+  @keyframes fillTri {
+    0%, 40% { opacity: 0; }
+    50%, 70% { opacity: 1; }
+    80%, 100% { opacity: 0; }
+  }
+
+  /* ── 4. 3D Colored Box ─────────────────────────── */
+  .colored-scene {
+    width: 60px;
+    height: 60px;
+    perspective: 200px;
+  }
+  .colored-cube {
+    width: 36px;
+    height: 36px;
+    position: relative;
+    transform-style: preserve-3d;
+    animation: coloredSpin 3s ease-in-out infinite;
+  }
+  .colored-cube .cface {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    opacity: 0.85;
+    border-radius: 4px;
+  }
+  .colored-cube .cfront  { background: #0a0a0a; transform: translateZ(18px); }
+  .colored-cube .cback   { background: #ef4444; transform: translateZ(-18px) rotateY(180deg); }
+  .colored-cube .cleft   { background: #3b82f6; transform: translateX(-18px) rotateY(-90deg); }
+  .colored-cube .cright  { background: #ef4444; transform: translateX(18px) rotateY(90deg); }
+  .colored-cube .ctop    { background: #ffffff; transform: translateY(-18px) rotateX(90deg); }
+  .colored-cube .cbottom { background: #0a0a0a; transform: translateY(18px) rotateX(-90deg); }
+  @keyframes coloredSpin {
+    0%   { transform: rotateX(0deg) rotateY(0deg); }
+    25%  { transform: rotateX(90deg) rotateY(90deg); }
+    50%  { transform: rotateX(180deg) rotateY(180deg); }
+    75%  { transform: rotateX(270deg) rotateY(270deg); }
+    100% { transform: rotateX(360deg) rotateY(360deg); }
+  }
+
+  /* ── 5. Layer Stack ────────────────────────────── */
+  .layer-stack { width: 50px; height: 50px; position: relative; }
+  .layer-stack .lbar {
+    position: absolute;
+    left: 0;
+    width: 50px;
+    height: 6px;
+    border-radius: 3px;
+    animation: layerRise 1.8s ease-in-out infinite;
+  }
+  .layer-stack .lbar:nth-child(1) { background: #0a0a0a; bottom: 0; animation-delay: 0s; }
+  .layer-stack .lbar:nth-child(2) { background: #3b82f6; bottom: 0; animation-delay: 0.3s; }
+  .layer-stack .lbar:nth-child(3) { background: #ef4444; bottom: 0; animation-delay: 0.6s; }
+  .layer-stack .lbar:nth-child(4) { background: #ffffff; bottom: 0; animation-delay: 0.9s; }
+  @keyframes layerRise {
+    0%   { bottom: 0; opacity: 1; }
+    50%  { bottom: 44px; opacity: 1; }
+    51%  { opacity: 0; }
+    100% { bottom: 0; opacity: 0; }
+  }
+
+  /* ── 6. Triangle Mesh ──────────────────────────── */
+  .tri-mesh { width: 60px; height: 60px; }
+  .tri-mesh svg { width: 60px; height: 60px; }
+  .tri-mesh .mesh-tri {
+    fill: transparent;
+    stroke: #55ba08;
+    stroke-width: 1.5;
+    stroke-dasharray: 80;
+    stroke-dashoffset: 80;
+    animation: meshDraw 2.4s ease-in-out infinite;
+  }
+  .tri-mesh .mesh-tri:nth-child(1) { animation-delay: 0s; }
+  .tri-mesh .mesh-tri:nth-child(2) { animation-delay: 0.3s; }
+  .tri-mesh .mesh-tri:nth-child(3) { animation-delay: 0.6s; }
+  .tri-mesh .mesh-tri:nth-child(4) { animation-delay: 0.9s; }
+  .tri-mesh .mesh-tri:nth-child(5) { animation-delay: 1.2s; }
+  @keyframes meshDraw {
+    0%, 10%  { stroke-dashoffset: 80; stroke: #55ba08; }
+    30%, 50% { stroke-dashoffset: 0; stroke: #55ba08; }
+    60%, 100% { stroke-dashoffset: -80; stroke: #334155; }
+  }
+
+  /* ── 7. Heightmap Bars ─────────────────────────── */
+  .hmap-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 50px;
+  }
+  .hmap-bars .hbar {
+    width: 6px;
+    border-radius: 2px 2px 0 0;
+    animation: hbarPulse 1.4s ease-in-out infinite;
+  }
+  .hmap-bars .hbar:nth-child(1) { background: #0a0a0a; height: 15px; animation-delay: 0s; }
+  .hmap-bars .hbar:nth-child(2) { background: #1e3a5f; height: 25px; animation-delay: 0.1s; }
+  .hmap-bars .hbar:nth-child(3) { background: #3b82f6; height: 35px; animation-delay: 0.2s; }
+  .hmap-bars .hbar:nth-child(4) { background: #ef4444; height: 45px; animation-delay: 0.3s; }
+  .hmap-bars .hbar:nth-child(5) { background: #f59e0b; height: 40px; animation-delay: 0.4s; }
+  .hmap-bars .hbar:nth-child(6) { background: #ef4444; height: 30px; animation-delay: 0.5s; }
+  .hmap-bars .hbar:nth-child(7) { background: #ffffff; height: 20px; animation-delay: 0.6s; }
+  .hmap-bars .hbar:nth-child(8) { background: #ffffff; height: 12px; animation-delay: 0.7s; }
+  @keyframes hbarPulse {
+    0%, 100% { opacity: 0.4; transform: scaleY(0.6); }
+    50%      { opacity: 1; transform: scaleY(1); }
+  }
+
+  /* ── 8. Rotating Hexagon ───────────────────────── */
+  .hex-spinner {
+    width: 60px;
+    height: 60px;
+    animation: hexSpin 2s linear infinite;
+  }
+  .hex-spinner svg { width: 60px; height: 60px; }
+  .hex-spinner .hex-outline {
+    fill: transparent;
+    stroke: #55ba08;
+    stroke-width: 2.5;
+    stroke-dasharray: 180;
+    stroke-dashoffset: 180;
+    animation: hexDraw 2s ease-in-out infinite;
+  }
+  .hex-spinner .hex-fill {
+    fill: rgba(85, 186, 8, 0.15);
+    animation: hexFillBg 2s ease-in-out infinite;
+  }
+  @keyframes hexSpin {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  @keyframes hexDraw {
+    0%   { stroke-dashoffset: 180; }
+    50%  { stroke-dashoffset: 0; }
+    100% { stroke-dashoffset: -180; }
+  }
+  @keyframes hexFillBg {
+    0%, 30%  { opacity: 0; }
+    50%, 70% { opacity: 1; }
+    80%, 100% { opacity: 0; }
+  }
+
+  /* ── 9. Extrude Rings ──────────────────────────── */
+  .extrude-rings { position: relative; width: 50px; height: 50px; }
+  .extrude-rings .ering {
+    position: absolute;
+    inset: 0;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    animation: extrudePulse 1.6s ease-in-out infinite;
+  }
+  .extrude-rings .ering:nth-child(1) { border-top-color: #0a0a0a; animation-delay: 0s; }
+  .extrude-rings .ering:nth-child(2) { border-top-color: #3b82f6; animation-delay: 0.2s; }
+  .extrude-rings .ering:nth-child(3) { border-top-color: #ef4444; animation-delay: 0.4s; }
+  .extrude-rings .ering:nth-child(4) { border-top-color: #ffffff; animation-delay: 0.6s; }
+  @keyframes extrudePulse {
+    0%   { transform: scale(0.3); opacity: 0; }
+    50%  { transform: scale(1); opacity: 1; }
+    100% { transform: scale(1.3); opacity: 0; }
+  }
+
+  /* ── 10. Slicing Line ──────────────────────────── */
+  .slice-line { width: 60px; height: 60px; position: relative; overflow: hidden; border-radius: 8px; background: #1e293b; border: 1px solid #334155; }
+  .slice-line .scan {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #55ba08, transparent);
+    animation: sliceScan 1.5s ease-in-out infinite;
+  }
+  .slice-line .scanline-after {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    background: linear-gradient(180deg, rgba(85,186,8,0.08), transparent);
+    animation: sliceScan 1.5s ease-in-out infinite;
+  }
+  @keyframes sliceScan {
+    0%   { top: -2px; }
+    100% { top: 100%; }
+  }
+</style>
+</head>
+<body>
+  <h1>Spinner Options</h1>
+  <p class="subtitle">Pick a style for mesh creation / loading states</p>
+
+  <div class="grid">
+    <!-- 1. Wireframe Cube -->
+    <div class="card">
+      <div class="spinner-area">
+        <div class="wireframe-scene">
+          <div class="wireframe-cube">
+            <div class="face front"></div>
+            <div class="face back"></div>
+            <div class="face left"></div>
+            <div class="face right"></div>
+            <div class="face top"></div>
+            <div class="face bottom"></div>
+          </div>
+        </div>
+      </div>
+      <h3>Wireframe Cube</h3>
+    </div>
+
+    <!-- 2. Grid Fill -->
+    <div class="card">
+      <div class="spinner-area">
+        <div class="grid-fill">
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+          <div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+        </div>
+      </div>
+      <h3>Grid Fill</h3>
+    </div>
+
+    <!-- 3. Polygon Draw -->
+    <div class="card">
+      <div class="spinner-area">
+        <div class="polygon-spinner">
+          <svg viewBox="0 0 60 60">
+            <polygon class="tri-fill" points="30,5 55,52 5,52"/>
+            <polygon class="tri-outline" points="30,5 55,52 5,52"/>
+          </svg>
+        </div>
+      </div>
+      <h3>Polygon Draw</h3>
+    </div>
+
+    <!-- 4. 3D Colored Box -->
+    <div class="card">
+      <div class="spinner-area">
+        <div class="colored-scene">
+          <div class="colored-cube">
+            <div class="cface cfront"></div>
+            <div class="cface cback"></div>
+            <div class="cface cleft"></div>
+            <div class="cface cright"></div>
+            <div class="cface ctop"></div>
+            <div class="cface cbottom"></div>
+          </div>
+        </div>
+      </div>
+      <h3>3D Colored Box</h3>
+    </div>
+
+    <!-- 5. Layer Stack -->
+    <div class="card">
+      <div class="spinner-area">
+        <div class="layer-stack">
+          <div class="lbar"></div>
+          <div class="lbar"></div>
+          <div class="lbar"></div>
+          <div class="lbar"></div>
+        </div>
+      </div>
+      <h3>Layer Stack</h3>
+    </div>
+
+    <!-- 6. Triangle Mesh -->
+    <div class="card">
+      <div class="spinner-area">
+        <div class="tri-mesh">
+          <svg viewBox="0 0 60 60">
+            <polygon class="mesh-tri" points="30,5 50,30 10,30"/>
+            <polygon class="mesh-tri" points="10,30 30,55 50,30"/>
+            <polygon class="mesh-tri" points="5,55 20,30 5,30"/>
+            <polygon class="mesh-tri" points="55,55 40,30 55,30"/>
+            <polygon class="mesh-tri" points="30,5 10,30 50,30"/>
+          </svg>
+        </div>
+      </div>
+      <h3>Triangle Mesh</h3>
+    </div>
+
+    <!-- 7. Heightmap Bars -->
+    <div class="card">
+      <div class="spinner-area">
+        <div class="hmap-bars">
+          <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
+          <div class="hbar"></div><div class="hbar"></div><div class="hbar"></div><div class="hbar"></div>
+        </div>
+      </div>
+      <h3>Heightmap Bars</h3>
+    </div>
+
+    <!-- 8. Rotating Hexagon -->
+    <div class="card">
+      <div class="spinner-area">
+        <div class="hex-spinner">
+          <svg viewBox="0 0 60 60">
+            <polygon class="hex-fill" points="30,2 54,16 54,44 30,58 6,44 6,16"/>
+            <polygon class="hex-outline" points="30,2 54,16 54,44 30,58 6,44 6,16"/>
+          </svg>
+        </div>
+      </div>
+      <h3>Rotating Hexagon</h3>
+    </div>
+
+    <!-- 9. Extrude Rings -->
+    <div class="card">
+      <div class="spinner-area">
+        <div class="extrude-rings">
+          <div class="ering"></div>
+          <div class="ering"></div>
+          <div class="ering"></div>
+          <div class="ering"></div>
+        </div>
+      </div>
+      <h3>Extrude Rings</h3>
+    </div>
+
+    <!-- 10. Slicing Line -->
+    <div class="card">
+      <div class="spinner-area">
+        <div class="slice-line">
+          <div class="scan"></div>
+          <div class="scanline-after" style="height: 50%;"></div>
+        </div>
+      </div>
+      <h3>Slicing Line</h3>
+    </div>
+  </div>
+</body>
+</html>
