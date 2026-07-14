@@ -894,6 +894,12 @@
       cursor: not-allowed;
     }
 
+    .btn-remove-layer:disabled {
+      background: var(--bg-base) !important;
+      color: var(--text-disabled) !important;
+      border-color: var(--border) !important;
+    }
+
     .td-input-container {
       display: flex;
       align-items: center;
@@ -2135,7 +2141,7 @@
             <div class="subtitle">3D Art Studio</div>
           </div>
         </div>
-        <div class="subtitle">v1.0.8</div>
+        <div class="subtitle">v1.0.9</div>
       </div>
       <div class="sidebar-content">
 
@@ -2256,8 +2262,8 @@
           </div>
         </div>
 
-        <div class="glass-panel collapsible collapsed">
-          <div class="panel-header" onclick="togglePanel(this)">
+        <div class="glass-panel collapsible collapsed" id="panel-color-layers">
+          <div class="panel-header" onclick="togglePanel(this)" id="header-color-layers">
             <h2><i data-lucide="palette"></i> Color Layers</h2>
             <i data-lucide="chevron-down" class="collapse-icon"></i>
           </div>
@@ -2288,8 +2294,8 @@
           </div>
         </div>
 
-        <div class="glass-panel collapsible collapsed">
-          <div class="panel-header" onclick="togglePanel(this)">
+        <div class="glass-panel collapsible collapsed" id="panel-puzzle">
+          <div class="panel-header" onclick="togglePanel(this)" id="header-puzzle">
             <h2><i data-lucide="puzzle"></i> Jigsaw Puzzle Split</h2>
             <i data-lucide="chevron-down" class="collapse-icon"></i>
           </div>
@@ -2358,7 +2364,7 @@
 
         <!-- User Auth Card -->
         <div class="glass-panel" id="user-auth-panel" style="margin-bottom: 16px; flex: 0 0 auto;">
-          <div class="panel-header" style="padding-bottom: 0;" id="user-auth-card">
+          <div class="panel-header" style="padding-bottom: 0; cursor: default;" id="user-auth-card">
             <h2>Welcome, Guest!</h2>
             <div style="display: flex; gap: 8px;">
               <button class="btn btn-sm" onclick="openAuthModal('signin')">Login</button>
@@ -2682,6 +2688,12 @@
     window.togglePanel = function (header) {
       const panel = header.closest('.collapsible');
       const isCollapsed = panel.classList.contains('collapsed');
+
+      // Block color layers and puzzle panels when no image loaded
+      if (isCollapsed && (header.id === 'header-color-layers' || header.id === 'header-puzzle')) {
+        if (!window.state || !window.state.image) return;
+      }
+
       const parent = panel.parentElement;
       // Collapse all sibling panels
       parent.querySelectorAll('.collapsible').forEach(p => p.classList.add('collapsed'));
