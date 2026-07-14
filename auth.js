@@ -92,14 +92,11 @@ const Auth = {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
-        if (res.status === 401) { this.setToken(null, null); return null; }
         return null;
       }
       const parsed = await parseResponse(res);
       if (parsed.data && parsed.data.username) {
         this.setToken(token, parsed.data.username, parsed.data.createdAt);
-      } else {
-        this._token = token;
       }
       return parsed.data;
     } catch {
