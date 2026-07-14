@@ -1119,12 +1119,12 @@ function renderLayersList() {
         </div>
       </div>
       <div class="layer-controls">
-        <button class="btn-step btn-remove-layer" id="layer-remove-${idx}" ${isBase ? 'disabled' : ''} title="Remove this layer">✕</button>
         <button class="btn-step" id="layer-step-down-${idx}" ${isBase ? 'disabled' : ''}>-</button>
         <input type="range" class="height-slider" min="0" max="${state.maxHeight}" step="${state.layerHeight}" 
                value="${layer.startHeight}" ${isBase ? 'disabled' : ''} id="layer-slider-${idx}">
         <button class="btn-step" id="layer-step-up-${idx}" ${isBase ? 'disabled' : ''}>+</button>
         <span class="slider-value" id="layer-val-${idx}" style="min-width: 100px;">L${layerNum} (${(layer.startHeight + lh).toFixed(2)} mm)</span>
+        <button class="btn-step btn-remove-layer" id="layer-remove-${idx}" ${isBase ? 'disabled' : ''} title="Remove this layer" style="color: #ef4444; border-color: #ef4444;">✕</button>
       </div>
     `;
 
