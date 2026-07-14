@@ -1,0 +1,11 @@
+name = "tessera3d"
+type = "javascript"
+main = "src/index.js"
+
+[env.production]
+name = "tessera3d-production"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tessera"
+database_id = "ffeec5ab-4afd-44bc-bb99-b63764ac5acb"

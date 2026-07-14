@@ -1,0 +1,27 @@
+loading icon has text before loads png
+user bar rendered after rest of ui
+side bar value flicker between defaults and other palceholders
+login is case sensitive
+the username creating is user sensitive
+the layers are 1 off by actually height and layer count the change should be 1 layer after calcualted
+settings not bound to actual ui
+ad option keep user signed in
+rando puzzle pieces generation gnerater too large male pieces looks off
+export stl shows progress on export bambulab button and its full greend doesnt turn white like the generte bambu progress keeep consistency in uniform
+fix tracking of user projects properly
+
+
+add preset low / mid/ hi res for presets points 300/500/800
+add lock (unloackable) between puzzle height and width pieces to keep uniform grid
+add printer plate preset in 3d render
+calcualte recommended color layers for colors fidelity dont exaggerate with transistion colors
+add extruder colors buttons besides slider as per layer sliders
+add report a bug
+if features are finnicy add beta or experimental
+add filament database
+add projects to user settings
+export project file maybe make a zip file renamed that contains settings paramenter and picture
+print/export pdf instructions
+
+bonus
+improve mobile look

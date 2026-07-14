@@ -1,0 +1,26 @@
+[
+  {
+    "username": "matteo",
+    "passwordHash": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
+    "token": "7307cc7d2e8dc26cc79e679eb7b2ac9977480583b88f55bb715d89425c1c6b18",
+    "createdAt": "2026-07-04T10:48:13.231Z"
+  },
+  {
+    "username": "gino",
+    "passwordHash": "096862673b016aefb5db42500c73dfc6bd6854716ba936e5f0b21b426176702d",
+    "token": "eba0289e418d70cfe1888917f00e6879bdebf1674d9312c940fabc1443c4d45e",
+    "createdAt": "2026-07-04T11:18:37.980Z"
+  },
+  {
+    "username": "pauladvc21",
+    "passwordHash": "b0cb7d41220a2c4c39879bf18f4107bbbcf4429c46f6da430e98c7b3e3d769a7",
+    "token": "24834a1f3f1c908218ede4d48b5649b6fdc6bde0bb5454b48043cc6b91339655",
+    "createdAt": "2026-07-04T14:20:15.618Z"
+  },
+  {
+    "username": "matteo2",
+    "passwordHash": "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5",
+    "token": "dc64b3082b6b50ffb91ce5e3a3efde094b5ab5568f4639ac9cb591335a4bcb8e",
+    "createdAt": "2026-07-06T09:25:44.054Z"
+  }
+]

@@ -1,0 +1,11 @@
+node_modules/
+.wrangler/
+package-lock.json
+wrangler.dev.toml
+package.json
+New folder/a.bat
+New folder/a1-x1x2-p1p2.jpg
+New folder/a1m.jpg
+New folder/h2c-a2l.jpg
+New folder/h2s-h2d.jpg
+New folder/index.html
