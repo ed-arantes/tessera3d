@@ -422,7 +422,10 @@ async function dashChangeUsername() {
       body: JSON.stringify({ newUsername, password })
     });
     const parsed = await parseResponse(res);
-    if (!parsed.ok) throw new Error(parsed.data && parsed.data.error);
+    if (!parsed.ok) {
+      if (res.status === 401) { Auth.logout(); setTimeout(closeDashboard, 1500); throw new Error('Session expired. Please log in again.'); }
+      throw new Error(parsed.data && parsed.data.error);
+    }
 
     // Migrate localStorage keys
     const oldUser = Auth.username;
@@ -455,7 +458,10 @@ async function dashChangePassword() {
       body: JSON.stringify({ currentPassword: curPassword, newPassword })
     });
     const parsed = await parseResponse(res);
-    if (!parsed.ok) throw new Error(parsed.data && parsed.data.error);
+    if (!parsed.ok) {
+      if (res.status === 401) { Auth.logout(); setTimeout(closeDashboard, 1500); throw new Error('Session expired. Please log in again.'); }
+      throw new Error(parsed.data && parsed.data.error);
+    }
 
     Auth.setToken(parsed.data.token, Auth.username, parsed.data.createdAt);
     dashSetMsg('dash-password-msg', 'Password updated!', true);
@@ -478,7 +484,10 @@ async function dashDeleteAccount() {
       body: JSON.stringify({ password })
     });
     const parsed = await parseResponse(res);
-    if (!parsed.ok) throw new Error(parsed.data && parsed.data.error);
+    if (!parsed.ok) {
+      if (res.status === 401) { Auth.logout(); setTimeout(closeDashboard, 1500); throw new Error('Session expired. Please log in again.'); }
+      throw new Error(parsed.data && parsed.data.error);
+    }
 
     // Clean localStorage
     ['activity', 'filaments', 'prefs'].forEach(type => {
