@@ -1,9 +1,5 @@
 name = "tessera3d"
-type = "javascript"
-main = "src/index.js"
-
-[env.production]
-name = "tessera3d-production"
+pages_build_output_dir = "."
 
 [[d1_databases]]
 binding = "DB"
