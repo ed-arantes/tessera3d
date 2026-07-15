@@ -739,10 +739,13 @@ function setupEventListeners() {
     if (e.key === 'ArrowRight') { next2DLayer(); e.preventDefault(); }
   });
 
-  // Close filament picker dropdowns on outside click
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.filament-picker-container')) {
-      document.querySelectorAll('.filament-picker-dropdown').forEach(d => d.classList.add('hidden'));
+  // Close filament picker on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const overlay = document.getElementById('filament-picker-overlay');
+      if (overlay && !overlay.classList.contains('hidden')) {
+        closeFilamentPicker();
+      }
     }
   });
 }
@@ -1143,10 +1146,6 @@ function renderLayersList() {
     const isBase = idx === 0;
     const layerNum = layer.startHeight === 0 ? 1 : Math.round(layer.startHeight / lh);
 
-    const filamentSwatches = state.filaments.map(f =>
-      `<div class="filament-swatch" data-hex="${f.hex}" data-td="${f.td}" data-name="${f.name}" data-brand="${f.brand}" title="${f.brand} - ${f.name} (TD ${f.td})" style="background:${f.hex}"></div>`
-    ).join('');
-
     row.draggable = !isBase;
     row.setAttribute('data-layer-index', idx);
     row.innerHTML = `
@@ -1156,9 +1155,6 @@ function renderLayersList() {
         <div style="flex:1"></div>
         <div class="filament-picker-container" id="filament-picker-${idx}">
           <button class="filament-picker-btn" id="filament-picker-btn-${idx}" title="Pick from filament library">&#9660;</button>
-          <div class="filament-picker-dropdown hidden" id="filament-dropdown-${idx}">
-            <div class="filament-picker-grid">${filamentSwatches || '<span class="filament-picker-empty">No filaments in library</span>'}</div>
-          </div>
         </div>
         <input type="color" class="color-picker" value="${layer.hex}" id="layer-color-${idx}">
         <div class="td-input-container">
@@ -1227,26 +1223,10 @@ function renderLayersList() {
 
     // Bind Filament Picker
     const pickerBtn = document.getElementById(`filament-picker-btn-${idx}`);
-    const pickerDropdown = document.getElementById(`filament-dropdown-${idx}`);
-    if (pickerBtn && pickerDropdown) {
+    if (pickerBtn) {
       pickerBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        document.querySelectorAll('.filament-picker-dropdown').forEach(d => {
-          if (d !== pickerDropdown) d.classList.add('hidden');
-        });
-        pickerDropdown.classList.toggle('hidden');
-      });
-
-      pickerDropdown.querySelectorAll('.filament-swatch').forEach(swatch => {
-        swatch.addEventListener('click', () => {
-          layer.hex = swatch.dataset.hex;
-          layer.td = parseFloat(swatch.dataset.td) || 2.0;
-          colorPicker.value = layer.hex;
-          tdInput.value = layer.td;
-          row.querySelector('.layer-badge').style.backgroundColor = layer.hex;
-          pickerDropdown.classList.add('hidden');
-          debounceUpdate();
-        });
+        openFilamentPicker(idx);
       });
     }
 
@@ -3128,4 +3108,87 @@ function matchImageColors() {
   syncColorCountUI();
   renderLayersList();
   debounceUpdate();
+}
+
+// ── Filament Picker Modal ──────────────────────────────────────
+
+function openFilamentPicker(layerIndex) {
+  const overlay = document.getElementById('filament-picker-overlay');
+  const body = document.getElementById('filament-picker-body');
+  if (!overlay || !body) return;
+
+  const groups = {};
+  state.filaments.forEach(f => {
+    const brand = f.brand || 'Unknown';
+    if (!groups[brand]) groups[brand] = [];
+    groups[brand].push(f);
+  });
+
+  const sortedBrands = Object.keys(groups).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+
+  sortedBrands.forEach(brand => {
+    groups[brand].sort((a, b) => hexToHue(a.hex) - hexToHue(b.hex));
+  });
+
+  let html = '';
+  sortedBrands.forEach(brand => {
+    html += `<div class="filament-brand-group"><div class="filament-brand-header">${brand}</div><div class="filament-brand-grid">`;
+    groups[brand].forEach(f => {
+      html += `<div class="filament-picker-swatch" data-hex="${f.hex}" data-td="${f.td}" data-layer-index="${layerIndex}" title="${f.brand} - ${f.name} (TD ${f.td})" style="background:${f.hex}"></div>`;
+    });
+    html += `</div></div>`;
+  });
+
+  if (!html) {
+    html = '<div class="filament-picker-empty">No filaments in library</div>';
+  }
+
+  body.innerHTML = html;
+  overlay.classList.remove('hidden');
+
+  body.querySelectorAll('.filament-picker-swatch').forEach(swatch => {
+    swatch.addEventListener('click', () => {
+      const idx = parseInt(swatch.dataset.layerIndex);
+      const layer = state.layers[idx];
+      if (!layer) return;
+
+      layer.hex = swatch.dataset.hex;
+      layer.td = parseFloat(swatch.dataset.td) || 2.0;
+
+      const colorPicker = document.getElementById(`layer-color-${idx}`);
+      const tdInput = document.getElementById(`layer-td-${idx}`);
+      const badge = document.querySelector(`.layer-row[data-layer-index="${idx}"] .layer-badge`);
+      if (colorPicker) colorPicker.value = layer.hex;
+      if (tdInput) tdInput.value = layer.td;
+      if (badge) badge.style.backgroundColor = layer.hex;
+
+      closeFilamentPicker();
+      debounceUpdate();
+    });
+  });
+}
+
+function closeFilamentPicker() {
+  const overlay = document.getElementById('filament-picker-overlay');
+  if (overlay) overlay.classList.add('hidden');
+}
+
+function hexToHue(hex) {
+  let r = 0, g = 0, b = 0;
+  if (hex.length === 7) {
+    r = parseInt(hex.slice(1, 3), 16) / 255;
+    g = parseInt(hex.slice(3, 5), 16) / 255;
+    b = parseInt(hex.slice(5, 7), 16) / 255;
+  }
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const delta = max - min;
+  if (delta === 0) return 0;
+  let hue = 0;
+  if (max === r) hue = ((g - b) / delta) % 6;
+  else if (max === g) hue = (b - r) / delta + 2;
+  else hue = (r - g) / delta + 4;
+  hue = Math.round(hue * 60);
+  if (hue < 0) hue += 360;
+  return hue;
 }
