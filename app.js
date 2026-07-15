@@ -1449,6 +1449,14 @@ function debounceUpdate() {
   if (!is3DActive) return;
 
   renderDebounceTimer = setTimeout(async () => {
+    renderDebounceTimer = null;
+
+    // If 3D tab is no longer active, skip the heavy work
+    if (!document.getElementById('pane-3d')?.classList.contains('active')) {
+      hidePreviewSpinner();
+      return;
+    }
+
     // Check if only colors changed (no geometry changes)
     if (hasOnlyColorChanged() && modelGroup.children.length > 0) {
       // Fast path: update vertex colors only
