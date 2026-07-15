@@ -1433,7 +1433,11 @@ function debounceUpdate() {
     clearTimeout(renderDebounceTimer);
   }
 
-  showPreviewSpinner('Rendering...');
+  const is3DActive = document.getElementById('pane-3d')?.classList.contains('active');
+
+  if (is3DActive) {
+    showPreviewSpinner('Rendering...');
+  }
 
   const draw2DIdle = () => schedule2DRender();
   if (typeof requestIdleCallback !== 'undefined') {
@@ -1441,6 +1445,8 @@ function debounceUpdate() {
   } else {
     setTimeout(draw2DIdle, 0);
   }
+
+  if (!is3DActive) return;
 
   renderDebounceTimer = setTimeout(async () => {
     // Check if only colors changed (no geometry changes)
