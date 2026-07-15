@@ -1446,7 +1446,10 @@ function debounceUpdate() {
     setTimeout(draw2DIdle, 0);
   }
 
-  if (!is3DActive) return;
+  if (!is3DActive) {
+    hidePreviewSpinner();
+    return;
+  }
 
   renderDebounceTimer = setTimeout(async () => {
     renderDebounceTimer = null;
