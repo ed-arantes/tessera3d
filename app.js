@@ -1362,7 +1362,7 @@ async function updateMeshColorsOnly() {
 
   const cols = state.gridCols;
   const rows = state.gridRows;
-  const heights = getHeightsGrid();
+  const heights = state.simulateTransmission ? getHeightsGrid() : null;
 
   for (const mesh of modelGroup.children) {
     if (!mesh.geometry || !mesh.userData) continue;
@@ -1371,27 +1371,20 @@ async function updateMeshColorsOnly() {
     if (typeof layerIndex !== 'number') continue;
 
     const colorData = mesh.geometry.attributes.color.array;
-    const posData = mesh.geometry.attributes.position.array;
-    
-    // Recompute colors for all vertices in this mesh
-    for (let i = 0; i < posData.length; i += 3) {
-      const px = posData[i];
-      const py = posData[i + 1];
 
-      // Find the original grid coordinates from physical position
+    if (state.simulateTransmission && state.layers.length > 0) {
+      // TD mode: color varies per vertex based on height → full per-vertex loop
+      const posData = mesh.geometry.attributes.position.array;
       const scaleX = state.widthMm;
       const scaleY = state.heightMm;
-      const x = Math.round((px / scaleX + 0.5) * (cols - 1));
-      const y = Math.round((-py / scaleY + 0.5) * (rows - 1));
-
-      if (x >= 0 && x < cols && y >= 0 && y < rows) {
-        const gridIdx = y * cols + x;
-        const h = heights[gridIdx];
-
-        // Recompute color (same logic as buildLayerGeometry lines 2438-2460)
-        let r, g, b;
-        if (state.simulateTransmission && state.layers.length > 0) {
-          let currentR = 0, currentG = 0, currentB = 0;
+      for (let i = 0; i < posData.length; i += 3) {
+        const px = posData[i];
+        const py = posData[i + 1];
+        const x = Math.round((px / scaleX + 0.5) * (cols - 1));
+        const y = Math.round((-py / scaleY + 0.5) * (rows - 1));
+        let currentR = 0, currentG = 0, currentB = 0;
+        if (x >= 0 && x < cols && y >= 0 && y < rows) {
+          const h = heights[y * cols + x];
           for (let j = 0; j <= layerIndex; j++) {
             const lStart = state.layers[j].startHeight;
             const lEnd = (j + 1 < state.layers.length) ? state.layers[j + 1].startHeight : state.maxHeight;
@@ -1411,12 +1404,18 @@ async function updateMeshColorsOnly() {
               }
             }
           }
-          r = currentR / 255; g = currentG / 255; b = currentB / 255;
-        } else {
-          const baseC = hexToRgb(state.layers[layerIndex].hex);
-          r = baseC.r / 255; g = baseC.g / 255; b = baseC.b / 255;
         }
-
+        colorData[i] = currentR / 255;
+        colorData[i + 1] = currentG / 255;
+        colorData[i + 2] = currentB / 255;
+      }
+    } else {
+      // Non-TD mode: entire mesh is a single flat color → bulk fill
+      const baseC = hexToRgb(state.layers[layerIndex].hex);
+      const r = baseC.r / 255;
+      const g = baseC.g / 255;
+      const b = baseC.b / 255;
+      for (let i = 0; i < colorData.length; i += 3) {
         colorData[i] = r;
         colorData[i + 1] = g;
         colorData[i + 2] = b;
