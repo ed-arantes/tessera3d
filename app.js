@@ -3132,7 +3132,7 @@ function openFilamentPicker(layerIndex) {
     const materials = brands[brand];
     const sortedMaterials = Object.keys(materials).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
     sortedMaterials.forEach(mat => {
-      materials[mat].sort((a, b) => hexToLightness(a.hex) - hexToLightness(b.hex));
+      materials[mat].sort((a, b) => hexToRGBValue(a.hex) - hexToRGBValue(b.hex));
     });
   });
 
@@ -3185,12 +3185,9 @@ function closeFilamentPicker() {
   if (overlay) overlay.classList.add('hidden');
 }
 
-function hexToLightness(hex) {
-  let r = 0, g = 0, b = 0;
+function hexToRGBValue(hex) {
   if (hex.length === 7) {
-    r = parseInt(hex.slice(1, 3), 16);
-    g = parseInt(hex.slice(3, 5), 16);
-    b = parseInt(hex.slice(5, 7), 16);
+    return parseInt(hex.slice(1), 16);
   }
-  return 0.299 * r + 0.587 * g + 0.114 * b;
+  return 0;
 }
