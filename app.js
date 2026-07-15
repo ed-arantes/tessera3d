@@ -46,6 +46,8 @@ const state = {
   filaments: []
 };
 
+window.state = state;
+
 // Preset palette colors for adding new layers
 const PRESET_COLORS = [
   '#0a0a0a', // Dark Gray/Black
