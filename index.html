@@ -2660,11 +2660,13 @@
       if (tab === '2d') {
         document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
         document.getElementById('pane-2d').classList.add('active');
+        if (window.stopAnimateLoop) stopAnimateLoop();
         if (window.draw2DSimulation) draw2DSimulation();
         if (typeof lucide !== 'undefined') lucide.createIcons();
       } else if (tab === '3d') {
         document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
         document.getElementById('pane-3d').classList.add('active');
+        if (window.startAnimateLoop) startAnimateLoop();
         if (window.update3DPreview) {
           showPreviewSpinner('Rendering...');
           new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))).then(() => update3DPreview()).then(() => hidePreviewSpinner());
@@ -2675,6 +2677,7 @@
       } else if (tab === 'filament') {
         document.querySelector('.tab-btn:nth-child(3)').classList.add('active');
         document.getElementById('pane-filament').classList.add('active');
+        if (window.stopAnimateLoop) stopAnimateLoop();
       }
       if (window.updateCardShadow) updateCardShadow();
     }
