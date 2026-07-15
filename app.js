@@ -1156,7 +1156,7 @@ function renderLayersList() {
         <div class="filament-picker-container" id="filament-picker-${idx}">
           <button class="filament-picker-btn" id="filament-picker-btn-${idx}" title="Pick from filament library">&#9660;</button>
         </div>
-        <input type="color" class="color-picker" value="${layer.hex}" id="layer-color-${idx}">
+        <button class="layer-swatch" id="layer-swatch-${idx}" style="background:${layer.hex}" title="Pick filament"></button>
         <div class="td-input-container">
           <span class="td-label">TD</span>
           <input type="number" class="td-input" value="${layer.td !== undefined ? layer.td : 2.0}" min="0.1" step="0.1" id="layer-td-${idx}">
@@ -1205,14 +1205,14 @@ function renderLayersList() {
       });
     }
 
-    // Bind Picker Event
-    const colorPicker = document.getElementById(`layer-color-${idx}`);
-    colorPicker.addEventListener('input', () => {
-      layer.hex = colorPicker.value;
-      const badge = row.querySelector('.layer-badge');
-      badge.style.backgroundColor = layer.hex;
-      debounceUpdate();
-    });
+    // Bind Layer Swatch (opens filament library)
+    const swatchBtn = document.getElementById(`layer-swatch-${idx}`);
+    if (swatchBtn) {
+      swatchBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openFilamentPicker(idx);
+      });
+    }
 
     // Bind TD Event
     const tdInput = document.getElementById(`layer-td-${idx}`);
@@ -3186,26 +3186,51 @@ function openFilamentPicker(layerIndex) {
   body.innerHTML = html;
   overlay.classList.remove('hidden');
 
+  // Eyedropper button
+  const eyedropperBtn = document.getElementById('filament-eyedropper');
+  if (eyedropperBtn) {
+    eyedropperBtn.onclick = () => {
+      if ('EyeDropper' in window) {
+        const eyeDropper = new EyeDropper();
+        eyeDropper.open().then(result => {
+          applyFilamentColor(layerIndex, result.sRGBHex, null);
+        }).catch(() => {});
+      } else {
+        // Fallback: create a temporary color input and trigger it
+        const tempInput = document.createElement('input');
+        tempInput.type = 'color';
+        tempInput.value = state.layers[layerIndex]?.hex || '#000000';
+        tempInput.addEventListener('input', () => {
+          applyFilamentColor(layerIndex, tempInput.value, null);
+        });
+        tempInput.click();
+      }
+    };
+  }
+
   body.querySelectorAll('.filament-picker-swatch').forEach(swatch => {
     swatch.addEventListener('click', () => {
-      const idx = parseInt(swatch.dataset.layerIndex);
-      const layer = state.layers[idx];
-      if (!layer) return;
-
-      layer.hex = swatch.dataset.hex;
-      layer.td = parseFloat(swatch.dataset.td) || 2.0;
-
-      const colorPicker = document.getElementById(`layer-color-${idx}`);
-      const tdInput = document.getElementById(`layer-td-${idx}`);
-      const badge = document.querySelector(`.layer-row[data-layer-index="${idx}"] .layer-badge`);
-      if (colorPicker) colorPicker.value = layer.hex;
-      if (tdInput) tdInput.value = layer.td;
-      if (badge) badge.style.backgroundColor = layer.hex;
-
-      closeFilamentPicker();
-      debounceUpdate();
+      applyFilamentColor(parseInt(swatch.dataset.layerIndex), swatch.dataset.hex, parseFloat(swatch.dataset.td) || 2.0);
     });
   });
+}
+
+function applyFilamentColor(idx, hex, td) {
+  const layer = state.layers[idx];
+  if (!layer) return;
+
+  layer.hex = hex;
+  if (td !== null) layer.td = td;
+
+  const swatchBtn = document.getElementById(`layer-swatch-${idx}`);
+  const tdInput = document.getElementById(`layer-td-${idx}`);
+  const badge = document.querySelector(`.layer-row[data-layer-index="${idx}"] .layer-badge`);
+  if (swatchBtn) swatchBtn.style.backgroundColor = hex;
+  if (tdInput) tdInput.value = layer.td;
+  if (badge) badge.style.backgroundColor = hex;
+
+  closeFilamentPicker();
+  debounceUpdate();
 }
 
 function closeFilamentPicker() {

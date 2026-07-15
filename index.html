@@ -828,29 +828,21 @@
       gap: 12px;
     }
 
-    .color-picker {
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      appearance: none;
+    .layer-swatch {
       width: 32px;
       height: 32px;
-      background: none;
       border: 1px solid var(--border);
       border-radius: var(--radius-md);
       cursor: pointer;
       padding: 0;
       overflow: hidden;
+      transition: transform 0.1s, box-shadow 0.1s;
+      flex-shrink: 0;
     }
 
-    .color-picker::-webkit-color-swatch-wrapper {
-      padding: 0;
-    }
-
-    /* Fixed Filament Picker Swatch Artifact */
-    .color-picker::-webkit-color-swatch,
-    .color-picker::-moz-color-swatch {
-      border: none;
-      border-radius: var(--radius-md);
+    .layer-swatch:hover {
+      transform: scale(1.15);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
     .layer-controls .slider-container {
@@ -2706,7 +2698,10 @@
     <div class="filament-picker-modal">
       <div class="filament-picker-header">
         <h2>Filament Library</h2>
-        <button class="modal-close" onclick="closeFilamentPicker()">&times;</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="modal-close" id="filament-eyedropper" title="Pick color from screen" style="position:static;font-size:18px;">🖌</button>
+          <button class="modal-close" onclick="closeFilamentPicker()">&times;</button>
+        </div>
       </div>
       <div class="filament-picker-body" id="filament-picker-body"></div>
     </div>
