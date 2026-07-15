@@ -92,6 +92,7 @@ const Auth = {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!res.ok) {
+        console.debug('[verifySession] Server returned', res.status, res.statusText);
         return null;
       }
       const parsed = await parseResponse(res);
@@ -99,7 +100,8 @@ const Auth = {
         this.setToken(token, parsed.data.username, parsed.data.createdAt);
       }
       return parsed.data;
-    } catch {
+    } catch (e) {
+      console.debug('[verifySession] Error:', e);
       return null;
     }
   }
@@ -422,7 +424,9 @@ async function dashChangeUsername() {
       body: JSON.stringify({ newUsername, password })
     });
     const parsed = await parseResponse(res);
-    if (!parsed.ok) throw new Error(parsed.data && parsed.data.error);
+    console.debug('[dashChangeUsername] response:', parsed);
+    const errMsg = parsed.data?.error || parsed.text || `Failed (${parsed.status})`;
+    if (!parsed.ok) throw new Error(errMsg);
 
     // Migrate localStorage keys
     const oldUser = Auth.username;
@@ -455,13 +459,16 @@ async function dashChangePassword() {
       body: JSON.stringify({ currentPassword: curPassword, newPassword })
     });
     const parsed = await parseResponse(res);
-    if (!parsed.ok) throw new Error(parsed.data && parsed.data.error);
+    console.debug('[dashChangePassword] response:', parsed);
+    const errMsg = parsed.data?.error || parsed.text || `Failed (${parsed.status})`;
+    if (!parsed.ok) throw new Error(errMsg);
 
     Auth.setToken(parsed.data.token, Auth.username, parsed.data.createdAt);
     dashSetMsg('dash-password-msg', 'Password updated!', true);
     document.getElementById('dash-cur-password').value = '';
     document.getElementById('dash-new-password').value = '';
   } catch (err) {
+    console.error('[dashChangePassword] error:', err);
     dashSetMsg('dash-password-msg', err.message, false);
   }
 }
@@ -478,7 +485,9 @@ async function dashDeleteAccount() {
       body: JSON.stringify({ password })
     });
     const parsed = await parseResponse(res);
-    if (!parsed.ok) throw new Error(parsed.data && parsed.data.error);
+    console.debug('[dashDeleteAccount] response:', parsed);
+    const errMsg = parsed.data?.error || parsed.text || `Failed (${parsed.status})`;
+    if (!parsed.ok) throw new Error(errMsg);
 
     // Clean localStorage
     ['activity', 'filaments', 'prefs'].forEach(type => {
@@ -488,6 +497,7 @@ async function dashDeleteAccount() {
     closeDashboard();
     Auth.logout();
   } catch (err) {
+    console.error('[dashDeleteAccount] error:', err);
     dashSetMsg('dash-delete-msg', err.message, false);
   }
 }

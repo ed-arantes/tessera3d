@@ -46,6 +46,6 @@ export async function getUserByToken(db, token) {
 
 export function extractToken(request) {
   const header = request.headers.get('Authorization') || '';
-  if (header.startsWith('Bearer ')) return header.slice(7).trim();
-  return header.trim() || null;
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : header.trim() || null;
 }
