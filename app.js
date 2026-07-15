@@ -85,9 +85,49 @@ let _lastColorStateSignature = null;
 
 // 2D layer viewer state
 let current2DLayerIndex = 0;
+let _2dRenderPending = false;
+let _2dBaseCacheCanvas = null;
+let _2dBaseCacheImageData = null;
+let _2dBaseCacheKey = null;
 
 function sync2DLayerIndex() {
   current2DLayerIndex = state.layers.length - 1;
+}
+
+function invalidate2DCache() {
+  _2dBaseCacheKey = null;
+}
+
+function schedule2DRender() {
+  if (_2dRenderPending) return;
+  _2dRenderPending = true;
+  requestAnimationFrame(() => {
+    _2dRenderPending = false;
+    draw2DSimulation();
+  });
+}
+
+function get2DRenderCacheKey() {
+  const layerState = state.layers.map(l => `${l.hex}:${l.startHeight}:${l.td ?? 2}`).join('|');
+  return `${_cachedHeightsKey}|${current2DLayerIndex}|${state.simulateTransmission}|${state.posterize}|${layerState}|${state.puzzleEnabled}`;
+}
+
+function ensure2DBaseCache(cols, rows) {
+  if (!_2dBaseCacheCanvas) {
+    _2dBaseCacheCanvas = document.createElement('canvas');
+  }
+
+  if (_2dBaseCacheCanvas.width !== cols || _2dBaseCacheCanvas.height !== rows) {
+    _2dBaseCacheCanvas.width = cols;
+    _2dBaseCacheCanvas.height = rows;
+    _2dBaseCacheImageData = null;
+  }
+
+  if (!_2dBaseCacheImageData || _2dBaseCacheImageData.width !== cols || _2dBaseCacheImageData.height !== rows) {
+    _2dBaseCacheImageData = new ImageData(cols, rows);
+  }
+
+  return _2dBaseCacheImageData;
 }
 
 // ─── Flood Fill Region State ─────────────────────────────────────────────────
@@ -1415,7 +1455,7 @@ function debounceUpdate() {
 
   showPreviewSpinner('Rendering...');
 
-  const draw2DIdle = () => draw2DSimulation();
+  const draw2DIdle = () => schedule2DRender();
   if (typeof requestIdleCallback !== 'undefined') {
     requestIdleCallback(draw2DIdle, { timeout: 300 });
   } else {
@@ -1610,85 +1650,88 @@ function buildLayerSliceCanvas(layerIndex, heights, cols, rows) {
 }
 
 function draw2DSimulation() {
-  if (!state.rawLuminance) return;
+  if (!state.rawLuminance || !canvas2D) return;
 
   const cols = state.gridCols;
   const rows = state.gridRows;
   const heights = getHeightsGrid();
   const idx = current2DLayerIndex;
-  const layer = state.layers[idx];
-  const lh = state.layerHeight;
 
-  const canvasW = canvas2D.parentElement.clientWidth - 40;
-  const canvasH = canvas2D.parentElement.clientHeight - 40;
+  const canvasW = canvas2D.parentElement ? canvas2D.parentElement.clientWidth - 40 : 300;
+  const canvasH = canvas2D.parentElement ? canvas2D.parentElement.clientHeight - 40 : 300;
   const cellSize = Math.max(2, Math.floor(Math.min(canvasW / cols, canvasH / rows)));
   const imgW = cols * cellSize;
   const imgH = rows * cellSize;
+  const targetHeight = imgH + 60;
 
-  canvas2D.width = imgW;
-  canvas2D.height = imgH + 60;
+  const renderKey = get2DRenderCacheKey();
+  const needsRebuild = _2dBaseCacheKey !== renderKey || !_2dBaseCacheCanvas || _2dBaseCacheCanvas.width !== cols || _2dBaseCacheCanvas.height !== rows;
+
+  if (needsRebuild) {
+    const imgData = ensure2DBaseCache(cols, rows);
+    const data = imgData.data;
+
+    for (let i = 0; i < cols * rows; i++) {
+      const h = heights[i];
+      let r, g, b;
+
+      if (ffRegionMask && ffRegionMask[i] >= 0) {
+        const overrideHex = ffRegionColors[ffRegionMask[i]];
+        if (overrideHex) {
+          const oc = hexToRgb(overrideHex);
+          r = oc.r; g = oc.g; b = oc.b;
+          data[i * 4] = r; data[i * 4 + 1] = g; data[i * 4 + 2] = b; data[i * 4 + 3] = 255;
+          continue;
+        }
+      }
+
+      if (state.simulateTransmission && state.layers.length > 0) {
+        let cr = 0, cg = 0, cb = 0;
+        for (let j = 0; j <= idx; j++) {
+          const ls = state.layers[j].startHeight;
+          const le = (j + 1 < state.layers.length) ? state.layers[j + 1].startHeight : state.maxHeight;
+          if (h > ls) {
+            const t = Math.min(h, le) - ls;
+            if (t > 0) {
+              const td = state.layers[j].td !== undefined ? state.layers[j].td : 2.0;
+              const op = 1.0 - Math.pow(0.05, t / td);
+              const rgb = hexToRgb(state.layers[j].hex);
+              if (j === 0) { cr = rgb.r; cg = rgb.g; cb = rgb.b; }
+              else { cr = cr * (1 - op) + rgb.r * op; cg = cg * (1 - op) + rgb.g * op; cb = cb * (1 - op) + rgb.b * op; }
+            }
+          }
+        }
+        r = cr; g = cg; b = cb;
+      } else {
+        let li = 0;
+        for (let j = 1; j <= idx; j++) {
+          if (h >= state.layers[j].startHeight) li = j;
+        }
+        const bc = hexToRgb(state.layers[li].hex);
+        r = bc.r; g = bc.g; b = bc.b;
+      }
+
+      data[i * 4] = r;
+      data[i * 4 + 1] = g;
+      data[i * 4 + 2] = b;
+      data[i * 4 + 3] = 255;
+    }
+
+    const baseCtx = _2dBaseCacheCanvas.getContext('2d');
+    baseCtx.putImageData(imgData, 0, 0);
+    _2dBaseCacheKey = renderKey;
+  }
+
+  if (canvas2D.width !== imgW || canvas2D.height !== targetHeight) {
+    canvas2D.width = imgW;
+    canvas2D.height = targetHeight;
+  }
+
   const ctx = canvas2D.getContext('2d');
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas2D.width, canvas2D.height);
   ctx.imageSmoothingEnabled = false;
-
-  const imgData = ctx.createImageData(cols, rows);
-  const data = imgData.data;
-
-  for (let i = 0; i < cols * rows; i++) {
-    const h = heights[i];
-    let r, g, b;
-
-    // Check for region color override
-    if (ffRegionMask && ffRegionMask[i] >= 0) {
-      const overrideHex = ffRegionColors[ffRegionMask[i]];
-      if (overrideHex) {
-        const oc = hexToRgb(overrideHex);
-        r = oc.r; g = oc.g; b = oc.b;
-        data[i * 4] = r; data[i * 4 + 1] = g; data[i * 4 + 2] = b; data[i * 4 + 3] = 255;
-        continue;
-      }
-    }
-
-    if (state.simulateTransmission && state.layers.length > 0) {
-      let cr = 0, cg = 0, cb = 0;
-      for (let j = 0; j <= idx; j++) {
-        const ls = state.layers[j].startHeight;
-        const le = (j + 1 < state.layers.length) ? state.layers[j + 1].startHeight : state.maxHeight;
-        if (h > ls) {
-          const t = Math.min(h, le) - ls;
-          if (t > 0) {
-            const td = state.layers[j].td !== undefined ? state.layers[j].td : 2.0;
-            const op = 1.0 - Math.pow(0.05, t / td);
-            const rgb = hexToRgb(state.layers[j].hex);
-            if (j === 0) { cr = rgb.r; cg = rgb.g; cb = rgb.b; }
-            else { cr = cr * (1 - op) + rgb.r * op; cg = cg * (1 - op) + rgb.g * op; cb = cb * (1 - op) + rgb.b * op; }
-          }
-        }
-      }
-      r = cr; g = cg; b = cb;
-    } else {
-      let li = 0;
-      for (let j = 1; j <= idx; j++) {
-        if (h >= state.layers[j].startHeight) li = j;
-      }
-      const bc = hexToRgb(state.layers[li].hex);
-      r = bc.r; g = bc.g; b = bc.b;
-    }
-
-    data[i * 4] = r;
-    data[i * 4 + 1] = g;
-    data[i * 4 + 2] = b;
-    data[i * 4 + 3] = 255;
-  }
-
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = cols;
-  tempCanvas.height = rows;
-  tempCanvas.getContext('2d').putImageData(imgData, 0, 0);
-
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(tempCanvas, 0, 0, imgW, imgH);
+  ctx.drawImage(_2dBaseCacheCanvas, 0, 0, imgW, imgH);
 
   // Draw flood fill pending selection highlight (last BFS result before assign)
   if (ffLastFillSet && ffLastFillSet.size > 0) {
@@ -1795,7 +1838,7 @@ function toggleFloodFillMode() {
     panel.classList.remove('hidden');
     ffLastFillSet = null;
     updateRegionPanel();
-    draw2DSimulation();
+    schedule2DRender();
   } else {
     ffLastFillSet = null;
     ffSelectedRegionId = null;
@@ -1804,7 +1847,7 @@ function toggleFloodFillMode() {
       panel.classList.add('hidden');
     }
     updateRegionPanel();
-    draw2DSimulation();
+    schedule2DRender();
   }
 }
 
@@ -1885,7 +1928,7 @@ function onCanvas2DClick(e) {
       applyBtn.disabled = false;
     }
     updateRegionPanel();
-    draw2DSimulation();
+    schedule2DRender();
     return;
   }
 
@@ -1898,7 +1941,8 @@ function onCanvas2DClick(e) {
   const applyBtn = document.getElementById('ff-apply-btn');
   if (applyBtn) applyBtn.disabled = false;
   updateRegionPanel();
-  draw2DSimulation();
+  invalidate2DCache();
+  schedule2DRender();
 }
 
 function applyRegionColor() {
@@ -1927,7 +1971,8 @@ function applyRegionColor() {
   const applyBtn = document.getElementById('ff-apply-btn');
   if (applyBtn) applyBtn.disabled = true;
   updateRegionPanel();
-  draw2DSimulation();
+  invalidate2DCache();
+  schedule2DRender();
 }
 
 function deleteRegion(rid) {
@@ -1942,7 +1987,7 @@ function deleteRegion(rid) {
     if (clearBtn) clearBtn.style.display = 'none';
   }
   updateRegionPanel();
-  draw2DSimulation();
+  schedule2DRender();
 }
 
 function clearAllRegions() {
@@ -1956,7 +2001,7 @@ function clearAllRegions() {
   const applyBtn = document.getElementById('ff-apply-btn');
   if (applyBtn) applyBtn.disabled = true;
   updateRegionPanel();
-  draw2DSimulation();
+  schedule2DRender();
 }
 
 function updateRegionPanel() {
@@ -2015,7 +2060,7 @@ function selectRegionFromPanel(rid) {
     applyBtn.disabled = false;
   }
   updateRegionPanel();
-  draw2DSimulation();
+  schedule2DRender();
 }
 
 window.toggleFloodFillMode = toggleFloodFillMode;
@@ -2028,14 +2073,14 @@ window.selectRegionFromPanel = selectRegionFromPanel;
 function prev2DLayer() {
   if (current2DLayerIndex > 0) {
     current2DLayerIndex--;
-    draw2DSimulation();
+    schedule2DRender();
   }
 }
 
 function next2DLayer() {
   if (current2DLayerIndex < state.layers.length - 1) {
     current2DLayerIndex++;
-    draw2DSimulation();
+    schedule2DRender();
   }
 }
 
