@@ -33,7 +33,7 @@ export async function onRequest(context) {
 
   const newPasswordHash = await hashPassword(newPassword);
   const newToken = createToken();
-  await db.prepare('UPDATE users SET passwordHash = ?, token = ? WHERE username = ?')
+  await db.prepare('UPDATE users SET passwordHash = ?, token = ? WHERE LOWER(username) = LOWER(?)')
     .bind(newPasswordHash, newToken, user.username)
     .run();
 

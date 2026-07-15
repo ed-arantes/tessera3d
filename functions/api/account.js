@@ -30,7 +30,7 @@ export async function onRequest(context) {
     return jsonResponse({ error: 'Incorrect password' }, 401);
   }
 
-  await db.prepare('DELETE FROM users WHERE username = ?').bind(user.username).run();
+  await db.prepare('DELETE FROM users WHERE LOWER(username) = LOWER(?)').bind(user.username).run();
 
   return jsonResponse({ ok: true });
 }

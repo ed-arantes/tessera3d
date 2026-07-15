@@ -31,7 +31,7 @@ export async function onRequest(context) {
   }
 
   const token = createToken();
-  await db.prepare('UPDATE users SET token = ? WHERE username = ?')
+  await db.prepare('UPDATE users SET token = ? WHERE LOWER(username) = LOWER(?)')
     .bind(token, username)
     .run();
 
