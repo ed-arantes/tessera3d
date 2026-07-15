@@ -1150,7 +1150,7 @@ function renderLayersList() {
     row.setAttribute('data-layer-index', idx);
     row.innerHTML = `
       <div class="layer-info">
-        <span class="layer-title">Layer ${idx + 1}</span>
+        <span class="layer-title">Color ${idx + 1}</span>
         <div style="flex:1"></div>
         <button class="layer-swatch" id="layer-swatch-${idx}" style="background:${layer.hex}" title="Pick filament"></button>
         <div class="td-input-container">
