@@ -1150,7 +1150,6 @@ function renderLayersList() {
     row.setAttribute('data-layer-index', idx);
     row.innerHTML = `
       <div class="layer-info">
-        <span class="layer-badge" style="background-color: ${layer.hex}"></span>
         <span class="layer-title">Layer ${idx + 1}</span>
         <div style="flex:1"></div>
         <button class="layer-swatch" id="layer-swatch-${idx}" style="background:${layer.hex}" title="Pick filament"></button>
@@ -3212,10 +3211,8 @@ function applyFilamentColor(idx, hex, td) {
 
   const swatchBtn = document.getElementById(`layer-swatch-${idx}`);
   const tdInput = document.getElementById(`layer-td-${idx}`);
-  const badge = document.querySelector(`.layer-row[data-layer-index="${idx}"] .layer-badge`);
   if (swatchBtn) swatchBtn.style.backgroundColor = hex;
   if (tdInput) tdInput.value = layer.td;
-  if (badge) badge.style.backgroundColor = hex;
 
   closeFilamentPicker();
   debounceUpdate();
