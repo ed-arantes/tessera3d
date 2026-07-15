@@ -73,8 +73,6 @@ let scene, camera, renderer, controls;
 let modelGroup;
 let renderDebounceTimer = null;
 let sceneNeedsRender = true; // dirty flag
-let _3dActive = false; // tracks whether 3D tab is visible
-let _animateRunning = false; // tracks whether animate loop is active
 
 // Cached heights to avoid recomputation
 let _cachedHeights = null;
@@ -292,32 +290,20 @@ function initThreeJS() {
   // Mark scene dirty whenever the camera/controls move
   controls.addEventListener('change', () => { sceneNeedsRender = true; });
 
-  initViewCube();
-}
-
-// Animation Loop - only renders when something changed
-function animate() {
-  if (!_3dActive) { _animateRunning = false; return; }
-  requestAnimationFrame(animate);
-  const changed = controls.update(); // returns true if camera moved
-  if (changed) sceneNeedsRender = true;
-  if (sceneNeedsRender) {
-    renderer.render(scene, camera);
-    sceneNeedsRender = false;
-  }
-  syncViewCube();
-}
-
-function startAnimateLoop() {
-  _3dActive = true;
-  if (!_animateRunning) {
-    _animateRunning = true;
+  // Animation Loop - only renders when something changed
+  function animate() {
     requestAnimationFrame(animate);
+    const changed = controls.update(); // returns true if camera moved
+    if (changed) sceneNeedsRender = true;
+    if (sceneNeedsRender) {
+      renderer.render(scene, camera);
+      sceneNeedsRender = false;
+    }
+    syncViewCube();
   }
-}
+  animate();
 
-function stopAnimateLoop() {
-  _3dActive = false;
+  initViewCube();
 }
 
 function onWindowResize() {
@@ -2100,8 +2086,6 @@ function next2DLayer() {
 
 window.prev2DLayer = prev2DLayer;
 window.next2DLayer = next2DLayer;
-window.startAnimateLoop = startAnimateLoop;
-window.stopAnimateLoop = stopAnimateLoop;
 
 // Build height map grid of physical heights (cached)
 function getHeightsGrid() {
