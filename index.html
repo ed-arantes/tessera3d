@@ -2685,7 +2685,8 @@
 
       // Block color layers and puzzle panels when no image loaded
       if (isCollapsed && (header.id === 'header-color-layers' || header.id === 'header-puzzle')) {
-        if (!window.state || !window.state.image) return;
+        const hasImage = window.state?.image || document.getElementById('upload-preview')?.src;
+        if (!hasImage) return;
       }
 
       const parent = panel.parentElement;
