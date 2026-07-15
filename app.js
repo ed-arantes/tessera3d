@@ -1153,9 +1153,6 @@ function renderLayersList() {
         <span class="layer-badge" style="background-color: ${layer.hex}"></span>
         <span class="layer-title">Layer ${idx + 1}</span>
         <div style="flex:1"></div>
-        <div class="filament-picker-container" id="filament-picker-${idx}">
-          <button class="filament-picker-btn" id="filament-picker-btn-${idx}" title="Pick from filament library">&#9660;</button>
-        </div>
         <button class="layer-swatch" id="layer-swatch-${idx}" style="background:${layer.hex}" title="Pick filament"></button>
         <div class="td-input-container">
           <span class="td-label">TD</span>
@@ -1220,15 +1217,6 @@ function renderLayersList() {
       layer.td = parseFloat(tdInput.value) || 2.0;
       debounceUpdate();
     });
-
-    // Bind Filament Picker
-    const pickerBtn = document.getElementById(`filament-picker-btn-${idx}`);
-    if (pickerBtn) {
-      pickerBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        openFilamentPicker(idx);
-      });
-    }
 
     const removeBtn = document.getElementById(`layer-remove-${idx}`);
     if (removeBtn) {
