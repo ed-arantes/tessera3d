@@ -2133,6 +2133,15 @@ async function update3DPreview() {
   const pane3D = document.getElementById('pane-3d');
   if (pane3D && !pane3D.classList.contains('active')) return;
 
+  // Skip full rebuild if model already rendered and nothing changed
+  if (modelGroup.children.length > 0) {
+    const colorChanged = getColorStateSignature() !== _lastColorStateSignature;
+    if (!colorChanged && !hasGeometryChanged()) {
+      sceneNeedsRender = true;
+      return;
+    }
+  }
+
   while (modelGroup.children.length > 0) {
     const obj = modelGroup.children[0];
     obj.geometry.dispose();
