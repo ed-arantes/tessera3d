@@ -78,6 +78,9 @@ let _cachedHeightsKey = null;
 let _modelVertexCount = 0;
 let _modelTriangleCount = 0;
 
+// Track color state for color-only fast path optimization
+let _lastColorStateSignature = null;
+
 // 2D layer viewer state
 let current2DLayerIndex = 0;
 
@@ -792,6 +795,9 @@ function handleImageFile(file) {
       const ffClearBtn = document.getElementById('ff-clear-btn');
       if (ffClearBtn) ffClearBtn.style.display = 'none';
       updateRegionPanel();
+      
+      // Reset color state signature since new geometry is being generated
+      _lastColorStateSignature = null;
 
       processImage();
       matchImageColors();
@@ -1291,12 +1297,119 @@ function updateUIFromState() {
   renderLayersList();
 }
 
+// Get a signature representing the current color state
+function getColorStateSignature() {
+  const layerHexes = state.layers.map(l => l.hex).join('|');
+  return `${layerHexes}:${state.simulateTransmission}`;
+}
+
+// Check if only color state has changed (geometry hasn't changed)
+function hasOnlyColorChanged() {
+  if (!_lastColorStateSignature || modelGroup.children.length === 0) {
+    return false; // No previous state or no model exists yet
+  }
+  
+  const currentSig = getColorStateSignature();
+  return currentSig === _lastColorStateSignature;
+}
+
+// Detect if any geometry-affecting state changed
+function hasGeometryChanged() {
+  // Geometry changes when these state variables change:
+  // - rawLuminance (image changes)
+  // - baseThickness, maxHeight (height scaling)
+  // - posterize (height quantization)
+  // - triangleQuality (mesh density)
+  // - puzzleEnabled, puzzleCols, puzzleRows, puzzleClearanceMm (puzzle mode)
+  // - mirrorX (mirroring affects heights)
+  // - gridResolution (grid size)
+  // - widthMm, heightMm (scale)
+  // Note: colors do NOT affect geometry
+  
+  // Simplified: if heights aren't cached, assume geometry changed
+  // Otherwise, heights would be cached from last full rebuild
+  return _cachedHeights === null;
+}
+
+// Update vertex colors in existing meshes without rebuilding geometry
+async function updateMeshColorsOnly() {
+  if (modelGroup.children.length === 0) return;
+
+  const cols = state.gridCols;
+  const rows = state.gridRows;
+  const heights = getHeightsGrid();
+
+  for (const mesh of modelGroup.children) {
+    if (!mesh.geometry || !mesh.userData) continue;
+
+    const layerIndex = mesh.userData.layerIndex;
+    if (typeof layerIndex !== 'number') continue;
+
+    const colorData = mesh.geometry.attributes.color.array;
+    const posData = mesh.geometry.attributes.position.array;
+    
+    // Recompute colors for all vertices in this mesh
+    for (let i = 0; i < posData.length; i += 3) {
+      const px = posData[i];
+      const py = posData[i + 1];
+
+      // Find the original grid coordinates from physical position
+      const scaleX = state.widthMm;
+      const scaleY = state.heightMm;
+      const x = Math.round((px / scaleX + 0.5) * (cols - 1));
+      const y = Math.round((-py / scaleY + 0.5) * (rows - 1));
+
+      if (x >= 0 && x < cols && y >= 0 && y < rows) {
+        const gridIdx = y * cols + x;
+        const h = heights[gridIdx];
+
+        // Recompute color (same logic as buildLayerGeometry lines 2438-2460)
+        let r, g, b;
+        if (state.simulateTransmission && state.layers.length > 0) {
+          let currentR = 0, currentG = 0, currentB = 0;
+          for (let j = 0; j <= layerIndex; j++) {
+            const lStart = state.layers[j].startHeight;
+            const lEnd = (j + 1 < state.layers.length) ? state.layers[j + 1].startHeight : state.maxHeight;
+            if (h > lStart) {
+              const thickness = Math.min(h, lEnd) - lStart;
+              if (thickness > 0) {
+                const layerTD = state.layers[j].td !== undefined ? state.layers[j].td : 2.0;
+                const opacity = 1.0 - Math.pow(0.05, thickness / layerTD);
+                const rgb = hexToRgb(state.layers[j].hex);
+                if (j === 0) {
+                  currentR = rgb.r; currentG = rgb.g; currentB = rgb.b;
+                } else {
+                  currentR = currentR * (1 - opacity) + rgb.r * opacity;
+                  currentG = currentG * (1 - opacity) + rgb.g * opacity;
+                  currentB = currentB * (1 - opacity) + rgb.b * opacity;
+                }
+              }
+            }
+          }
+          r = currentR / 255; g = currentG / 255; b = currentB / 255;
+        } else {
+          const baseC = hexToRgb(state.layers[layerIndex].hex);
+          r = baseC.r / 255; g = baseC.g / 255; b = baseC.b / 255;
+        }
+
+        colorData[i] = r;
+        colorData[i + 1] = g;
+        colorData[i + 2] = b;
+      }
+    }
+
+    mesh.geometry.attributes.color.needsUpdate = true;
+  }
+
+  sceneNeedsRender = true;
+  await yieldToUI();
+}
+
 // Debounce updates so that sliding doesn't block the UI
 function debounceUpdate() {
   if (renderDebounceTimer) {
     clearTimeout(renderDebounceTimer);
   }
-  _cachedHeights = null;
 
   showPreviewSpinner('Rendering...');
 
@@ -1308,8 +1421,20 @@ function debounceUpdate() {
   }
 
   renderDebounceTimer = setTimeout(async () => {
-    await update3DPreview();
-    updateTransitionTable();
+    // Check if only colors changed (no geometry changes)
+    if (hasOnlyColorChanged() && modelGroup.children.length > 0) {
+      // Fast path: update vertex colors only
+      await updateMeshColorsOnly();
+    } else {
+      // Full rebuild: geometry or first-time render
+      _cachedHeights = null;
+      await update3DPreview();
+      updateTransitionTable();
+    }
+    
+    // Update signature tracking for next change detection
+    _lastColorStateSignature = getColorStateSignature();
+    
     hidePreviewSpinner();
     if (typeof dashTrackSave === 'function') dashTrackSave();
   }, 200);
@@ -2018,6 +2143,7 @@ async function update3DPreview() {
       const mesh = new THREE.Mesh(geometry, material);
       mesh.castShadow = false;
       mesh.receiveShadow = false;
+      mesh.userData.layerIndex = k; // Store layer index for color-only updates
 
       modelGroup.add(mesh);
 
@@ -2030,6 +2156,9 @@ async function update3DPreview() {
 
   sceneNeedsRender = true;
   updateModelInfoCard();
+  
+  // Initialize color state signature after full rebuild for future comparisons
+  _lastColorStateSignature = getColorStateSignature();
 }
 
 function updateModelInfoCard() {
