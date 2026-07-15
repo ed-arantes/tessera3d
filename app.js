@@ -1330,9 +1330,12 @@ function hasOnlyColorChanged() {
   if (!_lastColorStateSignature || modelGroup.children.length === 0) {
     return false; // No previous state or no model exists yet
   }
+  if (hasGeometryChanged()) {
+    return false; // Geometry changed too
+  }
   
   const currentSig = getColorStateSignature();
-  return currentSig === _lastColorStateSignature;
+  return currentSig !== _lastColorStateSignature;
 }
 
 // Detect if any geometry-affecting state changed
