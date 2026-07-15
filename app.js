@@ -3117,26 +3117,38 @@ function openFilamentPicker(layerIndex) {
   const body = document.getElementById('filament-picker-body');
   if (!overlay || !body) return;
 
-  const groups = {};
+  const brands = {};
   state.filaments.forEach(f => {
     const brand = f.brand || 'Unknown';
-    if (!groups[brand]) groups[brand] = [];
-    groups[brand].push(f);
+    const material = f.material || 'Unknown';
+    if (!brands[brand]) brands[brand] = {};
+    if (!brands[brand][material]) brands[brand][material] = [];
+    brands[brand][material].push(f);
   });
 
-  const sortedBrands = Object.keys(groups).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+  const sortedBrands = Object.keys(brands).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
   sortedBrands.forEach(brand => {
-    groups[brand].sort((a, b) => hexToHue(a.hex) - hexToHue(b.hex));
+    const materials = brands[brand];
+    const sortedMaterials = Object.keys(materials).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    sortedMaterials.forEach(mat => {
+      materials[mat].sort((a, b) => hexToLightness(a.hex) - hexToLightness(b.hex));
+    });
   });
 
   let html = '';
   sortedBrands.forEach(brand => {
-    html += `<div class="filament-brand-group"><div class="filament-brand-header">${brand}</div><div class="filament-brand-grid">`;
-    groups[brand].forEach(f => {
-      html += `<div class="filament-picker-swatch" data-hex="${f.hex}" data-td="${f.td}" data-layer-index="${layerIndex}" title="${f.brand} - ${f.name} (TD ${f.td})" style="background:${f.hex}"></div>`;
+    html += `<div class="filament-brand-group"><div class="filament-brand-header">${brand}</div>`;
+    const materials = brands[brand];
+    const sortedMaterials = Object.keys(materials).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+    sortedMaterials.forEach(mat => {
+      html += `<div class="filament-material-header">${mat}</div><div class="filament-brand-grid">`;
+      materials[mat].forEach(f => {
+        html += `<div class="filament-picker-swatch" data-hex="${f.hex}" data-td="${f.td}" data-layer-index="${layerIndex}" title="${f.brand} - ${f.name} (${f.material}, TD ${f.td})" style="background:${f.hex}"></div>`;
+      });
+      html += `</div>`;
     });
-    html += `</div></div>`;
+    html += `</div>`;
   });
 
   if (!html) {
@@ -3173,22 +3185,12 @@ function closeFilamentPicker() {
   if (overlay) overlay.classList.add('hidden');
 }
 
-function hexToHue(hex) {
+function hexToLightness(hex) {
   let r = 0, g = 0, b = 0;
   if (hex.length === 7) {
-    r = parseInt(hex.slice(1, 3), 16) / 255;
-    g = parseInt(hex.slice(3, 5), 16) / 255;
-    b = parseInt(hex.slice(5, 7), 16) / 255;
+    r = parseInt(hex.slice(1, 3), 16);
+    g = parseInt(hex.slice(3, 5), 16);
+    b = parseInt(hex.slice(5, 7), 16);
   }
-  const max = Math.max(r, g, b);
-  const min = Math.min(r, g, b);
-  const delta = max - min;
-  if (delta === 0) return 0;
-  let hue = 0;
-  if (max === r) hue = ((g - b) / delta) % 6;
-  else if (max === g) hue = (b - r) / delta + 2;
-  else hue = (r - g) / delta + 4;
-  hue = Math.round(hue * 60);
-  if (hue < 0) hue += 360;
-  return hue;
+  return 0.299 * r + 0.587 * g + 0.114 * b;
 }
