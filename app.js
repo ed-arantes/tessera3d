@@ -581,6 +581,15 @@ function setupEventListeners() {
     }
   });
 
+  // Remove background
+  const removeBgBtn = document.getElementById('remove-bg-btn');
+  if (removeBgBtn) {
+    removeBgBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeBackground();
+    });
+  }
+
   // Flood Fill canvas click
   canvas2D.addEventListener('click', onCanvas2DClick);
 
@@ -859,6 +868,70 @@ function handleImageFile(file) {
     img.src = e.target.result;
   };
   reader.readAsDataURL(file);
+}
+
+// Remove background from the loaded image
+function removeBackground() {
+  if (!state.image) return;
+
+  showPreviewSpinner('Removing background...');
+
+  const img = state.image;
+  const c = document.createElement('canvas');
+  c.width = img.width;
+  c.height = img.height;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0);
+  const imgData = ctx.getImageData(0, 0, c.width, c.height);
+  const data = imgData.data;
+
+  // Sample background color from corners
+  const cornerPixels = [
+    { x: 0, y: 0 },
+    { x: c.width - 1, y: 0 },
+    { x: 0, y: c.height - 1 },
+    { x: c.width - 1, y: c.height - 1 }
+  ];
+  let rSum = 0, gSum = 0, bSum = 0;
+  for (const p of cornerPixels) {
+    const i = (p.y * c.width + p.x) * 4;
+    rSum += data[i];
+    gSum += data[i + 1];
+    bSum += data[i + 2];
+  }
+  const bgR = rSum / cornerPixels.length;
+  const bgG = gSum / cornerPixels.length;
+  const bgB = bSum / cornerPixels.length;
+
+  const tolerance = 40;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const dr = Math.abs(data[i] - bgR);
+    const dg = Math.abs(data[i + 1] - bgG);
+    const db = Math.abs(data[i + 2] - bgB);
+    if (dr + dg + db < tolerance) {
+      data[i + 3] = 0;
+    }
+  }
+
+  ctx.putImageData(imgData, 0, 0);
+  const newSrc = c.toDataURL('image/png');
+
+  // Create new image
+  const newImg = new Image();
+  newImg.onload = () => {
+    state.image = newImg;
+    state.imgWidth = newImg.width;
+    state.imgHeight = newImg.height;
+    const preview = document.getElementById('upload-preview');
+    if (preview) preview.src = newSrc;
+    processImage();
+    matchImageColors();
+    autoDistributeHeights();
+    renderLayersList();
+    hidePreviewSpinner();
+  };
+  newImg.src = newSrc;
 }
 
 // Extract luminance values from image at the active grid resolution
