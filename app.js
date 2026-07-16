@@ -305,55 +305,8 @@ function initThreeJS() {
   const plateMesh = new THREE.Mesh(plateGeo, plateMat);
   buildPlate.add(plateMesh);
 
-  // Silkscreen overlays
-  const plateFiles = [
-    { file: 'h2c-a2l.jpg', label: 'H2C / A2L' },
-    { file: 'a1-x1x2-p1p2.jpg', label: 'A1 / X1 / P1' },
-    { file: 'h2s-h2d.jpg', label: 'H2S / H2D' }
-  ];
-  const silkMeshes = [];
-  let platesLoaded = 0;
-
-  plateFiles.forEach((p, i) => {
-    const loader = new THREE.TextureLoader();
-    loader.load(p.file, (tex) => {
-      const c = document.createElement('canvas');
-      c.width = tex.image.width; c.height = tex.image.height;
-      const cx = c.getContext('2d');
-      cx.drawImage(tex.image, 0, 0);
-      const d = cx.getImageData(0, 0, c.width, c.height);
-      for (let j = 0; j < d.data.length; j += 4) {
-        const avg = (d.data[j] + d.data[j+1] + d.data[j+2]) / 3;
-        if (avg > 180) d.data[j+3] = 255;
-        else d.data[j+3] = 0;
-      }
-      cx.putImageData(d, 0, 0);
-      const silkTex = new THREE.CanvasTexture(c);
-      const silkMat = new THREE.MeshBasicMaterial({
-        map: silkTex, transparent: true, opacity: 0.35, depthWrite: false
-      });
-      const silk = new THREE.Mesh(plateGeo, silkMat);
-      silk.position.z = 0.1;
-      silk.visible = (i === 0);
-      silkMeshes[i] = silk;
-      buildPlate.add(silk);
-      platesLoaded++;
-    });
-  });
-
   buildPlate.position.z = 0;
   scene.add(buildPlate);
-
-  // Plate selector
-  const plateBtns = document.querySelectorAll('.plate-btn');
-  plateBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const idx = parseInt(btn.dataset.plate);
-      plateBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      silkMeshes.forEach((m, i) => { if (m) m.visible = (i === idx); });
-    });
-  });
 
   // Model group
   modelGroup = new THREE.Group();
