@@ -8,6 +8,7 @@
 const state = {
   image: null,
   rawLuminance: null, // Float32Array of raw normalized luminance [0, 1]
+  rawAlpha: null, // Uint8Array of alpha channel for transparent background support
   colorSampleRGB: null, // Uint8Array of RGB data for color matching (full grid-res)
   colorSampleWidth: 0,
   colorSampleHeight: 0,
@@ -278,12 +279,29 @@ function initThreeJS() {
   const plateSize = 280;
   const plateGeo = new THREE.PlaneGeometry(plateSize, plateSize);
 
+  // PEI grain texture
+  const noiseCanvas = document.createElement('canvas');
+  noiseCanvas.width = 512; noiseCanvas.height = 512;
+  const nctx = noiseCanvas.getContext('2d');
+  const noiseData = nctx.createImageData(512, 512);
+  for (let i = 0; i < noiseData.data.length; i += 4) {
+    const val = Math.random() * 255;
+    noiseData.data[i] = noiseData.data[i+1] = noiseData.data[i+2] = val;
+    noiseData.data[i+3] = 255;
+  }
+  nctx.putImageData(noiseData, 0, 0);
+  const peiTex = new THREE.CanvasTexture(noiseCanvas);
+  peiTex.wrapS = peiTex.wrapT = THREE.RepeatWrapping;
+  peiTex.repeat.set(4, 4);
+
   // Build plate group
   const buildPlate = new THREE.Group();
   const plateMat = new THREE.MeshStandardMaterial({
     color: '#d4af37',
-    roughness: 0.6,
-    metalness: 0.1
+    roughness: 0.7,
+    metalness: 0.2,
+    bumpMap: peiTex,
+    bumpScale: 0.8
   });
   const plateMesh = new THREE.Mesh(plateGeo, plateMat);
   buildPlate.add(plateMesh);
@@ -295,6 +313,7 @@ function initThreeJS() {
     { file: 'h2s-h2d.jpg', label: 'H2S / H2D' }
   ];
   const silkMeshes = [];
+  let platesLoaded = 0;
 
   plateFiles.forEach((p, i) => {
     const loader = new THREE.TextureLoader();
@@ -305,20 +324,20 @@ function initThreeJS() {
       cx.drawImage(tex.image, 0, 0);
       const d = cx.getImageData(0, 0, c.width, c.height);
       for (let j = 0; j < d.data.length; j += 4) {
-        const avg = (d.data[j] + d.data[j+1] + d.data[j+2]) / 3;
-        if (avg < 180) d.data[j+3] = 255;
+        if (d.data[j] < 200) d.data[j+3] = 255;
         else d.data[j+3] = 0;
       }
       cx.putImageData(d, 0, 0);
       const silkTex = new THREE.CanvasTexture(c);
       const silkMat = new THREE.MeshBasicMaterial({
-        map: silkTex, transparent: true, opacity: 0.4, depthWrite: false
+        map: silkTex, transparent: true, opacity: 0.5, depthWrite: false
       });
       const silk = new THREE.Mesh(plateGeo, silkMat);
       silk.position.z = 0.1;
-      silk.visible = (i === 1);
+      silk.visible = (i === 0);
       silkMeshes[i] = silk;
       buildPlate.add(silk);
+      platesLoaded++;
     });
   });
 
@@ -926,11 +945,11 @@ function handleImageFile(file) {
   reader.readAsDataURL(file);
 }
 
-// Remove background from the loaded image
+// Remove background from the loaded image using flood-fill from edges
 function removeBackground() {
   if (!state.image) return;
 
-  showPreviewSpinner('Removing background...');
+  if (typeof showPreviewSpinner === 'function') showPreviewSpinner('Removing background...');
 
   const img = state.image;
   const c = document.createElement('canvas');
@@ -941,39 +960,48 @@ function removeBackground() {
   const imgData = ctx.getImageData(0, 0, c.width, c.height);
   const data = imgData.data;
 
-  // Sample background color from corners
-  const cornerPixels = [
-    { x: 0, y: 0 },
-    { x: c.width - 1, y: 0 },
-    { x: 0, y: c.height - 1 },
-    { x: c.width - 1, y: c.height - 1 }
-  ];
-  let rSum = 0, gSum = 0, bSum = 0;
-  for (const p of cornerPixels) {
-    const i = (p.y * c.width + p.x) * 4;
-    rSum += data[i];
-    gSum += data[i + 1];
-    bSum += data[i + 2];
+  const bgR = data[0], bgG = data[1], bgB = data[2];
+  const tolerance = 45;
+
+  const visited = new Uint8Array(c.width * c.height);
+  const queue = [];
+
+  for (let x = 0; x < c.width; x++) {
+    queue.push(x);
+    queue.push((c.height - 1) * c.width + x);
   }
-  const bgR = rSum / cornerPixels.length;
-  const bgG = gSum / cornerPixels.length;
-  const bgB = bSum / cornerPixels.length;
+  for (let y = 0; y < c.height; y++) {
+    queue.push(y * c.width);
+    queue.push(y * c.width + c.width - 1);
+  }
 
-  const tolerance = 40;
+  let head = 0;
+  while (head < queue.length) {
+    const idx = queue[head++];
+    if (visited[idx]) continue;
 
-  for (let i = 0; i < data.length; i += 4) {
+    const i = idx * 4;
     const dr = Math.abs(data[i] - bgR);
     const dg = Math.abs(data[i + 1] - bgG);
     const db = Math.abs(data[i + 2] - bgB);
+
     if (dr + dg + db < tolerance) {
+      visited[idx] = 1;
       data[i + 3] = 0;
+
+      const x = idx % c.width;
+      const y = Math.floor(idx / c.width);
+
+      if (x > 0 && !visited[idx - 1]) queue.push(idx - 1);
+      if (x < c.width - 1 && !visited[idx + 1]) queue.push(idx + 1);
+      if (y > 0 && !visited[idx - c.width]) queue.push(idx - c.width);
+      if (y < c.height - 1 && !visited[idx + c.width]) queue.push(idx + c.width);
     }
   }
 
   ctx.putImageData(imgData, 0, 0);
   const newSrc = c.toDataURL('image/png');
 
-  // Create new image
   const newImg = new Image();
   newImg.onload = () => {
     state.image = newImg;
@@ -981,11 +1009,12 @@ function removeBackground() {
     state.imgHeight = newImg.height;
     const preview = document.getElementById('upload-preview');
     if (preview) preview.src = newSrc;
-    processImage();
-    matchImageColors();
-    autoDistributeHeights();
-    renderLayersList();
-    hidePreviewSpinner();
+
+    if (typeof processImage === 'function') processImage();
+    if (typeof matchImageColors === 'function') matchImageColors();
+    if (typeof autoDistributeHeights === 'function') autoDistributeHeights();
+    if (typeof renderLayersList === 'function') renderLayersList();
+    if (typeof hidePreviewSpinner === 'function') hidePreviewSpinner();
   };
   newImg.src = newSrc;
 }
@@ -997,7 +1026,6 @@ function processImage() {
   const res = state.gridResolution;
   const aspect = state.imgWidth / state.imgHeight;
 
-  // Determine grid columns/rows keeping aspect ratio
   let cols, rows;
   if (aspect >= 1) {
     cols = res;
@@ -1010,23 +1038,17 @@ function processImage() {
   state.gridCols = cols;
   state.gridRows = rows;
 
-  // Draw to offscreen canvas
   const canvas = document.createElement('canvas');
   canvas.width = cols;
   canvas.height = rows;
-  const ctx = canvas.getContext('2d');
-
-  if (state.mirrorX) {
-    ctx.translate(cols, 0);
-    ctx.scale(-1, 1);
-  }
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
   ctx.drawImage(state.image, 0, 0, cols, rows);
-
   const imgData = ctx.getImageData(0, 0, cols, rows);
   const pixels = imgData.data;
 
   state.rawLuminance = new Float32Array(cols * rows);
+  state.rawAlpha = new Uint8Array(cols * rows);
   state.colorSampleRGB = new Uint8Array(cols * rows * 3);
   state.colorSampleWidth = cols;
   state.colorSampleHeight = rows;
@@ -1035,14 +1057,15 @@ function processImage() {
     const r = pixels[i * 4];
     const g = pixels[i * 4 + 1];
     const b = pixels[i * 4 + 2];
+    const a = pixels[i * 4 + 3];
 
-    // Relative Luminance formula
     let L = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 
     if (state.invertHeights) {
       L = 1.0 - L;
     }
     state.rawLuminance[i] = L;
+    state.rawAlpha[i] = a;
     state.colorSampleRGB[i * 3] = r;
     state.colorSampleRGB[i * 3 + 1] = g;
     state.colorSampleRGB[i * 3 + 2] = b;
@@ -2210,9 +2233,8 @@ window.next2DLayer = next2DLayer;
 
 // Build height map grid of physical heights (cached)
 function getHeightsGrid() {
-  // Build a lightweight cache key from current settings
   const key = `${state.gridCols},${state.gridRows},${state.baseThickness},${state.maxHeight},${state.posterize},` +
-    state.layers.map(l => l.startHeight).join(',');
+    (state.layers ? state.layers.map(l => l.startHeight).join(',') : '');
 
   if (_cachedHeights && _cachedHeightsKey === key) {
     return _cachedHeights;
@@ -2225,16 +2247,22 @@ function getHeightsGrid() {
 
   const heights = new Float32Array(cols * rows);
   for (let i = 0; i < cols * rows; i++) {
+
+    // Drop transparent pixels entirely
+    if (state.rawAlpha && state.rawAlpha[i] < 128) {
+      heights[i] = 0;
+      continue;
+    }
+
     let h = base + state.rawLuminance[i] * (max - base);
 
-    if (state.posterize && state.layers.length > 0) {
+    if (state.posterize && state.layers && state.layers.length > 0) {
       let layerIdx = 0;
       for (let j = 1; j < state.layers.length; j++) {
         if (h >= state.layers[j].startHeight) {
           layerIdx = j;
         }
       }
-      // Snap height perfectly into the determined layer to create flat, crisp regions
       let snappedH = layerIdx === state.layers.length - 1 ? max : state.layers[layerIdx + 1].startHeight - 0.001;
       h = Math.max(base, snappedH);
     }
