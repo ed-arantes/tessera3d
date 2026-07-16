@@ -373,10 +373,10 @@ function initViewCube() {
   cubeGroup.add(vcCube);
 
   // Thin black outline on every edge
-  const edges = new THREE.EdgesGeometry(cubeGeo);
-  const edgeMat = new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3 });
-  const lineSegments = new THREE.LineSegments(edges, edgeMat);
-  cubeGroup.add(lineSegments);
+  const edgeGeo = new THREE.EdgesGeometry(cubeGeo);
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0x111827, transparent: true, opacity: 0.5 });
+  const edgeLines = new THREE.LineSegments(edgeGeo, edgeMat);
+  vcCube.add(edgeLines);
 
   vcScene.add(cubeGroup);
   vcScene.add(new THREE.AmbientLight(0xffffff, 0.8));
