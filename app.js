@@ -283,13 +283,20 @@ function initThreeJS() {
   plateMesh.position.z = 0;
   scene.add(plateMesh);
 
-  new THREE.TextureLoader().load('h2c-a2l.jpg?' + Date.now(), (tex) => {
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
-    plateMat.map = tex;
-    plateMat.color.set(0xffffff);
-    plateMat.needsUpdate = true;
-    sceneNeedsRender = true;
+  fetch('h2c-a2l.jpg').then(r => r.blob()).then(blob => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.width;
+      c.height = img.height;
+      c.getContext('2d').drawImage(img, 0, 0);
+      const tex = new THREE.CanvasTexture(c);
+      plateMat.map = tex;
+      plateMat.color.set(0xffffff);
+      plateMat.needsUpdate = true;
+      sceneNeedsRender = true;
+    };
+    img.src = URL.createObjectURL(blob);
   });
 
   // Model group
