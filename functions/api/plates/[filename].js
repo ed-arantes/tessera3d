@@ -10,7 +10,7 @@ export async function onRequestGet(context) {
   const headers = new Headers();
   obj.writeHttpMetadata(headers);
   headers.set('etag', obj.httpEtag);
-  headers.set('Cache-Control', 'public, max-age=3600');
+  headers.set('Cache-Control', 'public, max-age=60');
 
   return new Response(obj.body, { headers });
 }
