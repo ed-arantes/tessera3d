@@ -5,3 +5,7 @@ pages_build_output_dir = "."
 binding = "DB"
 database_name = "tessera"
 database_id = "ffeec5ab-4afd-44bc-bb99-b63764ac5acb"
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "data"

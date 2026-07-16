@@ -293,7 +293,7 @@ function initThreeJS() {
     scene.add(mesh);
     plateMeshes.push(mesh);
 
-    fetch(def.file).then(r => r.blob()).then(blob => {
+    fetch(`/api/plates/${def.file}`).then(r => r.blob()).then(blob => {
       const img = new Image();
       img.onload = () => {
         const c = document.createElement('canvas');
