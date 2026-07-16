@@ -286,7 +286,6 @@ function initThreeJS() {
 
   plateDefs.forEach((def, i) => {
     const geo = new THREE.PlaneGeometry(def.w, def.h);
-    console.log(`[PLATE ${i}] ${def.file} -> ${def.w} x ${def.h}mm`);
     const mat = new THREE.MeshBasicMaterial({ color: 0xe5e7eb });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.z = 0;
