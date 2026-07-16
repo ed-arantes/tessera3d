@@ -274,11 +274,87 @@ function initThreeJS() {
   dirLight2.position.set(-100, 100, 50);
   scene.add(dirLight2);
 
-  // Grid Helper on the Floor
-  const gridHelper = new THREE.GridHelper(300, 30, 0xd1d9e6, 0xe5e7eb);
-  gridHelper.rotation.x = Math.PI / 2; // Lay flat on XY plane
-  gridHelper.position.z = -0.1;
-  scene.add(gridHelper);
+  // ── Build Plate (PEI) ────────────────────────────────────────
+  const plateSize = 280;
+  const plateGeo = new THREE.PlaneGeometry(plateSize, plateSize);
+
+  // PEI grain texture
+  const noiseCanvas = document.createElement('canvas');
+  noiseCanvas.width = 512; noiseCanvas.height = 512;
+  const nctx = noiseCanvas.getContext('2d');
+  const noiseData = nctx.createImageData(512, 512);
+  for (let i = 0; i < noiseData.data.length; i += 4) {
+    const val = Math.random() * 255;
+    noiseData.data[i] = noiseData.data[i+1] = noiseData.data[i+2] = val;
+    noiseData.data[i+3] = 255;
+  }
+  nctx.putImageData(noiseData, 0, 0);
+  const peiTex = new THREE.CanvasTexture(noiseCanvas);
+  peiTex.wrapS = peiTex.wrapT = THREE.RepeatWrapping;
+  peiTex.repeat.set(4, 4);
+
+  // Build plate group
+  const buildPlate = new THREE.Group();
+  const plateMat = new THREE.MeshStandardMaterial({
+    color: '#d4af37',
+    roughness: 0.7,
+    metalness: 0.2,
+    bumpMap: peiTex,
+    bumpScale: 0.8
+  });
+  const plateMesh = new THREE.Mesh(plateGeo, plateMat);
+  plateMesh.rotation.x = -Math.PI / 2;
+  buildPlate.add(plateMesh);
+
+  // Silkscreen overlays
+  const plateFiles = [
+    { file: 'h2c-a2l.jpg', label: 'H2C / A2L' },
+    { file: 'a1-x1x2-p1p2.jpg', label: 'A1 / X1 / P1' },
+    { file: 'h2s-h2d.jpg', label: 'H2S / H2D' }
+  ];
+  const silkMeshes = [];
+  let platesLoaded = 0;
+
+  plateFiles.forEach((p, i) => {
+    const loader = new THREE.TextureLoader();
+    loader.load(p.file, (tex) => {
+      const c = document.createElement('canvas');
+      c.width = tex.image.width; c.height = tex.image.height;
+      const cx = c.getContext('2d');
+      cx.drawImage(tex.image, 0, 0);
+      const d = cx.getImageData(0, 0, c.width, c.height);
+      for (let j = 0; j < d.data.length; j += 4) {
+        if (d.data[j] < 200) d.data[j+3] = 255;
+        else d.data[j+3] = 0;
+      }
+      cx.putImageData(d, 0, 0);
+      const silkTex = new THREE.CanvasTexture(c);
+      const silkMat = new THREE.MeshBasicMaterial({
+        map: silkTex, transparent: true, opacity: 0.5, depthWrite: false
+      });
+      const silk = new THREE.Mesh(plateGeo, silkMat);
+      silk.rotation.x = -Math.PI / 2;
+      silk.position.z = 0.1;
+      silk.visible = (i === 0);
+      silkMeshes[i] = silk;
+      buildPlate.add(silk);
+      platesLoaded++;
+    });
+  });
+
+  buildPlate.position.z = 0;
+  scene.add(buildPlate);
+
+  // Plate selector
+  const plateBtns = document.querySelectorAll('.plate-btn');
+  plateBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.plate);
+      plateBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      silkMeshes.forEach((m, i) => { if (m) m.visible = (i === idx); });
+    });
+  });
 
   // Model group
   modelGroup = new THREE.Group();
