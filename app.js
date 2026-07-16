@@ -275,28 +275,51 @@ function initThreeJS() {
   dirLight2.position.set(-100, 100, 50);
   scene.add(dirLight2);
 
-  // ── Build Plate ────────────────────────────────────────────────
-  const plateSize = 280;
-  const plateGeo = new THREE.PlaneGeometry(plateSize, plateSize);
-  const plateMat = new THREE.MeshBasicMaterial({ color: 0xe5e7eb });
-  const plateMesh = new THREE.Mesh(plateGeo, plateMat);
-  plateMesh.position.z = 0;
-  scene.add(plateMesh);
+  // ── Build Plates ──────────────────────────────────────────────
+  const plateDefs = [
+    { file: 'a1m.jpg', w: 185, h: 185 },
+    { file: 'a1-x1x2-p1p2.jpg', w: 265, h: 265 },
+    { file: 'h2s-h2d.jpg', w: 355, h: 346 },
+    { file: 'h2c-a2l.jpg', w: 335, h: 346 }
+  ];
+  const plateMeshes = [];
 
-  fetch('h2c-a2l.jpg').then(r => r.blob()).then(blob => {
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = img.width;
-      c.height = img.height;
-      c.getContext('2d').drawImage(img, 0, 0);
-      const tex = new THREE.CanvasTexture(c);
-      plateMat.map = tex;
-      plateMat.color.set(0xffffff);
-      plateMat.needsUpdate = true;
+  plateDefs.forEach((def, i) => {
+    const geo = new THREE.PlaneGeometry(def.w, def.h);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xe5e7eb });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.z = 0;
+    mesh.visible = (i === 0);
+    scene.add(mesh);
+    plateMeshes.push(mesh);
+
+    fetch(def.file).then(r => r.blob()).then(blob => {
+      const img = new Image();
+      img.onload = () => {
+        const c = document.createElement('canvas');
+        c.width = img.width;
+        c.height = img.height;
+        c.getContext('2d').drawImage(img, 0, 0);
+        const tex = new THREE.CanvasTexture(c);
+        mat.map = tex;
+        mat.color.set(0xffffff);
+        mat.needsUpdate = true;
+        sceneNeedsRender = true;
+      };
+      img.src = URL.createObjectURL(blob);
+    });
+  });
+
+  // Plate selector
+  const plateBtns = document.querySelectorAll('.plate-btn');
+  plateBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.plate);
+      plateBtns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      plateMeshes.forEach((m, i) => { m.visible = (i === idx); });
       sceneNeedsRender = true;
-    };
-    img.src = URL.createObjectURL(blob);
+    });
   });
 
   // Model group
