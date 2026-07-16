@@ -303,7 +303,6 @@ function initThreeJS() {
     bumpScale: 0.8
   });
   const plateMesh = new THREE.Mesh(plateGeo, plateMat);
-  plateMesh.rotation.x = -Math.PI / 2;
   buildPlate.add(plateMesh);
 
   // Silkscreen overlays
@@ -313,34 +312,32 @@ function initThreeJS() {
     { file: 'h2s-h2d.jpg', label: 'H2S / H2D' }
   ];
   const silkMeshes = [];
+  let platesLoaded = 0;
 
   plateFiles.forEach((p, i) => {
-    const img = new Image();
-    img.onload = () => {
+    const loader = new THREE.TextureLoader();
+    loader.load(p.file, (tex) => {
       const c = document.createElement('canvas');
-      c.width = img.width; c.height = img.height;
+      c.width = tex.image.width; c.height = tex.image.height;
       const cx = c.getContext('2d');
-      cx.drawImage(img, 0, 0);
+      cx.drawImage(tex.image, 0, 0);
       const d = cx.getImageData(0, 0, c.width, c.height);
       for (let j = 0; j < d.data.length; j += 4) {
-        const lum = 0.2126 * d.data[j] + 0.7152 * d.data[j+1] + 0.0722 * d.data[j+2];
-        d.data[j+3] = lum < 160 ? 255 : 0;
+        if (d.data[j] < 200) d.data[j+3] = 255;
+        else d.data[j+3] = 0;
       }
       cx.putImageData(d, 0, 0);
       const silkTex = new THREE.CanvasTexture(c);
-      silkTex.needsUpdate = true;
       const silkMat = new THREE.MeshBasicMaterial({
-        map: silkTex, transparent: true, opacity: 0.5, depthWrite: false, side: THREE.DoubleSide
+        map: silkTex, transparent: true, opacity: 0.5, depthWrite: false
       });
       const silk = new THREE.Mesh(plateGeo, silkMat);
-      silk.rotation.x = -Math.PI / 2;
-      silk.position.z = 0.2;
+      silk.position.z = 0.1;
       silk.visible = (i === 0);
       silkMeshes[i] = silk;
       buildPlate.add(silk);
-      if (i === 0) silkReady = true;
-    };
-    img.src = p.file;
+      platesLoaded++;
+    });
   });
 
   buildPlate.position.z = 0;
