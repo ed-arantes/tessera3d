@@ -323,13 +323,14 @@ function initThreeJS() {
       cx.drawImage(tex.image, 0, 0);
       const d = cx.getImageData(0, 0, c.width, c.height);
       for (let j = 0; j < d.data.length; j += 4) {
-        if (d.data[j] < 200) d.data[j+3] = 255;
+        const avg = (d.data[j] + d.data[j+1] + d.data[j+2]) / 3;
+        if (avg > 180) d.data[j+3] = 255;
         else d.data[j+3] = 0;
       }
       cx.putImageData(d, 0, 0);
       const silkTex = new THREE.CanvasTexture(c);
       const silkMat = new THREE.MeshBasicMaterial({
-        map: silkTex, transparent: true, opacity: 0.5, depthWrite: false
+        map: silkTex, transparent: true, opacity: 0.35, depthWrite: false
       });
       const silk = new THREE.Mesh(plateGeo, silkMat);
       silk.position.z = 0.1;
