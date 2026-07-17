@@ -1039,6 +1039,10 @@ function processImage() {
     state.colorSampleRGB[i * 3 + 2] = b;
   }
 
+  _cachedHeights = null;
+  _cachedHeightsKey = null;
+  invalidate2DCache();
+
   debounceUpdate();
   updateTabsForImage();
 }
@@ -1797,6 +1801,11 @@ function draw2DSimulation() {
         }
       }
 
+      if (state.rawAlpha && state.rawAlpha[i] < 128) {
+        data[i * 4] = 0; data[i * 4 + 1] = 0; data[i * 4 + 2] = 0; data[i * 4 + 3] = 0;
+        continue;
+      }
+
       if (state.simulateTransmission && state.layers.length > 0) {
         let cr = 0, cg = 0, cb = 0;
         for (let j = 0; j <= idx; j++) {
@@ -1843,6 +1852,19 @@ function draw2DSimulation() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas2D.width, canvas2D.height);
   ctx.imageSmoothingEnabled = false;
+
+  const hasTransparent = state.rawAlpha && state.rawAlpha.some(a => a < 128);
+  if (hasTransparent) {
+    const checkSize = Math.max(4, cellSize);
+    for (let cy = 0; cy < imgH; cy += checkSize) {
+      for (let cx = 0; cx < imgW; cx += checkSize) {
+        const isLight = ((Math.floor(cx / checkSize) + Math.floor(cy / checkSize)) % 2 === 0);
+        ctx.fillStyle = isLight ? '#d0d0d0' : '#b0b0b0';
+        ctx.fillRect(cx, cy, checkSize, checkSize);
+      }
+    }
+  }
+
   ctx.drawImage(_2dBaseCacheCanvas, 0, 0, imgW, imgH);
 
   // Draw flood fill pending selection highlight (last BFS result before assign)
