@@ -1,5 +1,5 @@
 /**
- * HueForge-Style Posterized 3MF Generator
+ * Chromaphanes Mesh Generator
  * Main Application Logic
  */
 
@@ -1707,7 +1707,7 @@ function buildLayerSliceCanvas(layerIndex, heights, cols, rows) {
     let r, g, b;
 
     if (state.simulateTransmission && state.layers.length > 0) {
-      // Simulate Light Transmission (HueForge style)
+      // Simulate Light Transmission
       let currentR = 0, currentG = 0, currentB = 0;
 
       for (let j = 0; j < state.layers.length; j++) {
