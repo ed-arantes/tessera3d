@@ -156,6 +156,7 @@ const vcMouse = new THREE.Vector2();
 const DEFAULT_CAM_POS = new THREE.Vector3(0, -180, 150);
 const DEFAULT_CAM_TARGET = new THREE.Vector3(0, 0, 0);
 let exportProgressResetTimer = null;
+let activeExportBtn = null;
 
 function init() {
   initDOM();
@@ -1615,8 +1616,8 @@ function updateExportProgress(percent, status) {
   if (exportProgressMeta) {
     exportProgressMeta.textContent = `${safePercent.toFixed(0)}%`;
   }
-  if (btnExport) {
-    btnExport.textContent = `Exporting... ${safePercent.toFixed(0)}%`;
+  if (activeExportBtn) {
+    activeExportBtn.textContent = `Exporting... ${safePercent.toFixed(0)}%`;
   }
 }
 
@@ -2837,6 +2838,7 @@ async function export3MF() {
   }
 
   btnExport.disabled = true;
+  activeExportBtn = btnExport;
   updateExportProgress(2, 'Preparing export...');
 
   try {
@@ -2896,6 +2898,7 @@ async function export3MF() {
 
     if (layersData.length === 0) {
       alert("No geometry was generated! Make sure layer heights are set correctly.");
+      activeExportBtn = null;
       btnExport.disabled = false;
       btnExport.textContent = "Export 3MF for BambuStudio";
       failExportProgress('No geometry was generated.');
@@ -2917,6 +2920,7 @@ async function export3MF() {
     failExportProgress('Export failed.');
     alert("Export failed: " + error.message);
   } finally {
+    activeExportBtn = null;
     btnExport.disabled = false;
     btnExport.innerHTML = '<i data-lucide="download"></i> Export OBJ for BambuStudio';
     if (typeof lucide !== 'undefined') lucide.createIcons();
@@ -2932,6 +2936,7 @@ async function exportSTL() {
 
   const btnSTL = document.getElementById('btn-export-stl');
   if (btnSTL) btnSTL.disabled = true;
+  activeExportBtn = btnSTL;
 
   updateExportProgress(2, 'Preparing STL export...');
 
@@ -2973,6 +2978,7 @@ async function exportSTL() {
 
     if (allMeshes.length === 0) {
       alert('No geometry was generated!');
+      activeExportBtn = null;
       return;
     }
 
@@ -2988,6 +2994,7 @@ async function exportSTL() {
     failExportProgress('STL export failed.');
     alert('STL export failed: ' + error.message);
   } finally {
+    activeExportBtn = null;
     if (btnSTL) {
       btnSTL.disabled = false;
       btnSTL.innerHTML = '<i data-lucide="box"></i> Export STL';
