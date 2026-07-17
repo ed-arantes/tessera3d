@@ -63,7 +63,12 @@ const Exporter3MF = {
     if (typeof onProgress === 'function') {
       onProgress(100, 'Starting download...');
     }
-    this._download(lines.join(''), baseName + '.obj', 'text/plain');
+    try {
+        this._download(lines.join(''), baseName + '.obj', 'text/plain');
+    } catch (e) {
+        console.error("OBJ Download failed:", e);
+        if (typeof onProgress === 'function') onProgress(100, `Error during download: ${e.message}`);
+    }
   },
 
   /**
@@ -153,7 +158,12 @@ const Exporter3MF = {
     }
 
     if (typeof onProgress === 'function') onProgress(100, 'Starting download...');
-    this._downloadBinary(buffer, 'model.stl', 'application/octet-stream');
+    try {
+        this._downloadBinary(buffer, 'model.stl', 'application/octet-stream');
+    } catch (e) {
+        console.error("STL Download failed:", e);
+        if (typeof onProgress === 'function') onProgress(100, `Error during download: ${e.message}`);
+    }
   },
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -179,28 +189,44 @@ const Exporter3MF = {
     });
   },
 
+  /**
+   * Downloads text content (OBJ).
+   */
   _download(text, filename, mime) {
-    const blob = new Blob([text], { type: mime });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+        const blob = new Blob([text], { type: mime });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        console.error("Error during text download:", e);
+        throw new Error("Failed to initiate file download.");
+    }
   },
 
+  /**
+   * Downloads binary content (STL).
+   */
   _downloadBinary(buffer, filename, mime) {
-    const blob = new Blob([buffer], { type: mime });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    try {
+        const blob = new Blob([buffer], { type: mime });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        console.error("Error during binary download:", e);
+        throw new Error("Failed to initiate file download.");
+    }
   }
 };
 
