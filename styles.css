@@ -197,10 +197,6 @@ h1 {
   height: 0;
 }
 
-.preview-column>.preview-card.is-empty {
-  box-shadow: none !important;
-}
-
 .preview-column>.preview-card>.panel-header {
   flex-shrink: 0;
 }

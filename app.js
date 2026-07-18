@@ -191,8 +191,7 @@ function showEmptyState() {
   document.getElementById('preview-empty').classList.remove('hidden');
   document.getElementById('layer-nav').classList.add('hidden');
   const ffTb = document.getElementById('ff-toolbar');
-  if (ffTb) ffTb.style.display = 'none';
-  updateCardShadow();
+  if (ffTb) ffTb.classList.add('hidden');
   updateTabsForImage();
 }
 
@@ -883,7 +882,7 @@ function handleImageFile(file) {
       ffSelectedRegionId = null;
       ffLastFillSet = null;
       const ffClearBtn = document.getElementById('ff-clear-btn');
-      if (ffClearBtn) ffClearBtn.style.display = 'none';
+      if (ffClearBtn) ffClearBtn.classList.add('hidden');
       updateRegionPanel();
       
       // Reset color state signature since new geometry is being generated
@@ -1652,7 +1651,6 @@ function showPreviewSpinner(text) {
   const textEl = document.getElementById('preview-spinner-text');
   if (spinner) spinner.classList.remove('hidden');
   if (textEl && text) textEl.textContent = text;
-  updateCardShadow();
 }
 
 function hidePreviewSpinner() {
@@ -1661,13 +1659,12 @@ function hidePreviewSpinner() {
     document.getElementById('preview-empty').classList.remove('hidden');
     document.getElementById('layer-nav').classList.add('hidden');
     const ffTb = document.getElementById('ff-toolbar');
-    if (ffTb) ffTb.style.display = 'none';
+    if (ffTb) ffTb.classList.add('hidden');
   } else {
     document.getElementById('layer-nav').classList.remove('hidden');
     const ffTb = document.getElementById('ff-toolbar');
-    if (ffTb) ffTb.style.display = '';
+    if (ffTb) ffTb.classList.remove('hidden');
   }
-  updateCardShadow();
 }
 
 function hexToRgb(hex) {
@@ -2075,7 +2072,7 @@ function applyRegionColor() {
     }
     ffLastFillSet = null;
     const clearBtn = document.getElementById('ff-clear-btn');
-    if (clearBtn) clearBtn.style.display = '';
+    if (clearBtn) clearBtn.classList.remove('hidden');
   }
 
   addLayerFromColor(hex);
@@ -2096,7 +2093,7 @@ function deleteRegion(rid) {
   if (ffSelectedRegionId === rid) ffSelectedRegionId = null;
   if (Object.keys(ffRegionColors).length === 0) {
     const clearBtn = document.getElementById('ff-clear-btn');
-    if (clearBtn) clearBtn.style.display = 'none';
+    if (clearBtn) clearBtn.classList.add('hidden');
   }
   updateRegionPanel();
   schedule2DRender();
@@ -2109,7 +2106,7 @@ function clearAllRegions() {
   ffSelectedRegionId = null;
   ffLastFillSet = null;
   const clearBtn = document.getElementById('ff-clear-btn');
-  if (clearBtn) clearBtn.style.display = 'none';
+  if (clearBtn) clearBtn.classList.add('hidden');
   const applyBtn = document.getElementById('ff-apply-btn');
   if (applyBtn) applyBtn.disabled = true;
   updateRegionPanel();
@@ -3413,7 +3410,6 @@ window.switchTab = function (tab) {
     document.getElementById('pane-filament').classList.add('active');
     updateTransitionTable();
   }
-  if (typeof updateCardShadow === 'function') updateCardShadow();
 };
 
 // ── Panel Toggle ─────────────────────────────────────────────────────────────
