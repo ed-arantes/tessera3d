@@ -153,7 +153,7 @@ let vcDragging = false, vcDragStart = null, vcDragStartQuat = null;
 let vcDragMoved = false;
 const vcRaycaster = new THREE.Raycaster();
 const vcMouse = new THREE.Vector2();
-const DEFAULT_CAM_POS = new THREE.Vector3(120, -120, 200);
+const DEFAULT_CAM_POS = new THREE.Vector3(0, -180, 150);
 const DEFAULT_CAM_TARGET = new THREE.Vector3(0, 0, 0);
 let exportProgressResetTimer = null;
 let activeExportBtn = null;
