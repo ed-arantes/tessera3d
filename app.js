@@ -158,6 +158,8 @@ const DEFAULT_CAM_TARGET = new THREE.Vector3(0, 0, 0);
 let exportProgressResetTimer = null;
 let activeExportBtn = null;
 
+// ── Initialization ────────────────────────────────────────────────────────────
+
 function init() {
   initDOM();
   initThreeJS();
@@ -210,6 +212,8 @@ if (document.readyState === 'loading') {
 }
 
 // Setup DOM elements reference
+// ── DOM References ────────────────────────────────────────────────────────────
+
 function initDOM() {
   dropZone = document.getElementById('drop-zone');
   fileInput = document.getElementById('file-input');
@@ -579,6 +583,8 @@ function animateCameraTo(targetPos, targetLookAt) {
 // ── End View Cube ────────────────────────────────────────────
 
 // Setup Application Event Listeners
+// ── Event Wiring ─────────────────────────────────────────────────────────────
+
 function setupEventListeners() {
   // Drag and Drop
   dropZone.addEventListener('dragenter', (e) => {
@@ -814,6 +820,8 @@ function setupInputListener(elementId, stateField, parseFn, callback) {
 }
 
 // Default Gradient Image (useful on initial load)
+// ── Image Pipeline ───────────────────────────────────────────────────────────
+
 function loadDefaultImage() {
   const canvas = document.createElement('canvas');
   canvas.width = 300;
@@ -1250,6 +1258,8 @@ function autoDistributeHeights() {
 }
 
 // Render dynamic list of color configuration rows
+// ── Layer Management ─────────────────────────────────────────────────────────
+
 function renderLayersList() {
   layerListContainer.innerHTML = '';
 
@@ -1533,6 +1543,8 @@ async function updateMeshColorsOnly() {
 }
 
 // Debounce updates so that sliding doesn't block the UI
+// ── Update Pipeline ──────────────────────────────────────────────────────────
+
 function debounceUpdate() {
   if (renderDebounceTimer) {
     clearTimeout(renderDebounceTimer);
@@ -1586,6 +1598,8 @@ function debounceUpdate() {
     if (typeof dashTrackSave === 'function') dashTrackSave();
   }, 200);
 }
+
+// ── Export Progress ──────────────────────────────────────────────────────────
 
 function showExportProgress() {
   if (exportProgressResetTimer) {
@@ -1666,6 +1680,8 @@ function hidePreviewSpinner() {
     if (ffTb) ffTb.classList.remove('hidden');
   }
 }
+
+// ── Utilities ────────────────────────────────────────────────────────────────
 
 function hexToRgb(hex) {
   return {
@@ -1751,6 +1767,8 @@ function buildLayerSliceCanvas(layerIndex, heights, cols, rows) {
   ctx.putImageData(imgData, 0, 0);
   return offscreen;
 }
+
+// ── 2D Rendering ─────────────────────────────────────────────────────────────
 
 function draw2DSimulation() {
   if (!state.rawLuminance || !canvas2D) return;
