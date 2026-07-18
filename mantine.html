@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#FB3640">
+  <title>Tessera - Mantine UI</title>
+  <link rel="icon" type="image/png" href="/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js" defer></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; overflow: hidden; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #f8f9fa; color: #1a1b1e; }
+
+    /* ── Mantine-like Variables ────────────────────────────────────── */
+    :root {
+      --mantine-accent: #FB3640;
+      --mantine-accent-hover: #e02e37;
+      --mantine-bg: #ffffff;
+      --mantine-bg-alt: #f8f9fa;
+      --mantine-border: #dee2e6;
+      --mantine-text: #1a1b1e;
+      --mantine-text-dim: #909296;
+      --mantine-radius-sm: 6px;
+      --mantine-radius-md: 8px;
+      --mantine-radius-lg: 12px;
+      --mantine-shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+      --mantine-shadow-md: 0 2px 8px rgba(0,0,0,0.1);
+      --sidebar-width: 420px;
+    }
+
+    /* ── Layout ────────────────────────────────────────────────────── */
+    .app-shell { display: flex; height: 100vh; }
+
+    /* ── Sidebar (Navbar) ─────────────────────────────────────────── */
+    .navbar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      height: 100vh;
+      background: var(--mantine-bg);
+      border-right: 1px solid var(--mantine-border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .navbar-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--mantine-border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .navbar-header img { width: 32px; height: 32px; border-radius: var(--mantine-radius-sm); }
+    .navbar-header h1 { font-size: 16px; font-weight: 700; color: var(--mantine-text); }
+    .navbar-header .version { font-size: 11px; color: var(--mantine-text-dim); font-weight: 400; }
+    .navbar-section {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .navbar-footer {
+      padding: 12px;
+      border-top: 1px solid var(--mantine-border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* ── Section / Accordion ──────────────────────────────────────── */
+    .section {
+      background: var(--mantine-bg);
+      border: 1px solid var(--mantine-border);
+      border-radius: var(--mantine-radius-md);
+      overflow: hidden;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    .section-header:hover { background: var(--mantine-bg-alt); }
+    .section-header h3 {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--mantine-text);
+    }
+    .section-header h3 i { color: var(--mantine-accent); font-size: 13px; }
+    .section-chevron {
+      font-size: 10px;
+      color: var(--mantine-text-dim);
+      transition: transform 0.2s;
+    }
+    .section.collapsed .section-chevron { transform: rotate(-90deg); }
+    .section-body {
+      padding: 0 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
+      max-height: 1000px;
+      opacity: 1;
+      overflow: hidden;
+    }
+    .section.collapsed .section-body {
+      max-height: 0;
+      opacity: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    /* ── Form Controls ────────────────────────────────────────────── */
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-label { font-size: 12px; font-weight: 500; color: var(--mantine-text-dim); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-input {
+      width: 100%;
+      height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--mantine-border);
+      border-radius: var(--mantine-radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--mantine-text);
+      background: var(--mantine-bg);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus { border-color: var(--mantine-accent); }
+    .form-input-with-unit {
+      position: relative;
+    }
+    .form-input-with-unit .form-input { padding-right: 36px; }
+    .form-unit {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: var(--mantine-text-dim);
+      pointer-events: none;
+    }
+    .form-select {
+      width: 100%;
+      height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--mantine-border);
+      border-radius: var(--mantine-radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--mantine-text);
+      background: var(--mantine-bg);
+      outline: none;
+      cursor: pointer;
+      appearance: auto;
+    }
+    .form-select:focus { border-color: var(--mantine-accent); }
+
+    /* ── Switch ───────────────────────────────────────────────────── */
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+    .switch-label { font-size: 13px; color: var(--mantine-text); }
+    .mantine-switch {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .mantine-switch input { opacity: 0; width: 0; height: 0; }
+    .mantine-switch .track {
+      position: absolute;
+      inset: 0;
+      background: var(--mantine-border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .mantine-switch .track::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .mantine-switch input:checked + .track { background: var(--mantine-accent); }
+    .mantine-switch input:checked + .track::after { transform: translateX(16px); }
+
+    /* ── Slider ───────────────────────────────────────────────────── */
+    .slider-row { display: flex; align-items: center; gap: 10px; }
+    .slider-row label { font-size: 12px; font-weight: 500; color: var(--mantine-text-dim); white-space: nowrap; }
+    .slider-row input[type="range"] {
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--mantine-border);
+      border-radius: 2px;
+      outline: none;
+    }
+    .slider-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--mantine-accent);
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .slider-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--mantine-accent);
+      background: rgba(251, 54, 64, 0.08);
+      padding: 2px 8px;
+      border-radius: 10px;
+      min-width: 28px;
+      text-align: center;
+    }
+
+    /* ── Buttons ──────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 34px;
+      padding: 0 14px;
+      border-radius: var(--mantine-radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid var(--mantine-border);
+      background: var(--mantine-bg);
+      color: var(--mantine-text);
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--mantine-bg-alt); }
+    .btn-primary {
+      background: var(--mantine-accent);
+      color: #fff;
+      border-color: var(--mantine-accent);
+    }
+    .btn-primary:hover { background: var(--mantine-accent-hover); border-color: var(--mantine-accent-hover); }
+    .btn-sm { height: 28px; padding: 0 10px; font-size: 12px; }
+    .btn-icon {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border-radius: var(--mantine-radius-sm);
+    }
+    .btn-row { display: flex; gap: 8px; }
+    .btn-danger { background: #fa5252; color: #fff; border-color: #fa5252; }
+    .btn-danger:hover { background: #e03131; border-color: #e03131; }
+
+    /* ── Upload Zone ──────────────────────────────────────────────── */
+    .upload-zone {
+      border: 2px dashed var(--mantine-border);
+      border-radius: var(--mantine-radius-md);
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--mantine-accent);
+      background: rgba(251, 54, 64, 0.03);
+    }
+    .upload-zone i { font-size: 28px; color: var(--mantine-text-dim); margin-bottom: 8px; display: block; }
+    .upload-zone p { font-size: 13px; color: var(--mantine-text); margin-bottom: 4px; }
+    .upload-zone span { font-size: 12px; color: var(--mantine-text-dim); }
+    .upload-preview { max-width: 100%; max-height: 120px; border-radius: var(--mantine-radius-sm); margin-top: 8px; display: none; }
+    .remove-bg-link { font-size: 12px; color: var(--mantine-accent); cursor: pointer; margin-top: 6px; }
+
+    /* ── Layer List ───────────────────────────────────────────────── */
+    .layer-list { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+    .layer-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: var(--mantine-bg-alt);
+      border-radius: var(--mantine-radius-sm);
+      border: 1px solid transparent;
+    }
+    .layer-row.active { border-color: var(--mantine-accent); }
+    .layer-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: 2px solid rgba(0,0,0,0.08);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .layer-info { flex: 1; font-size: 12px; color: var(--mantine-text-dim); min-width: 0; }
+    .layer-controls { display: flex; align-items: center; gap: 4px; }
+    .layer-controls input[type="range"] { width: 80px; height: 3px; }
+    .layer-controls input[type="range"]::-webkit-slider-thumb {
+      width: 10px; height: 10px;
+    }
+    .layer-val { font-size: 11px; color: var(--mantine-text-dim); white-space: nowrap; min-width: 90px; }
+
+    /* ── Main Content ─────────────────────────────────────────────── */
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--mantine-bg-alt); }
+    .main-header {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--mantine-border);
+      background: var(--mantine-bg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .main-header h2 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .main-header h2 i { color: var(--mantine-accent); font-size: 14px; }
+    .auth-bar { display: flex; align-items: center; gap: 8px; }
+
+    /* ── Tabs ─────────────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 2px;
+      background: var(--mantine-bg-alt);
+      border-radius: var(--mantine-radius-sm);
+      padding: 3px;
+    }
+    .tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 12px;
+      border-radius: var(--mantine-radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--mantine-text-dim);
+      transition: all 0.15s;
+    }
+    .tab:hover { color: var(--mantine-text); background: rgba(0,0,0,0.04); }
+    .tab.active {
+      background: var(--mantine-bg);
+      color: var(--mantine-text);
+      box-shadow: var(--mantine-shadow-sm);
+    }
+    .tab i { font-size: 12px; }
+
+    /* ── Viewport ─────────────────────────────────────────────────── */
+    .viewport { flex: 1; position: relative; overflow: hidden; }
+    .viewport canvas { display: block; width: 100%; height: 100%; }
+    .pane { position: absolute; inset: 0; display: none; }
+    .pane.active { display: flex; align-items: center; justify-content: center; }
+
+    /* ── Layer Nav ────────────────────────────────────────────────── */
+    .layer-nav {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 4px;
+      background: var(--mantine-bg);
+      border: 1px solid var(--mantine-border);
+      border-radius: var(--mantine-radius-md);
+      padding: 4px;
+      box-shadow: var(--mantine-shadow-md);
+      z-index: 5;
+    }
+
+    /* ── Info Card ────────────────────────────────────────────────── */
+    .info-card {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: var(--mantine-bg);
+      border: 1px solid var(--mantine-border);
+      border-radius: var(--mantine-radius-md);
+      padding: 10px 14px;
+      box-shadow: var(--mantine-shadow-sm);
+      font-size: 11px;
+      z-index: 5;
+    }
+    .info-row { display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; }
+    .info-label { color: var(--mantine-text-dim); }
+    .info-value { font-weight: 600; color: var(--mantine-text); }
+
+    /* ── Filament Table ───────────────────────────────────────────── */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .data-table th {
+      text-align: left;
+      padding: 8px 10px;
+      font-weight: 600;
+      font-size: 11px;
+      color: var(--mantine-text-dim);
+      border-bottom: 1px solid var(--mantine-border);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .data-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--mantine-border);
+      color: var(--mantine-text);
+    }
+    .color-dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.1);
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    /* ── Alert ────────────────────────────────────────────────────── */
+    .alert {
+      padding: 12px 14px;
+      border-radius: var(--mantine-radius-md);
+      font-size: 13px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .alert-warning { background: rgba(251, 54, 64, 0.06); border: 1px solid rgba(251, 54, 64, 0.2); color: var(--mantine-accent); }
+
+    /* ── Tip Box ──────────────────────────────────────────────────── */
+    .tip-box {
+      padding: 10px 14px;
+      border-radius: var(--mantine-radius-md);
+      background: rgba(251, 54, 64, 0.04);
+      border: 1px solid rgba(251, 54, 64, 0.15);
+      font-size: 12px;
+      color: var(--mantine-text-dim);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .tip-box i { color: var(--mantine-accent); font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+
+    /* ── Export Buttons ───────────────────────────────────────────── */
+    .export-stack { display: flex; flex-direction: column; gap: 8px; }
+    .btn-export {
+      width: 100%;
+      height: 38px;
+      border-radius: var(--mantine-radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.15s;
+    }
+    .btn-export:hover { opacity: 0.9; }
+    .btn-export:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Scrollbar ────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--mantine-border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #adb5bd; }
+
+    /* ── Build Plates ─────────────────────────────────────────────── */
+    .plate-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .plate-btn {
+      height: 26px;
+      padding: 0 8px;
+      border-radius: var(--mantine-radius-sm);
+      border: 1px solid var(--mantine-border);
+      background: var(--mantine-bg);
+      font-size: 11px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      color: var(--mantine-text-dim);
+      transition: all 0.15s;
+    }
+    .plate-btn:hover, .plate-btn.active { border-color: var(--mantine-accent); color: var(--mantine-accent); background: rgba(251,54,64,0.04); }
+
+    /* ── Hidden ───────────────────────────────────────────────────── */
+    .hidden { display: none !important; }
+
+    /* ── Empty State ──────────────────────────────────────────────── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--mantine-text-dim);
+      gap: 12px;
+    }
+    .empty-state i { font-size: 48px; opacity: 0.3; }
+    .empty-state p { font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect, useCallback } = React;
+
+    /* ── Toggle Section ────────────────────────────────────────────── */
+    function Section({ icon, title, defaultOpen = true, children }) {
+      const [open, setOpen] = useState(defaultOpen);
+      return (
+        <div className={`section ${open ? '' : 'collapsed'}`}>
+          <div className="section-header" onClick={() => setOpen(!open)}>
+            <h3><i className={`fas ${icon}`}></i> {title}</h3>
+            <i className="fas fa-chevron-down section-chevron"></i>
+          </div>
+          <div className="section-body">{children}</div>
+        </div>
+      );
+    }
+
+    /* ── Form Input with Unit ──────────────────────────────────────── */
+    function InputUnit({ label, id, unit, ...props }) {
+      return (
+        <div className="form-group">
+          <label className="form-label" htmlFor={id}>{label}</label>
+          <div className="form-input-with-unit">
+            <input className="form-input" id={id} {...props} />
+            {unit && <span className="form-unit">{unit}</span>}
+          </div>
+        </div>
+      );
+    }
+
+    /* ── Toggle Switch ─────────────────────────────────────────────── */
+    function Switch({ label, id, defaultChecked, onChange }) {
+      const [checked, setChecked] = useState(defaultChecked || false);
+      const handleChange = (e) => { setChecked(e.target.checked); onChange && onChange(e.target.checked); };
+      return (
+        <div className="switch-row">
+          <span className="switch-label">{label}</span>
+          <label className="mantine-switch">
+            <input type="checkbox" id={id} checked={checked} onChange={handleChange} />
+            <span className="track"></span>
+          </label>
+        </div>
+      );
+    }
+
+    /* ── App ────────────────────────────────────────────────────────── */
+    function App() {
+      const [activeTab, setActiveTab] = useState('2d');
+      const [image, setImage] = useState(null);
+      const [layerCount, setLayerCount] = useState(4);
+
+      return (
+        <div className="app-shell">
+          {/* ── Navbar (Sidebar) ── */}
+          <nav className="navbar">
+            <div className="navbar-header">
+              <img src="/icon.png" alt="" />
+              <div>
+                <h1>Tessera <span className="version">v1.0.11</span></h1>
+                <div style={{fontSize: 11, color: 'var(--mantine-text-dim)'}}>3D Art Studio</div>
+              </div>
+            </div>
+
+            <div className="navbar-section">
+              {/* ── Dimensions & Slicing ── */}
+              <Section icon="fa-wrench" title="Dimensions & Slicing" defaultOpen={true}>
+                <div className="upload-zone" id="drop-zone">
+                  <i className="fas fa-image"></i>
+                  <p>Drag & drop image here</p>
+                  <span>or click to browse local files</span>
+                  <img id="upload-preview" className="upload-preview" />
+                  <div className="remove-bg-link">Remove background</div>
+                </div>
+                <input type="file" id="file-input" accept="image/png, image/jpeg" className="hidden" />
+
+                <div className="form-row">
+                  <InputUnit label="Print Width" id="input-width" unit="mm" type="number" min="10" max="500" />
+                  <InputUnit label="Print Length" id="input-height" unit="mm" type="number" min="10" max="500" />
+                </div>
+
+                <div className="form-row">
+                  <InputUnit label="Max Height" id="input-max-height" unit="mm" type="number" step="0.1" min="0.5" max="20" />
+                  <InputUnit label="Base Thickness" id="input-base-thickness" unit="mm" type="number" step="0.1" min="0.1" max="10" />
+                </div>
+
+                <div className="form-row">
+                  <InputUnit label="Layer Height" id="input-layer-height" unit="mm" type="number" step="0.01" min="0.02" max="0.6" />
+                  <InputUnit label="Grid Resolution" id="input-resolution" unit="pts" type="number" min="50" max="1200" />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="input-triangle-quality">Mesh Triangles</label>
+                  <select className="form-select" id="input-triangle-quality">
+                    <option value="100">100% (Finest)</option>
+                    <option value="90">90%</option>
+                    <option value="80">80%</option>
+                    <option value="70" selected>70% (Standard)</option>
+                    <option value="60">60%</option>
+                    <option value="50">50%</option>
+                    <option value="40">40%</option>
+                    <option value="30">30%</option>
+                    <option value="20">20%</option>
+                    <option value="10">10% (Lowest)</option>
+                  </select>
+                </div>
+
+                <Switch label="Invert Layers (Engraved)" id="input-invert" />
+                <Switch label="Mirror X (Print face down)" id="input-mirror-x" />
+                <Switch label="Snap Heights (Posterize)" id="input-posterize" defaultChecked={true} />
+                <Switch label="Simulate Transmission" id="input-simulate-td" />
+              </Section>
+
+              {/* ── Color Layers ── */}
+              <Section icon="fa-palette" title="Color Layers" defaultOpen={false}>
+                <div className="form-group">
+                  <div className="slider-row">
+                    <label>Extruder Colors</label>
+                    <span className="slider-badge" id="label-colors-count">{layerCount}</span>
+                  </div>
+                  <div className="slider-row">
+                    <button className="btn btn-icon btn-sm" onClick={() => setLayerCount(Math.max(1, layerCount - 1))}>
+                      <i className="fas fa-minus" style={{fontSize: 9}}></i>
+                    </button>
+                    <input type="range" min="1" max="16" value={layerCount} onChange={e => setLayerCount(parseInt(e.target.value))} />
+                    <button className="btn btn-icon btn-sm" onClick={() => setLayerCount(Math.min(16, layerCount + 1))}>
+                      <i className="fas fa-plus" style={{fontSize: 9}}></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="btn-row">
+                  <button className="btn btn-sm" id="btn-match-colors">
+                    <i className="fas fa-image"></i> Match
+                  </button>
+                  <button className="btn btn-sm" id="btn-auto-distribute">
+                    <i className="fas fa-shuffle"></i> Auto
+                  </button>
+                </div>
+
+                <div className="layer-list" id="layer-list">
+                  {[...Array(layerCount)].map((_, i) => (
+                    <div className="layer-row" key={i}>
+                      <div className="layer-swatch" style={{background: ['#e03131','#2f9e44','#1971c2','#f08c00','#9c36b5','#c2255c','#0c8599','#e8590c'][i % 8]}}></div>
+                      <div className="layer-info">Layer {i + 1}</div>
+                      <div className="layer-controls">
+                        <input type="range" min="0" max="20" step="0.04" defaultValue={i * 3} />
+                        <span className="layer-val">L{i + 1} ({(i * 3 + 0.04).toFixed(2)} mm)</span>
+                      </div>
+                      <button className="btn btn-icon btn-sm btn-danger" disabled={i === 0} style={{width: 20, height: 20}}>
+                        <i className="fas fa-xmark" style={{fontSize: 9}}></i>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </Section>
+
+              {/* ── Jigsaw Puzzle ── */}
+              <Section icon="fa-puzzle-piece" title="Jigsaw Puzzle Split" defaultOpen={false}>
+                <Switch label="Enable Jigsaw Split" id="input-puzzle-enable" />
+                <div className="form-row">
+                  <InputUnit label="Columns" id="input-puzzle-cols" unit="pcs" type="number" min="1" max="20" defaultValue="2" />
+                  <InputUnit label="Rows" id="input-puzzle-rows" unit="pcs" type="number" min="1" max="20" defaultValue="2" />
+                </div>
+                <div className="form-group">
+                  <div className="slider-row">
+                    <label>Clearance / Gap</label>
+                    <span className="slider-badge" id="label-clearance-val">0.10</span>
+                  </div>
+                  <input type="range" id="input-puzzle-clearance" min="0" max="0.5" step="0.05" defaultValue="0.1" />
+                </div>
+              </Section>
+            </div>
+
+            {/* ── Export Footer ── */}
+            <div className="navbar-footer">
+              <div className="export-stack">
+                <button className="btn-export" style={{background: '#228be6'}}>
+                  <i className="fas fa-floppy-disk"></i> Save Project
+                </button>
+                <button className="btn-export" id="btn-export" style={{background: '#2f9e44'}}>
+                  <i className="fas fa-download"></i> Export OBJ for BambuStudio
+                </button>
+                <button className="btn-export" id="btn-export-stl" style={{background: '#f08c00'}}>
+                  <i className="fas fa-cube"></i> Export STL
+                </button>
+              </div>
+            </div>
+          </nav>
+
+          {/* ── Main Content ── */}
+          <div className="main-content">
+            <div className="main-header">
+              <h2><i className="fas fa-eye"></i> Live Simulation Previews</h2>
+              <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                <div className="tabs">
+                  <button className={`tab ${activeTab === '2d' ? 'active' : ''}`} onClick={() => setActiveTab('2d')}>
+                    <i className="fas fa-layer-group"></i> 2D Stack
+                  </button>
+                  <button className={`tab ${activeTab === '3d' ? 'active' : ''}`} onClick={() => setActiveTab('3d')}>
+                    <i className="fas fa-cube"></i> 3D Render
+                  </button>
+                  <button className={`tab ${activeTab === 'filament' ? 'active' : ''}`} onClick={() => setActiveTab('filament')}>
+                    <i className="fas fa-sliders"></i> Filament
+                  </button>
+                </div>
+                <div className="auth-bar">
+                  <button className="btn btn-sm">
+                    <i className="fas fa-right-to-bracket"></i> Login
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="viewport">
+              {/* 2D Pane */}
+              <div className={`pane ${activeTab === '2d' ? 'active' : ''}`} id="pane-2d">
+                <canvas id="canvas-2d"></canvas>
+                {!image && (
+                  <div className="empty-state">
+                    <i className="fas fa-image"></i>
+                    <p>No image loaded</p>
+                  </div>
+                )}
+                <div className="layer-nav hidden" id="layer-nav">
+                  <button className="btn btn-icon btn-sm"><i className="fas fa-chevron-left"></i></button>
+                  <button className="btn btn-icon btn-sm"><i className="fas fa-chevron-right"></i></button>
+                </div>
+              </div>
+
+              {/* 3D Pane */}
+              <div className={`pane ${activeTab === '3d' ? 'active' : ''}`} id="pane-3d">
+                <div id="three-container" style={{width:'100%',height:'100%'}}></div>
+                <div className="info-card">
+                  <div className="info-row"><span className="info-label">Size</span><span className="info-value" id="info-size">-</span></div>
+                  <div className="info-row"><span className="info-label">Layers</span><span className="info-value" id="info-layers">-</span></div>
+                  <div className="info-row"><span className="info-label">Layer H</span><span className="info-value" id="info-lh">-</span></div>
+                  <div className="info-row"><span className="info-label">Max H</span><span className="info-value" id="info-maxh">-</span></div>
+                  <div className="info-row"><span className="info-label">Grid</span><span className="info-value" id="info-grid">-</span></div>
+                  <div className="info-row"><span className="info-label">Vertices</span><span className="info-value" id="info-verts">-</span></div>
+                  <div className="info-row"><span className="info-label">Triangles</span><span className="info-value" id="info-tris">-</span></div>
+                </div>
+              </div>
+
+              {/* Filament Pane */}
+              <div className={`pane ${activeTab === 'filament' ? 'active' : ''}`} id="pane-filament" style={{flexDirection: 'column', padding: 20, overflow: 'auto', alignItems: 'stretch'}}>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Filament / Color Slot</th>
+                      <th>Color Hex</th>
+                      <th>Start Height (mm)</th>
+                      <th>Transition Layer</th>
+                    </tr>
+                  </thead>
+                  <tbody id="transition-table-body">
+                    {[...Array(layerCount)].map((_, i) => (
+                      <tr key={i}>
+                        <td>
+                          <span className="color-dot" style={{background: ['#e03131','#2f9e44','#1971c2','#f08c00','#9c36b5','#c2255c','#0c8599','#e8590c'][i % 8]}}></span>
+                          Layer {i + 1}
+                        </td>
+                        <td>{['#E03131','#2F9E44','#1971C2','#F08C00','#9C36B5','#C2255C','#0C8599','#E8590C'][i % 8]}</td>
+                        <td>{((i * 3) + 0.04).toFixed(2)} mm</td>
+                        <td><strong>Layer {i + 1}</strong></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                <div className="tip-box">
+                  <i className="fas fa-circle-info"></i>
+                  <p><strong>BambuStudio 1.9.1+ Setup:</strong> A single <code>posterized_model.obj</code> file will download.
+                  Drag it directly into BambuStudio. Because it uses embedded Vertex Colors, BambuStudio will automatically
+                  detect the colors and show a <strong>color-to-AMS mapping dialog</strong> — assign each color slot to
+                  the matching filament in your AMS. The Transition Layer column above is your reference for manual filament swaps without AMS.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
