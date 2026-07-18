@@ -2195,7 +2195,8 @@ window.applyRegionColor = applyRegionColor;
 window.clearAllRegions = clearAllRegions;
 window.deleteRegion = deleteRegion;
 window.selectRegionFromPanel = selectRegionFromPanel;
-// ─────────────────────────────────────────────────────────────────────────────
+
+// ── 2D Layer Navigation ──────────────────────────────────────────────────────
 
 function prev2DLayer() {
   if (current2DLayerIndex > 0) {
@@ -2259,6 +2260,8 @@ function getHeightsGrid() {
 }
 
 // Build 3D Mesh layers and show in Three.js Scene
+// ── 3D Preview ───────────────────────────────────────────────────────────────
+
 async function update3DPreview() {
   if (!state.rawLuminance) return;
 
@@ -2843,6 +2846,8 @@ function buildLayerGeometry(heights, W, H, scaleX, scaleY, zMin, zMax, puzzleMap
     colors: colorData
   };
 }
+
+// ── Export (3MF / STL) ───────────────────────────────────────────────────────
 
 // Package all layers and trigger a 3MF download
 async function export3MF() {
