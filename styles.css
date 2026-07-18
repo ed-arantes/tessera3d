@@ -2070,6 +2070,7 @@ tr:last-child td {
 .icon-md { width: 28px; height: 28px; }
 .ml-8 { margin-left: 8px; }
 .filament-picker-actions { display: flex; gap: 4px; align-items: center; }
+.filament-picker-actions .modal-close { position: static; }
 
 .app-loader {
   position: fixed;
