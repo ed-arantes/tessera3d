@@ -2150,7 +2150,7 @@ function updateRegionPanel() {
       applyBtn.textContent = 'Re-color Region';
       applyBtn.disabled = false;
     } else if (ffLastFillSet && ffLastFillSet.size > 0) {
-      applyBtn.textContent = 'Add to List ↓';
+      applyBtn.innerHTML = 'Add to List <i class="fas fa-arrow-down" style="font-size:12px;"></i>';
       applyBtn.disabled = false;
     } else {
       applyBtn.textContent = 'Select an area first';
