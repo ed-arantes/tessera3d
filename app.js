@@ -2376,12 +2376,11 @@ function updateTransitionTable() {
   if (state.mirrorX) {
     const row = document.createElement('tr');
     row.innerHTML = `<td colspan="4" style="text-align:center; color: var(--accent); padding: 20px;">
-      <i data-lucide="alert-triangle" style="width: 16px; height: 16px; vertical-align: middle;"></i> 
+      <i class="fas fa-triangle-exclamation" style="font-size: 16px; vertical-align: middle;"></i> 
       <strong>Face-Down Mode requires an AMS/MMU.</strong><br>
       Colors exist on the same Z-height, so manual filament swaps (M600) will not work.
     </td>`;
     tableBody.appendChild(row);
-    if (typeof lucide !== 'undefined') lucide.createIcons();
     return;
   }
 
@@ -2935,8 +2934,7 @@ async function export3MF() {
   } finally {
     activeExportBtn = null;
     btnExport.disabled = false;
-    btnExport.innerHTML = '<i data-lucide="download"></i> Export OBJ for BambuStudio';
-    if (typeof lucide !== 'undefined') lucide.createIcons();
+    btnExport.innerHTML = '<i class="fas fa-download"></i> Export OBJ for BambuStudio';
   }
 }
 
@@ -3010,8 +3008,7 @@ async function exportSTL() {
     activeExportBtn = null;
     if (btnSTL) {
       btnSTL.disabled = false;
-      btnSTL.innerHTML = '<i data-lucide="box"></i> Export STL';
-      if (typeof lucide !== 'undefined') lucide.createIcons();
+      btnSTL.innerHTML = '<i class="fas fa-cube"></i> Export STL';
     }
   }
 }
@@ -3416,7 +3413,6 @@ window.switchTab = function (tab) {
     document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
     document.getElementById('pane-2d').classList.add('active');
     draw2DSimulation();
-    lucide.createIcons();
   } else if (tab === '3d') {
     document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
     document.getElementById('pane-3d').classList.add('active');

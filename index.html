@@ -28,7 +28,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js" defer></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 
 <body>
@@ -57,12 +58,12 @@
 
         <div class="glass-panel collapsible">
           <div class="panel-header" onclick="togglePanel(this)">
-            <h2><i data-lucide="wrench"></i> Dimensions &amp; Slicing</h2>
-            <i data-lucide="chevron-down" class="collapse-icon"></i>
+            <h2><i class="fas fa-wrench"></i> Dimensions &amp; Slicing</h2>
+            <i class="fas fa-chevron-down collapse-icon"></i>
           </div>
           <div class="panel-body">
             <div class="upload-zone mb-16" id="drop-zone">
-              <i data-lucide="image" class="upload-placeholder"></i>
+              <i class="fas fa-image upload-placeholder"></i>
               <p class="upload-placeholder">Drag &amp; drop image here</p>
               <span class="upload-placeholder">or click to browse local files</span>
               <img id="upload-preview" class="upload-preview">
@@ -175,8 +176,8 @@
 
         <div class="glass-panel collapsible collapsed" id="panel-color-layers">
           <div class="panel-header" onclick="togglePanel(this)" id="header-color-layers">
-            <h2><i data-lucide="palette"></i> Color Layers</h2>
-            <i data-lucide="chevron-down" class="collapse-icon"></i>
+            <h2><i class="fas fa-palette"></i> Color Layers</h2>
+            <i class="fas fa-chevron-down collapse-icon"></i>
           </div>
           <div class="panel-body">
             <div class="input-group mb-16">
@@ -193,10 +194,10 @@
 
             <div class="btn-row">
               <button class="btn-secondary" id="btn-match-colors" title="Extract colors from image">
-                <i data-lucide="image"></i> Match
+                <i class="fas fa-image"></i> Match
               </button>
               <button class="btn-secondary" id="btn-auto-distribute" title="Distribute start heights evenly">
-                <i data-lucide="shuffle"></i> Auto
+                <i class="fas fa-shuffle"></i> Auto
               </button>
             </div>
 
@@ -207,8 +208,8 @@
 
         <div class="glass-panel collapsible collapsed" id="panel-puzzle">
           <div class="panel-header" onclick="togglePanel(this)" id="header-puzzle">
-            <h2><i data-lucide="puzzle"></i> Jigsaw Puzzle Split</h2>
-            <i data-lucide="chevron-down" class="collapse-icon"></i>
+            <h2><i class="fas fa-puzzle-piece"></i> Jigsaw Puzzle Split</h2>
+            <i class="fas fa-chevron-down collapse-icon"></i>
           </div>
           <div class="panel-body">
             <div class="switch-container mb-16">
@@ -249,13 +250,13 @@
         <div class="glass-panel panel-footer">
           <div class="export-card">
             <button class="btn-primary-glow" id="btn-save" style="background:#03A9F4;">
-              <i data-lucide="save"></i> Save Project
+              <i class="fas fa-floppy-disk"></i> Save Project
             </button>
             <button class="btn-primary-glow" id="btn-export" style="background:#00C853;">
-              <i data-lucide="download"></i> Export OBJ for BambuStudio
+              <i class="fas fa-download"></i> Export OBJ for BambuStudio
             </button>
             <button class="btn-primary-glow" id="btn-export-stl" onclick="exportSTL()" style="background:#FF9800;">
-              <i data-lucide="box"></i> Export STL
+              <i class="fas fa-cube"></i> Export STL
             </button>
             <div class="export-progress" id="export-progress" aria-live="polite">
               <div class="export-progress-status" id="export-progress-status">Preparing export...</div>
@@ -279,11 +280,11 @@
 
         <div class="glass-panel preview-card flex-1">
           <div class="panel-toolbar">
-            <h2><i data-lucide="eye"></i> Live Simulation Previews</h2>
+            <h2><i class="fas fa-eye"></i> Live Simulation Previews</h2>
             <div class="viewport-tabs">
-              <button class="tab-btn active" onclick="switchTab('2d')"><i data-lucide="layers"></i> 2D Stack</button>
-              <button class="tab-btn" id="tab-3d" onclick="switchTab('3d')"><i data-lucide="box"></i> 3D Render</button>
-              <button class="tab-btn" id="tab-filament" onclick="switchTab('filament')"><i data-lucide="sliders-horizontal"></i>
+              <button class="tab-btn active" onclick="switchTab('2d')"><i class="fas fa-layer-group"></i> 2D Stack</button>
+              <button class="tab-btn" id="tab-3d" onclick="switchTab('3d')"><i class="fas fa-cube"></i> 3D Render</button>
+              <button class="tab-btn" id="tab-filament" onclick="switchTab('filament')"><i class="fas fa-sliders"></i>
                 Filament</button>
             </div>
           </div>
@@ -294,20 +295,20 @@
                 <canvas id="canvas-2d"></canvas>
                 <div class="layer-nav hidden" id="layer-nav">
                   <button class="layer-nav-btn" onclick="prev2DLayer()" id="btn-prev-layer">
-                    <i data-lucide="chevron-left"></i>
+                    <i class="fas fa-chevron-left"></i>
                   </button>
                   <button class="layer-nav-btn" onclick="next2DLayer()" id="btn-next-layer">
-                    <i data-lucide="chevron-right"></i>
+                    <i class="fas fa-chevron-right"></i>
                   </button>
                 </div>
 
                 <div class="ff-toolbar hidden" id="ff-toolbar">
                   <div class="ff-toolbar-row">
                     <button class="ff-btn" id="ff-toggle-btn" onclick="toggleFloodFillMode()" title="Flood Fill Tool">
-                      <i data-lucide="paintbrush"></i> Fill Select
+                      <i class="fas fa-paintbrush"></i> Fill Select
                     </button>
                     <button class="ff-btn hidden" id="ff-clear-btn" onclick="clearAllRegions()" title="Clear all region overrides">
-                      <i data-lucide="trash-2"></i>
+                      <i class="fas fa-trash"></i>
                     </button>
                   </div>
                   <div class="ff-region-panel hidden" id="ff-region-panel">
@@ -333,11 +334,7 @@
               <div id="view-cube-container">
                 <canvas id="view-cube-canvas" width="120" height="120"></canvas>
                 <button id="view-cube-home" title="Reset view">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                    stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                    <polyline points="9 22 9 12 15 12 15 22" />
-                  </svg>
+                  <i class="fas fa-house"></i>
                 </button>
               </div>
               <div id="model-info-card">
@@ -369,7 +366,7 @@
                 </table>
               </div>
               <div class="tip-box mt-16">
-                <i data-lucide="info"></i>
+                <i class="fas fa-circle-info"></i>
                 <p><strong>BambuStudio 1.9.1+ Setup:</strong> A single <code>posterized_model.obj</code> file will
                   download. Drag it directly into BambuStudio. Because it uses embedded Vertex Colors, BambuStudio will
                   automatically detect the colors and show a <strong>color-to-AMS mapping dialog</strong> — assign each
@@ -425,7 +422,7 @@
     <div class="dashboard-panel">
       <div class="dash-header">
         <div id="dash-avatar-container">
-          <div class="dash-avatar-placeholder"><i data-lucide="user" class="icon-md"></i></div>
+          <div class="dash-avatar-placeholder"><i class="fas fa-user icon-md"></i></div>
         </div>
         <div class="dash-user-info">
           <h3 class="dash-username" id="dash-username">Username</h3>
@@ -563,7 +560,6 @@
   <script src="export.js"></script>
   <script src="auth.js"></script>
   <script src="app.js"></script>
-  <script>lucide.createIcons();</script>
 </body>
 
 </html>

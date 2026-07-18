@@ -147,7 +147,7 @@ function updateAuthUI() {
       </div>
       <div style="display: flex; gap: 8px;">
         <button class="btn-secondary" style="padding: 4px 12px; font-size: 14px; display: flex; align-items: center; gap: 6px;" onclick="Auth.logout()">
-          <i data-lucide="log-out"></i> Logout
+          <i class="fas fa-right-from-bracket"></i> Logout
         </button>
       </div>
     `;
@@ -155,7 +155,7 @@ function updateAuthUI() {
     container.innerHTML = `
       <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
         <div style="width: 32px; height: 32px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; cursor: default;">
-          <i data-lucide="user"></i>
+          <i class="fas fa-user"></i>
         </div>
         <div>
           <h2 style="margin: 0; padding: 0; font-size: 14px;">
@@ -165,16 +165,15 @@ function updateAuthUI() {
       </div>
       <div style="display: flex; gap: 8px;">
         <button class="btn-secondary" style="padding: 4px 12px; font-size: 14px; display: flex; align-items: center; gap: 6px;" onclick="openAuthModal('signin')">
-          <i data-lucide="log-in"></i> Login
+          <i class="fas fa-right-to-bracket"></i> Login
         </button>
         <button class="btn-primary-glow" style="padding: 4px 12px; font-size: 14px; display: flex; align-items: center; gap: 6px; background: var(--accent); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 700;" onclick="openAuthModal('signup')">
-          <i data-lucide="user-plus"></i> Sign Up
+          <i class="fas fa-user-plus"></i> Sign Up
         </button>
       </div>
     `;
   }
 
-  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function escapeHtml(str) {
@@ -399,7 +398,6 @@ function openDashboard() {
   if (prefs.gridRes) document.getElementById('dash-pref-grid').value = prefs.gridRes;
   if (prefs.layerHeight) document.getElementById('dash-pref-layer').value = prefs.layerHeight;
 
-  if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function closeDashboard() {
