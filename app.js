@@ -1856,18 +1856,6 @@ function draw2DSimulation() {
   ctx.clearRect(0, 0, canvas2D.width, canvas2D.height);
   ctx.imageSmoothingEnabled = false;
 
-  const hasTransparent = state.rawAlpha && state.rawAlpha.some(a => a < 128);
-  if (hasTransparent) {
-    const checkSize = Math.max(4, cellSize);
-    for (let cy = 0; cy < imgH; cy += checkSize) {
-      for (let cx = 0; cx < imgW; cx += checkSize) {
-        const isLight = ((Math.floor(cx / checkSize) + Math.floor(cy / checkSize)) % 2 === 0);
-        ctx.fillStyle = isLight ? '#d0d0d0' : '#b0b0b0';
-        ctx.fillRect(cx, cy, checkSize, checkSize);
-      }
-    }
-  }
-
   ctx.drawImage(_2dBaseCacheCanvas, 0, 0, imgW, imgH);
 
   // Draw flood fill pending selection highlight (last BFS result before assign)
