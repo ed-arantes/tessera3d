@@ -3388,3 +3388,91 @@ function hexToRGBValue(hex) {
   }
   return 0;
 }
+
+// ── Orb background generation ────────────────────────────────────────────────
+(function initOrbs() {
+  const orbDefs = [
+    { w: 700, h: 700, bg: 'rgba(85,186,8,0.6)', top: '-200px', right: '-200px' },
+    { w: 600, h: 600, bg: 'rgba(59,130,246,0.55)', bottom: '-150px', left: '-150px' },
+    { w: 500, h: 500, bg: 'rgba(85,186,8,0.55)', top: '10%', left: '20%' },
+    { w: 450, h: 450, bg: 'rgba(139,92,246,0.55)', bottom: '15%', right: '10%' },
+    { w: 550, h: 550, bg: 'rgba(85,186,8,0.55)', top: '40%', left: '50%' },
+    { w: 400, h: 400, bg: 'rgba(85,186,8,0.45)', top: '70%', left: '10%' },
+    { w: 350, h: 350, bg: 'rgba(59,130,246,0.45)', top: '5%', left: '60%' },
+    { w: 480, h: 480, bg: 'rgba(139,92,246,0.5)', bottom: '5%', right: '40%' },
+    { w: 380, h: 380, bg: 'rgba(85,186,8,0.5)', top: '25%', right: '35%' },
+    { w: 420, h: 420, bg: 'rgba(85,186,8,0.5)', bottom: '40%', left: '40%' },
+    { w: 300, h: 300, bg: 'rgba(200,230,200,0.7)', top: '15%', left: '40%' },
+    { w: 320, h: 320, bg: 'rgba(210,230,255,0.65)', bottom: '25%', left: '25%' },
+    { w: 280, h: 280, bg: 'rgba(240,240,240,0.75)', top: '35%', right: '20%' },
+    { w: 360, h: 360, bg: 'rgba(220,250,220,0.6)', top: '55%', left: '35%' },
+    { w: 340, h: 340, bg: 'rgba(230,240,255,0.65)', bottom: '35%', right: '25%' },
+    { w: 260, h: 260, bg: 'rgba(250,250,250,0.7)', top: '45%', left: '70%' },
+    { w: 290, h: 290, bg: 'rgba(200,220,255,0.6)', top: '65%', right: '30%' },
+    { w: 310, h: 310, bg: 'rgba(210,250,210,0.65)', bottom: '10%', left: '55%' },
+    { w: 270, h: 270, bg: 'rgba(240,245,250,0.7)', top: '0%', left: '35%' },
+    { w: 330, h: 330, bg: 'rgba(220,230,240,0.65)', bottom: '55%', right: '50%' },
+    { w: 500, h: 500, bg: 'rgba(253,186,116,0.45)', bottom: '-100px', right: '-80px' },
+    { w: 400, h: 400, bg: 'rgba(167,139,250,0.35)', bottom: '5%', right: '15%' }
+  ];
+
+  orbDefs.forEach((def, i) => {
+    const el = document.createElement('div');
+    el.className = 'orb';
+    el.style.cssText =
+      `width:${def.w}px;height:${def.h}px;background:${def.bg};` +
+      (def.top != null ? `top:${def.top};` : '') +
+      (def.bottom != null ? `bottom:${def.bottom};` : '') +
+      (def.left != null ? `left:${def.left};` : '') +
+      (def.right != null ? `right:${def.right};` : '');
+    document.body.prepend(el);
+  });
+})();
+
+// ── Tab Switcher ─────────────────────────────────────────────────────────────
+window.switchTab = function (tab) {
+  if (tab === '3d' && document.getElementById('tab-3d')?.disabled) return;
+  if (tab === 'filament' && document.getElementById('tab-filament')?.disabled) return;
+
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.viewport-pane').forEach(pane => pane.classList.remove('active'));
+
+  if (tab === '2d') {
+    document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
+    document.getElementById('pane-2d').classList.add('active');
+    draw2DSimulation();
+    lucide.createIcons();
+  } else if (tab === '3d') {
+    document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
+    document.getElementById('pane-3d').classList.add('active');
+    showPreviewSpinner('Rendering...');
+    new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+      .then(() => update3DPreview())
+      .then(() => hidePreviewSpinner());
+    window.dispatchEvent(new Event('resize'));
+  } else if (tab === 'filament') {
+    document.querySelector('.tab-btn:nth-child(3)').classList.add('active');
+    document.getElementById('pane-filament').classList.add('active');
+  }
+  if (typeof updateCardShadow === 'function') updateCardShadow();
+};
+
+// ── Panel Toggle ─────────────────────────────────────────────────────────────
+window.togglePanel = function (header) {
+  const panel = header.closest('.collapsible');
+  const isCollapsed = panel.classList.contains('collapsed');
+
+  if (isCollapsed && (header.id === 'header-color-layers' || header.id === 'header-puzzle')) {
+    if (!state.image) return;
+  }
+
+  const parent = panel.parentElement;
+  parent.querySelectorAll('.collapsible').forEach(p => p.classList.add('collapsed'));
+  if (isCollapsed) panel.classList.remove('collapsed');
+
+  const allCollapsed = [...parent.querySelectorAll('.collapsible')].every(p => p.classList.contains('collapsed'));
+  if (allCollapsed) {
+    const dims = parent.querySelector('.collapsible');
+    if (dims) dims.classList.remove('collapsed');
+  }
+};
