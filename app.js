@@ -1289,12 +1289,12 @@ function renderLayersList() {
         </div>
       </div>
       <div class="layer-controls">
-        <button class="btn-step" id="layer-step-down-${idx}" ${isBase ? 'disabled' : ''}>-</button>
+        <button class="btn-step" id="layer-step-down-${idx}" ${isBase ? 'disabled' : ''}><i class="fas fa-minus"></i></button>
         <input type="range" class="height-slider" min="0" max="${state.maxHeight}" step="${state.layerHeight}" 
                value="${layer.startHeight}" ${isBase ? 'disabled' : ''} id="layer-slider-${idx}">
-        <button class="btn-step" id="layer-step-up-${idx}" ${isBase ? 'disabled' : ''}>+</button>
+        <button class="btn-step" id="layer-step-up-${idx}" ${isBase ? 'disabled' : ''}><i class="fas fa-plus"></i></button>
         <span class="slider-value" id="layer-val-${idx}" style="min-width: 100px;">L${layerNum} (${(layer.startHeight + lh).toFixed(2)} mm)</span>
-        <button class="btn-step btn-remove-layer" id="layer-remove-${idx}" ${isBase ? 'disabled' : ''} title="Remove this layer" style="background: #ef4444; color: #ffffff; border-color: #ef4444; width: 20px; height: 20px; font-size: 11px;">✕</button>
+        <button class="btn-step btn-remove-layer" id="layer-remove-${idx}" ${isBase ? 'disabled' : ''} title="Remove this layer" style="background: #ef4444; color: #ffffff; border-color: #ef4444; width: 20px; height: 20px; font-size: 11px;"><i class="fas fa-xmark"></i></button>
       </div>
     `;
 
@@ -2171,7 +2171,7 @@ function updateRegionPanel() {
     return `<div class="ff-region-item${isSelected ? ' selected' : ''}" onclick="selectRegionFromPanel(${rid})">
       <div class="ff-region-swatch" style="background:${hex}"></div>
       <span class="ff-region-label">Region ${parseInt(rid) + 1}</span>
-      <button class="ff-region-del" onclick="event.stopPropagation();deleteRegion(${rid})" title="Remove region">✕</button>
+      <button class="ff-region-del" onclick="event.stopPropagation();deleteRegion(${rid})" title="Remove region"><i class="fas fa-xmark"></i></button>
     </div>`;
   }).join('');
 }

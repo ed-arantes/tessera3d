@@ -737,6 +737,7 @@ input:checked+.slider-switch:before {
   cursor: pointer;
   flex-shrink: 0;
 }
+.btn-step i { font-size: 10px; }
 
 .btn-step:disabled {
   background: var(--bg-base);
