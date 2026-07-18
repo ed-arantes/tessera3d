@@ -139,7 +139,7 @@ function updateAuthUI() {
             onerror="this.style.display='none'"
             onload="this.previousElementSibling.style.display='none'">
         </div>
-        <div style="cursor: pointer;" onclick="openDashboard()" title="Open Settings">
+        <div class="auth-clickable" onclick="openDashboard()" title="Open Settings">
           <h2 class="auth-name">
             Welcome, <span id="auth-username">${escapeHtml(capitalise(Auth.username))}!</span>
           </h2>
@@ -154,7 +154,7 @@ function updateAuthUI() {
   } else {
     container.innerHTML = `
       <div class="auth-user-row">
-        <div style="width: 32px; height: 32px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; cursor: default;">
+        <div class="auth-guest-avatar">
           <i class="fas fa-user"></i>
         </div>
         <div>
@@ -348,10 +348,9 @@ function openDashboard() {
   // Avatar
   const avatarC = document.getElementById('dash-avatar-container');
   avatarC.innerHTML = `
-    <div class="dash-avatar-placeholder" style="position:relative;">
+    <div class="dash-avatar-wrap dash-avatar-placeholder">
       <div class="avatar-placeholder dash-avatar-ph"></div>
-      <img src="${avatarUrl(Auth.username || Auth.token || 'guest')}" class="dash-avatar"
-        style="position:absolute;inset:0;"
+      <img src="${avatarUrl(Auth.username || Auth.token || 'guest')}" class="dash-avatar dash-avatar-overlay"
         onerror="this.style.display='none'"
         onload="this.previousElementSibling.style.display='none'">
     </div>`;

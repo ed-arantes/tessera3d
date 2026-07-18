@@ -47,8 +47,6 @@ const state = {
   filaments: []
 };
 
-window.state = state;
-
 // Preset palette colors for adding new layers
 const PRESET_COLORS = [
   '#0a0a0a', // Dark Gray/Black
@@ -2190,12 +2188,6 @@ function selectRegionFromPanel(rid) {
   schedule2DRender();
 }
 
-window.toggleFloodFillMode = toggleFloodFillMode;
-window.applyRegionColor = applyRegionColor;
-window.clearAllRegions = clearAllRegions;
-window.deleteRegion = deleteRegion;
-window.selectRegionFromPanel = selectRegionFromPanel;
-
 // ── 2D Layer Navigation ──────────────────────────────────────────────────────
 
 function prev2DLayer() {
@@ -2211,9 +2203,6 @@ function next2DLayer() {
     schedule2DRender();
   }
 }
-
-window.prev2DLayer = prev2DLayer;
-window.next2DLayer = next2DLayer;
 
 // Build height map grid of physical heights (cached)
 function getHeightsGrid() {
@@ -2655,8 +2644,8 @@ function buildLayerGeometry(heights, W, H, scaleX, scaleY, zMin, zMax, puzzleMap
       }
     } else {
       return { bot: zMin, top: Math.max(zMin, Math.min(h, zMax)) };
-    }
-  };
+  }
+};
 
   // Scan cells to identify active regions
   for (let y = 0; y < H - 1; y += step) {
@@ -3409,7 +3398,7 @@ function hexToRGBValue(hex) {
 })();
 
 // ── Tab Switcher ─────────────────────────────────────────────────────────────
-window.switchTab = function (tab) {
+function switchTab(tab) {
   if (tab === '3d' && document.getElementById('tab-3d')?.disabled) return;
   if (tab === 'filament' && document.getElementById('tab-filament')?.disabled) return;
 
@@ -3436,7 +3425,7 @@ window.switchTab = function (tab) {
 };
 
 // ── Panel Toggle ─────────────────────────────────────────────────────────────
-window.togglePanel = function (header) {
+function togglePanel(header) {
   const panel = header.closest('.collapsible');
   const isCollapsed = panel.classList.contains('collapsed');
 
@@ -3454,3 +3443,16 @@ window.togglePanel = function (header) {
     if (dims) dims.classList.remove('collapsed');
   }
 };
+
+// ── Public API (exposed for inline onclick handlers in HTML) ─────────────────
+window.state = state;
+window.switchTab = switchTab;
+window.togglePanel = togglePanel;
+window.toggleFloodFillMode = toggleFloodFillMode;
+window.applyRegionColor = applyRegionColor;
+window.clearAllRegions = clearAllRegions;
+window.deleteRegion = deleteRegion;
+window.selectRegionFromPanel = selectRegionFromPanel;
+window.prev2DLayer = prev2DLayer;
+window.next2DLayer = next2DLayer;
+window.exportSTL = exportSTL;
