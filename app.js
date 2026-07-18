@@ -3395,35 +3395,40 @@ function hexToRGBValue(hex) {
 // ── Orb background generation ────────────────────────────────────────────────
 (function initOrbs() {
   const orbDefs = [
-    { w: 700, h: 700, bg: 'rgba(85,186,8,0.6)', top: '-200px', right: '-200px' },
-    { w: 600, h: 600, bg: 'rgba(59,130,246,0.55)', bottom: '-150px', left: '-150px' },
-    { w: 500, h: 500, bg: 'rgba(85,186,8,0.55)', top: '10%', left: '20%' },
-    { w: 450, h: 450, bg: 'rgba(139,92,246,0.55)', bottom: '15%', right: '10%' },
-    { w: 550, h: 550, bg: 'rgba(85,186,8,0.55)', top: '40%', left: '50%' },
-    { w: 400, h: 400, bg: 'rgba(85,186,8,0.45)', top: '70%', left: '10%' },
-    { w: 350, h: 350, bg: 'rgba(59,130,246,0.45)', top: '5%', left: '60%' },
-    { w: 480, h: 480, bg: 'rgba(139,92,246,0.5)', bottom: '5%', right: '40%' },
-    { w: 380, h: 380, bg: 'rgba(85,186,8,0.5)', top: '25%', right: '35%' },
-    { w: 420, h: 420, bg: 'rgba(85,186,8,0.5)', bottom: '40%', left: '40%' },
-    { w: 300, h: 300, bg: 'rgba(200,230,200,0.7)', top: '15%', left: '40%' },
-    { w: 320, h: 320, bg: 'rgba(210,230,255,0.65)', bottom: '25%', left: '25%' },
-    { w: 280, h: 280, bg: 'rgba(240,240,240,0.75)', top: '35%', right: '20%' },
-    { w: 360, h: 360, bg: 'rgba(220,250,220,0.6)', top: '55%', left: '35%' },
-    { w: 340, h: 340, bg: 'rgba(230,240,255,0.65)', bottom: '35%', right: '25%' },
-    { w: 260, h: 260, bg: 'rgba(250,250,250,0.7)', top: '45%', left: '70%' },
-    { w: 290, h: 290, bg: 'rgba(200,220,255,0.6)', top: '65%', right: '30%' },
-    { w: 310, h: 310, bg: 'rgba(210,250,210,0.65)', bottom: '10%', left: '55%' },
-    { w: 270, h: 270, bg: 'rgba(240,245,250,0.7)', top: '0%', left: '35%' },
-    { w: 330, h: 330, bg: 'rgba(220,230,240,0.65)', bottom: '55%', right: '50%' },
-    { w: 500, h: 500, bg: 'rgba(253,186,116,0.45)', bottom: '-100px', right: '-80px' },
-    { w: 400, h: 400, bg: 'rgba(167,139,250,0.35)', bottom: '5%', right: '15%' }
+    { w: '30vw', h: '30vw', bg: 'rgba(85,186,8,0.6)', top: '-8vw', right: '-8vw', anim: 'orb-drift-1', dur: '45s' },
+    { w: '25vw', h: '25vw', bg: 'rgba(59,130,246,0.55)', bottom: '-6vw', left: '-6vw', anim: 'orb-drift-2', dur: '52s' },
+    { w: '22vw', h: '22vw', bg: 'rgba(85,186,8,0.55)', top: '10%', left: '20%', anim: 'orb-drift-3', dur: '58s' },
+    { w: '20vw', h: '20vw', bg: 'rgba(139,92,246,0.55)', bottom: '15%', right: '10%', anim: 'orb-drift-4', dur: '48s' },
+    { w: '24vw', h: '24vw', bg: 'rgba(85,186,8,0.5)', top: '40%', left: '50%', anim: 'orb-drift-1', dur: '55s' },
+    { w: '18vw', h: '18vw', bg: 'rgba(200,230,200,0.6)', top: '15%', left: '40%', anim: 'orb-drift-2', dur: '50s' },
+    { w: '16vw', h: '16vw', bg: 'rgba(210,230,255,0.55)', bottom: '25%', left: '25%', anim: 'orb-drift-3', dur: '60s' },
+    { w: '14vw', h: '14vw', bg: 'rgba(253,186,116,0.45)', bottom: '-4vw', right: '-3vw', anim: 'orb-drift-4', dur: '42s' },
+    { w: '20vw', h: '20vw', bg: 'rgba(85,186,8,0.5)', top: '70%', left: '10%', anim: 'orb-drift-2', dur: '47s' },
+    { w: '15vw', h: '15vw', bg: 'rgba(59,130,246,0.45)', top: '5%', left: '60%', anim: 'orb-drift-3', dur: '53s' },
+    { w: '18vw', h: '18vw', bg: 'rgba(139,92,246,0.5)', bottom: '5%', right: '40%', anim: 'orb-drift-1', dur: '56s' },
+    { w: '16vw', h: '16vw', bg: 'rgba(85,186,8,0.5)', top: '25%', right: '35%', anim: 'orb-drift-4', dur: '44s' },
+    { w: '14vw', h: '14vw', bg: 'rgba(85,186,8,0.5)', bottom: '40%', left: '40%', anim: 'orb-drift-2', dur: '51s' },
+    { w: '12vw', h: '12vw', bg: 'rgba(200,230,200,0.6)', top: '15%', left: '40%', anim: 'orb-drift-1', dur: '49s' },
+    { w: '13vw', h: '13vw', bg: 'rgba(210,230,255,0.55)', bottom: '25%', left: '25%', anim: 'orb-drift-3', dur: '54s' },
+    { w: '11vw', h: '11vw', bg: 'rgba(240,240,240,0.7)', top: '35%', right: '20%', anim: 'orb-drift-4', dur: '46s' },
+    { w: '14vw', h: '14vw', bg: 'rgba(220,250,220,0.6)', top: '55%', left: '35%', anim: 'orb-drift-1', dur: '57s' },
+    { w: '13vw', h: '13vw', bg: 'rgba(230,240,255,0.55)', bottom: '35%', right: '25%', anim: 'orb-drift-2', dur: '50s' },
+    { w: '10vw', h: '10vw', bg: 'rgba(250,250,250,0.65)', top: '45%', left: '70%', anim: 'orb-drift-3', dur: '43s' },
+    { w: '12vw', h: '12vw', bg: 'rgba(200,220,255,0.55)', top: '65%', right: '30%', anim: 'orb-drift-4', dur: '55s' },
+    { w: '13vw', h: '13vw', bg: 'rgba(210,250,210,0.6)', bottom: '10%', left: '55%', anim: 'orb-drift-1', dur: '48s' },
+    { w: '11vw', h: '11vw', bg: 'rgba(240,245,250,0.65)', top: '0%', left: '35%', anim: 'orb-drift-2', dur: '52s' },
+    { w: '13vw', h: '13vw', bg: 'rgba(220,230,240,0.6)', bottom: '55%', right: '50%', anim: 'orb-drift-3', dur: '47s' },
+    { w: '22vw', h: '22vw', bg: 'rgba(253,186,116,0.45)', bottom: '-4vw', right: '-3vw', anim: 'orb-drift-4', dur: '60s' },
+    { w: '16vw', h: '16vw', bg: 'rgba(167,139,250,0.35)', bottom: '5%', right: '15%', anim: 'orb-drift-1', dur: '53s' }
   ];
 
   orbDefs.forEach((def, i) => {
     const el = document.createElement('div');
     el.className = 'orb';
     el.style.cssText =
-      `width:${def.w}px;height:${def.h}px;background:${def.bg};` +
+      `width:${def.w};height:${def.h};background:${def.bg};` +
+      `animation:${def.anim} ${def.dur} ease-in-out infinite;` +
+      `animation-delay:${-i * 5}s;` +
       (def.top != null ? `top:${def.top};` : '') +
       (def.bottom != null ? `bottom:${def.bottom};` : '') +
       (def.left != null ? `left:${def.left};` : '') +

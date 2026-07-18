@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Background Style Test — Pick One</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f4f5f7; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 24px;
+    height: 100vh;
+  }
+
+  .card {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+    border: 2px solid #e0e0e0;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .card:hover {
+    border-color: #55ba08;
+    box-shadow: 0 0 0 3px rgba(85,186,8,0.2);
+  }
+  .card.selected {
+    border-color: #55ba08;
+    box-shadow: 0 0 0 3px rgba(85,186,8,0.4);
+  }
+
+  .card-label {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 10;
+    background: rgba(0,0,0,0.6);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    backdrop-filter: blur(4px);
+  }
+
+  .card-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Glass preview object */
+  .glass-shard {
+    width: 220px;
+    height: 320px;
+    background: rgba(255,255,255,0.35);
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 12px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.4);
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: rgba(0,0,0,0.35);
+    font-weight: 500;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     STYLE 1: CSS Gradient Mesh
+     ═══════════════════════════════════════════════════════════════════════ */
+  #style-gradient-mesh {
+    background:
+      radial-gradient(ellipse 50% 60% at 15% 20%, rgba(85,186,8,0.18) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 50% at 80% 15%, rgba(59,130,246,0.14) 0%, transparent 65%),
+      radial-gradient(ellipse 45% 55% at 50% 80%, rgba(139,92,246,0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 30% 60%, rgba(253,186,116,0.10) 0%, transparent 65%),
+      radial-gradient(ellipse 35% 45% at 70% 55%, rgba(85,186,8,0.10) 0%, transparent 55%),
+      linear-gradient(135deg, #ffffff 0%, #f0f4ff 30%, #fdf2f8 60%, #f4f5f7 100%);
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     STYLE 2: Canvas Procedural (glass caustic)
+     ═══════════════════════════════════════════════════════════════════════ */
+  #style-canvas {
+    background: #f4f5f7;
+  }
+  #style-canvas canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     STYLE 3: SVG Glass Tiles
+     ═══════════════════════════════════════════════════════════════════════ */
+  #style-svg {
+    background: #f4f5f7;
+  }
+  #style-svg svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     STYLE 4: Responsive Orbs (vw/vh based)
+     ═══════════════════════════════════════════════════════════════════════ */
+  #style-orbs {
+    background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 30%, #fdf2f8 60%, #f4f5f7 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .resp-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    will-change: transform;
+  }
+
+  @keyframes orb-drift-1 {
+    0%   { transform: translate(0, 0) scale(1); }
+    25%  { transform: translate(3vw, -2vh) scale(1.05); }
+    50%  { transform: translate(-2vw, 3vh) scale(0.95); }
+    75%  { transform: translate(1vw, -1vh) scale(1.02); }
+    100% { transform: translate(0, 0) scale(1); }
+  }
+  @keyframes orb-drift-2 {
+    0%   { transform: translate(0, 0) scale(1); }
+    30%  { transform: translate(-4vw, 2vh) scale(1.08); }
+    60%  { transform: translate(2vw, -3vh) scale(0.93); }
+    100% { transform: translate(0, 0) scale(1); }
+  }
+  @keyframes orb-drift-3 {
+    0%   { transform: translate(0, 0); }
+    20%  { transform: translate(2vw, 4vh); }
+    50%  { transform: translate(-3vw, 1vh); }
+    80%  { transform: translate(1vw, -2vh); }
+    100% { transform: translate(0, 0); }
+  }
+  @keyframes orb-drift-4 {
+    0%   { transform: translate(0, 0) scale(1); }
+    35%  { transform: translate(-1vw, -3vh) scale(1.04); }
+    65%  { transform: translate(3vw, 2vh) scale(0.96); }
+    100% { transform: translate(0, 0) scale(1); }
+  }
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; height: auto; }
+    .card { min-height: 50vh; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid">
+
+  <!-- ─── 1: Gradient Mesh ─── -->
+  <div class="card" onclick="selectCard(this)">
+    <div class="card-label">1 — CSS Gradient Mesh</div>
+    <div class="card-content" id="style-gradient-mesh">
+      <div class="glass-shard">Glass Preview</div>
+    </div>
+  </div>
+
+  <!-- ─── 2: Canvas Procedural ─── -->
+  <div class="card" onclick="selectCard(this)">
+    <div class="card-label">2 — Canvas Procedural</div>
+    <div class="card-content" id="style-canvas">
+      <canvas id="caustic-canvas"></canvas>
+      <div class="glass-shard">Glass Preview</div>
+    </div>
+  </div>
+
+  <!-- ─── 3: SVG Glass Tiles ─── -->
+  <div class="card" onclick="selectCard(this)">
+    <div class="card-label">3 — SVG Glass Tiles</div>
+    <div class="card-content" id="style-svg">
+      <svg id="svg-bg" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="glass-shard">Glass Preview</div>
+    </div>
+  </div>
+
+  <!-- ─── 4: Responsive Orbs ─── -->
+  <div class="card" onclick="selectCard(this)">
+    <div class="card-label">4 — Responsive Orbs (vw/vh)</div>
+    <div class="card-content" id="style-orbs"></div>
+  </div>
+
+</div>
+
+<script>
+function selectCard(card) {
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+}
+
+// ── 2: Canvas caustic ──────────────────────────────────────────────────
+(function() {
+  const canvas = document.getElementById('caustic-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  function resize() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = Math.min(rect.width, 960);
+    canvas.height = Math.min(rect.height, 720);
+    draw();
+  }
+
+  function draw() {
+    const w = canvas.width, h = canvas.height;
+    // base gradient
+    const bg = ctx.createLinearGradient(0, 0, w, h);
+    bg.addColorStop(0, '#ffffff');
+    bg.addColorStop(0.3, '#f0f4ff');
+    bg.addColorStop(0.6, '#fdf2f8');
+    bg.addColorStop(1, '#f4f5f7');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // overlapping blurred circles = caustic-like blobs
+    const spots = [
+      { x: 0.15, y: 0.2, r: 0.18, color: [85,186,8] },
+      { x: 0.78, y: 0.12, r: 0.15, color: [59,130,246] },
+      { x: 0.45, y: 0.75, r: 0.16, color: [139,92,246] },
+      { x: 0.25, y: 0.55, r: 0.12, color: [253,186,116] },
+      { x: 0.65, y: 0.45, r: 0.14, color: [85,186,8] },
+      { x: 0.85, y: 0.7, r: 0.13, color: [200,230,200] },
+      { x: 0.1, y: 0.85, r: 0.11, color: [210,230,255] },
+      { x: 0.55, y: 0.3, r: 0.10, color: [240,240,240] },
+    ];
+
+    spots.forEach(s => {
+      const grad = ctx.createRadialGradient(
+        s.x * w, s.y * h, 0,
+        s.x * w, s.y * h, s.r * w
+      );
+      grad.addColorStop(0, `rgba(${s.color[0]},${s.color[1]},${s.color[2]},0.18)`);
+      grad.addColorStop(0.5, `rgba(${s.color[0]},${s.color[1]},${s.color[2]},0.08)`);
+      grad.addColorStop(1, `rgba(${s.color[0]},${s.color[1]},${s.color[2]},0)`);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, w, h);
+    });
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+})();
+
+// ── 3: SVG glass tiles ────────────────────────────────────────────────
+(function() {
+  const svg = document.getElementById('svg-bg');
+  if (!svg) return;
+
+  function draw() {
+    const rect = svg.parentElement.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+    svg.innerHTML = `
+      <defs>
+        <filter id="svg-blur">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="40"/>
+        </filter>
+      </defs>
+      <rect width="${w}" height="${h}" fill="#f4f5f7"/>
+      <!-- Large blurred glass shards -->
+      <g filter="url(#svg-blur)" opacity="0.18">
+        <polygon points="${w*0.05},${h*0.1} ${w*0.25},${h*0.05} ${w*0.22},${h*0.35} ${w*0.02},${h*0.30}" fill="#55ba08"/>
+        <polygon points="${w*0.65},${h*0.02} ${w*0.90},${h*0.08} ${w*0.88},${h*0.28} ${w*0.62},${h*0.22}" fill="#3b82f6"/>
+        <polygon points="${w*0.30},${h*0.55} ${w*0.52},${h*0.48} ${w*0.50},${h*0.78} ${w*0.28},${h*0.75}" fill="#8b5cf6"/>
+        <polygon points="${w*0.70},${h*0.50} ${w*0.95},${h*0.55} ${w*0.92},${h*0.82} ${w*0.68},${h*0.80}" fill="#55ba08"/>
+        <polygon points="${w*0.10},${h*0.65} ${w*0.30},${h*0.60} ${w*0.28},${h*0.90} ${w*0.08},${h*0.88}" fill="#3b82f6"/>
+      </g>
+      <!-- Smaller bright accents -->
+      <g filter="url(#svg-blur)" opacity="0.12">
+        <polygon points="${w*0.40},${h*0.15} ${w*0.55},${h*0.12} ${w*0.53},${h*0.30} ${w*0.38},${h*0.28}" fill="#c8e6c8"/>
+        <polygon points="${w*0.75},${h*0.30} ${w*0.88},${h*0.28} ${w*0.86},${h*0.45} ${w*0.73},${h*0.42}" fill="#d2e6ff"/>
+        <polygon points="${w*0.15},${h*0.40} ${w*0.28},${h*0.38} ${w*0.26},${h*0.52} ${w*0.13},${h*0.50}" fill="#f0f0f0"/>
+      </g>
+    `;
+  }
+
+  window.addEventListener('resize', draw);
+  draw();
+})();
+
+// ── 4: Responsive orbs ────────────────────────────────────────────────
+(function() {
+  const container = document.getElementById('style-orbs');
+  if (!container) return;
+
+  const orbDefs = [
+    { w: '30vw', h: '30vw', bg: 'rgba(85,186,8,0.6)', top: '-8vw', right: '-8vw', anim: 'orb-drift-1', dur: '45s' },
+    { w: '25vw', h: '25vw', bg: 'rgba(59,130,246,0.55)', bottom: '-6vw', left: '-6vw', anim: 'orb-drift-2', dur: '52s' },
+    { w: '22vw', h: '22vw', bg: 'rgba(85,186,8,0.55)', top: '10%', left: '20%', anim: 'orb-drift-3', dur: '58s' },
+    { w: '20vw', h: '20vw', bg: 'rgba(139,92,246,0.55)', bottom: '15%', right: '10%', anim: 'orb-drift-4', dur: '48s' },
+    { w: '24vw', h: '24vw', bg: 'rgba(85,186,8,0.5)', top: '40%', left: '50%', anim: 'orb-drift-1', dur: '55s' },
+    { w: '18vw', h: '18vw', bg: 'rgba(200,230,200,0.6)', top: '15%', left: '40%', anim: 'orb-drift-2', dur: '50s' },
+    { w: '16vw', h: '16vw', bg: 'rgba(210,230,255,0.55)', bottom: '25%', left: '25%', anim: 'orb-drift-3', dur: '60s' },
+    { w: '14vw', h: '14vw', bg: 'rgba(253,186,116,0.45)', bottom: '-4vw', right: '-3vw', anim: 'orb-drift-4', dur: '42s' },
+  ];
+
+  orbDefs.forEach((def, i) => {
+    const el = document.createElement('div');
+    el.className = 'resp-orb';
+    el.style.cssText =
+      `width:${def.w};height:${def.h};background:${def.bg};` +
+      `animation:${def.anim} ${def.dur} ease-in-out infinite;` +
+      `animation-delay: ${-i * 5}s;` +
+      (def.top != null ? `top:${def.top};` : '') +
+      (def.bottom != null ? `bottom:${def.bottom};` : '') +
+      (def.left != null ? `left:${def.left};` : '') +
+      (def.right != null ? `right:${def.right};` : '');
+    container.appendChild(el);
+  });
+})();
+</script>
+
+</body>
+</html>
