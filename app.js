@@ -1566,6 +1566,7 @@ function debounceUpdate() {
   }
 
   if (!is3DActive) {
+    updateTransitionTable();
     hidePreviewSpinner();
     return;
   }
@@ -1575,6 +1576,7 @@ function debounceUpdate() {
 
     // If 3D tab is no longer active, skip the heavy work
     if (!document.getElementById('pane-3d')?.classList.contains('active')) {
+      updateTransitionTable();
       hidePreviewSpinner();
       return;
     }
@@ -1583,6 +1585,7 @@ function debounceUpdate() {
     if (hasOnlyColorChanged() && modelGroup.children.length > 0) {
       // Fast path: update vertex colors only
       await updateMeshColorsOnly();
+      updateTransitionTable();
     } else {
       // Full rebuild: geometry or first-time render
       _cachedHeights = null;
@@ -3453,6 +3456,7 @@ window.switchTab = function (tab) {
   } else if (tab === 'filament') {
     document.querySelector('.tab-btn:nth-child(3)').classList.add('active');
     document.getElementById('pane-filament').classList.add('active');
+    updateTransitionTable();
   }
   if (typeof updateCardShadow === 'function') updateCardShadow();
 };
