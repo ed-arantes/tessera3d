@@ -1,362 +1,782 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<!--
-  _________   _______   ________  ________  _______   _______        __       _______  ________   
- ("    _   ")/"     "| /"       )/"       )/"     "| /"      \      /""\     /" __   )|"      "\  
- \__/  \\__/(: ______)(:   \___/(:   \___/(: ______)|:        |    /    \   (__/ _) ./(.  ___  :) 
-    \\_ /    \/    |   \___  \   \___  \   \/    |  |_____/   )   /' /\  \      /  // |: \   ) || 
-    |.  |    // ___)_   __/  \\   __/  \\  // ___)_  //      /   //  __'  \  __ \_ \\ (| (___\ || 
-    \:  |   (:      "| /" \   :) /" \   :)(:      "||:  __   \  /   /  \\  \(: \__) :\|:       :) 
-     \__|    \_______)(_______/ (_______/  \_______)|__|  \___)(___/    \___)\_______)(________/ 
-
--->                                                                                          
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#55ba08">
-  <title>Tessera - 3D Art Studio</title>
+  <meta name="theme-color" content="#FB3640">
+  <title>Tessera - Mantine UI</title>
   <link rel="icon" type="image/png" href="/icon.png">
-  <link rel="apple-touch-icon" href="/icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
-  <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" as="style">
-  <style>i.fas, i.fa-solid, i.far, i.fab { color: initial; font-size: initial; }</style>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-  <link rel="stylesheet" href="styles.css">
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js" defer></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; overflow: hidden; }
+    body { font-family: 'Inter', system-ui, sans-serif; background: #f8f9fa; color: #1a1b1e; }
+
+    /* ── Mantine-like Variables ────────────────────────────────────── */
+    :root {
+      --mantine-accent: #FB3640;
+      --mantine-accent-hover: #e02e37;
+      --mantine-bg: #ffffff;
+      --mantine-bg-alt: #f8f9fa;
+      --mantine-border: #dee2e6;
+      --mantine-text: #1a1b1e;
+      --mantine-text-dim: #909296;
+      --mantine-radius-sm: 6px;
+      --mantine-radius-md: 8px;
+      --mantine-radius-lg: 12px;
+      --mantine-shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+      --mantine-shadow-md: 0 2px 8px rgba(0,0,0,0.1);
+      --sidebar-width: 420px;
+    }
+
+    /* ── Layout ────────────────────────────────────────────────────── */
+    .app-shell { display: flex; height: 100vh; }
+
+    /* ── Sidebar (Navbar) ─────────────────────────────────────────── */
+    .navbar {
+      width: var(--sidebar-width);
+      min-width: var(--sidebar-width);
+      height: 100vh;
+      background: var(--mantine-bg);
+      border-right: 1px solid var(--mantine-border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .navbar-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--mantine-border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .navbar-header img { width: 32px; height: 32px; border-radius: var(--mantine-radius-sm); }
+    .navbar-header h1 { font-size: 16px; font-weight: 700; color: var(--mantine-text); }
+    .navbar-header .version { font-size: 11px; color: var(--mantine-text-dim); font-weight: 400; }
+    .navbar-section {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .navbar-footer {
+      padding: 12px;
+      border-top: 1px solid var(--mantine-border);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* ── Section / Accordion ──────────────────────────────────────── */
+    .section {
+      background: var(--mantine-bg);
+      border: 1px solid var(--mantine-border);
+      border-radius: var(--mantine-radius-md);
+      overflow: hidden;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.15s;
+    }
+    .section-header:hover { background: var(--mantine-bg-alt); }
+    .section-header h3 {
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--mantine-text);
+    }
+    .section-header h3 i { color: var(--mantine-accent); font-size: 13px; }
+    .section-chevron {
+      font-size: 10px;
+      color: var(--mantine-text-dim);
+      transition: transform 0.2s;
+    }
+    .section.collapsed .section-chevron { transform: rotate(-90deg); }
+    .section-body {
+      padding: 0 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: max-height 0.3s ease, opacity 0.2s ease, padding 0.3s ease;
+      max-height: 1000px;
+      opacity: 1;
+      overflow: hidden;
+    }
+    .section.collapsed .section-body {
+      max-height: 0;
+      opacity: 0;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    /* ── Form Controls ────────────────────────────────────────────── */
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-label { font-size: 12px; font-weight: 500; color: var(--mantine-text-dim); }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-input {
+      width: 100%;
+      height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--mantine-border);
+      border-radius: var(--mantine-radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--mantine-text);
+      background: var(--mantine-bg);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus { border-color: var(--mantine-accent); }
+    .form-input-with-unit {
+      position: relative;
+    }
+    .form-input-with-unit .form-input { padding-right: 36px; }
+    .form-unit {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      color: var(--mantine-text-dim);
+      pointer-events: none;
+    }
+    .form-select {
+      width: 100%;
+      height: 34px;
+      padding: 0 10px;
+      border: 1px solid var(--mantine-border);
+      border-radius: var(--mantine-radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--mantine-text);
+      background: var(--mantine-bg);
+      outline: none;
+      cursor: pointer;
+      appearance: auto;
+    }
+    .form-select:focus { border-color: var(--mantine-accent); }
+
+    /* ── Switch ───────────────────────────────────────────────────── */
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+    .switch-label { font-size: 13px; color: var(--mantine-text); }
+    .mantine-switch {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+    .mantine-switch input { opacity: 0; width: 0; height: 0; }
+    .mantine-switch .track {
+      position: absolute;
+      inset: 0;
+      background: var(--mantine-border);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .mantine-switch .track::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      top: 2px;
+      left: 2px;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+    .mantine-switch input:checked + .track { background: var(--mantine-accent); }
+    .mantine-switch input:checked + .track::after { transform: translateX(16px); }
+
+    /* ── Slider ───────────────────────────────────────────────────── */
+    .slider-row { display: flex; align-items: center; gap: 10px; }
+    .slider-row label { font-size: 12px; font-weight: 500; color: var(--mantine-text-dim); white-space: nowrap; }
+    .slider-row input[type="range"] {
+      flex: 1;
+      height: 4px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--mantine-border);
+      border-radius: 2px;
+      outline: none;
+    }
+    .slider-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--mantine-accent);
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .slider-badge {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--mantine-accent);
+      background: rgba(251, 54, 64, 0.08);
+      padding: 2px 8px;
+      border-radius: 10px;
+      min-width: 28px;
+      text-align: center;
+    }
+
+    /* ── Buttons ──────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      height: 34px;
+      padding: 0 14px;
+      border-radius: var(--mantine-radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      border: 1px solid var(--mantine-border);
+      background: var(--mantine-bg);
+      color: var(--mantine-text);
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: var(--mantine-bg-alt); }
+    .btn-primary {
+      background: var(--mantine-accent);
+      color: #fff;
+      border-color: var(--mantine-accent);
+    }
+    .btn-primary:hover { background: var(--mantine-accent-hover); border-color: var(--mantine-accent-hover); }
+    .btn-sm { height: 28px; padding: 0 10px; font-size: 12px; }
+    .btn-icon {
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border-radius: var(--mantine-radius-sm);
+    }
+    .btn-row { display: flex; gap: 8px; }
+    .btn-danger { background: #fa5252; color: #fff; border-color: #fa5252; }
+    .btn-danger:hover { background: #e03131; border-color: #e03131; }
+
+    /* ── Upload Zone ──────────────────────────────────────────────── */
+    .upload-zone {
+      border: 2px dashed var(--mantine-border);
+      border-radius: var(--mantine-radius-md);
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--mantine-accent);
+      background: rgba(251, 54, 64, 0.03);
+    }
+    .upload-zone i { font-size: 28px; color: var(--mantine-text-dim); margin-bottom: 8px; display: block; }
+    .upload-zone p { font-size: 13px; color: var(--mantine-text); margin-bottom: 4px; }
+    .upload-zone span { font-size: 12px; color: var(--mantine-text-dim); }
+    .upload-preview { max-width: 100%; max-height: 120px; border-radius: var(--mantine-radius-sm); margin-top: 8px; display: none; }
+    .remove-bg-link { font-size: 12px; color: var(--mantine-accent); cursor: pointer; margin-top: 6px; }
+
+    /* ── Layer List ───────────────────────────────────────────────── */
+    .layer-list { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+    .layer-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      background: var(--mantine-bg-alt);
+      border-radius: var(--mantine-radius-sm);
+      border: 1px solid transparent;
+    }
+    .layer-row.active { border-color: var(--mantine-accent); }
+    .layer-swatch {
+      width: 24px;
+      height: 24px;
+      border-radius: 4px;
+      border: 2px solid rgba(0,0,0,0.08);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .layer-info { flex: 1; font-size: 12px; color: var(--mantine-text-dim); min-width: 0; }
+    .layer-controls { display: flex; align-items: center; gap: 4px; }
+    .layer-controls input[type="range"] { width: 80px; height: 3px; }
+    .layer-controls input[type="range"]::-webkit-slider-thumb {
+      width: 10px; height: 10px;
+    }
+    .layer-val { font-size: 11px; color: var(--mantine-text-dim); white-space: nowrap; min-width: 90px; }
+
+    /* ── Main Content ─────────────────────────────────────────────── */
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--mantine-bg-alt); }
+    .main-header {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--mantine-border);
+      background: var(--mantine-bg);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .main-header h2 { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+    .main-header h2 i { color: var(--mantine-accent); font-size: 14px; }
+    .auth-bar { display: flex; align-items: center; gap: 8px; }
+
+    /* ── Tabs ─────────────────────────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 2px;
+      background: var(--mantine-bg-alt);
+      border-radius: var(--mantine-radius-sm);
+      padding: 3px;
+    }
+    .tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 30px;
+      padding: 0 12px;
+      border-radius: var(--mantine-radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      color: var(--mantine-text-dim);
+      transition: all 0.15s;
+    }
+    .tab:hover { color: var(--mantine-text); background: rgba(0,0,0,0.04); }
+    .tab.active {
+      background: var(--mantine-bg);
+      color: var(--mantine-text);
+      box-shadow: var(--mantine-shadow-sm);
+    }
+    .tab i { font-size: 12px; }
+
+    /* ── Viewport ─────────────────────────────────────────────────── */
+    .viewport { flex: 1; position: relative; overflow: hidden; }
+    .viewport canvas { display: block; width: 100%; height: 100%; }
+    .pane { position: absolute; inset: 0; display: none; }
+    .pane.active { display: flex; align-items: center; justify-content: center; }
+
+    /* ── Layer Nav ────────────────────────────────────────────────── */
+    .layer-nav {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 4px;
+      background: var(--mantine-bg);
+      border: 1px solid var(--mantine-border);
+      border-radius: var(--mantine-radius-md);
+      padding: 4px;
+      box-shadow: var(--mantine-shadow-md);
+      z-index: 5;
+    }
+
+    /* ── Info Card ────────────────────────────────────────────────── */
+    .info-card {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      background: var(--mantine-bg);
+      border: 1px solid var(--mantine-border);
+      border-radius: var(--mantine-radius-md);
+      padding: 10px 14px;
+      box-shadow: var(--mantine-shadow-sm);
+      font-size: 11px;
+      z-index: 5;
+    }
+    .info-row { display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; }
+    .info-label { color: var(--mantine-text-dim); }
+    .info-value { font-weight: 600; color: var(--mantine-text); }
+
+    /* ── Filament Table ───────────────────────────────────────────── */
+    .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .data-table th {
+      text-align: left;
+      padding: 8px 10px;
+      font-weight: 600;
+      font-size: 11px;
+      color: var(--mantine-text-dim);
+      border-bottom: 1px solid var(--mantine-border);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .data-table td {
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--mantine-border);
+      color: var(--mantine-text);
+    }
+    .color-dot {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.1);
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+
+    /* ── Alert ────────────────────────────────────────────────────── */
+    .alert {
+      padding: 12px 14px;
+      border-radius: var(--mantine-radius-md);
+      font-size: 13px;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .alert-warning { background: rgba(251, 54, 64, 0.06); border: 1px solid rgba(251, 54, 64, 0.2); color: var(--mantine-accent); }
+
+    /* ── Tip Box ──────────────────────────────────────────────────── */
+    .tip-box {
+      padding: 10px 14px;
+      border-radius: var(--mantine-radius-md);
+      background: rgba(251, 54, 64, 0.04);
+      border: 1px solid rgba(251, 54, 64, 0.15);
+      font-size: 12px;
+      color: var(--mantine-text-dim);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    .tip-box i { color: var(--mantine-accent); font-size: 14px; margin-top: 1px; flex-shrink: 0; }
+
+    /* ── Export Buttons ───────────────────────────────────────────── */
+    .export-stack { display: flex; flex-direction: column; gap: 8px; }
+    .btn-export {
+      width: 100%;
+      height: 38px;
+      border-radius: var(--mantine-radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: opacity 0.15s;
+    }
+    .btn-export:hover { opacity: 0.9; }
+    .btn-export:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Scrollbar ────────────────────────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--mantine-border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #adb5bd; }
+
+    /* ── Build Plates ─────────────────────────────────────────────── */
+    .plate-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .plate-btn {
+      height: 26px;
+      padding: 0 8px;
+      border-radius: var(--mantine-radius-sm);
+      border: 1px solid var(--mantine-border);
+      background: var(--mantine-bg);
+      font-size: 11px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      color: var(--mantine-text-dim);
+      transition: all 0.15s;
+    }
+    .plate-btn:hover, .plate-btn.active { border-color: var(--mantine-accent); color: var(--mantine-accent); background: rgba(251,54,64,0.04); }
+
+    /* ── Hidden ───────────────────────────────────────────────────── */
+    .hidden { display: none !important; }
+
+    /* ── Empty State ──────────────────────────────────────────────── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--mantine-text-dim);
+      gap: 12px;
+    }
+    .empty-state i { font-size: 48px; opacity: 0.3; }
+    .empty-state p { font-size: 14px; }
+  </style>
 </head>
-
 <body>
+  <div id="root"></div>
 
-  <div id="app-loader" class="app-loader">
-    <div class="app-loader-spinner"></div>
-    <div class="app-loader-text">Loading Tessera...</div>
-  </div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  <div class="app-layout">
+  <script type="text/babel">
+    const { useState, useRef, useEffect, useCallback } = React;
 
-    <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="logo-container">
-          <div class="logo-icon">
-            <img src="/icon.png" alt="" class="logo-img">
+    /* ── Toggle Section ────────────────────────────────────────────── */
+    function Section({ icon, title, defaultOpen = true, children }) {
+      const [open, setOpen] = useState(defaultOpen);
+      return (
+        <div className={`section ${open ? '' : 'collapsed'}`}>
+          <div className="section-header" onClick={() => setOpen(!open)}>
+            <h3><i className={`fas ${icon}`}></i> {title}</h3>
+            <i className="fas fa-chevron-down section-chevron"></i>
           </div>
-          <div>
-            <h1>Tessera</h1>
-            <div class="subtitle">3D Art Studio</div>
+          <div className="section-body">{children}</div>
+        </div>
+      );
+    }
+
+    /* ── Form Input with Unit ──────────────────────────────────────── */
+    function InputUnit({ label, id, unit, ...props }) {
+      return (
+        <div className="form-group">
+          <label className="form-label" htmlFor={id}>{label}</label>
+          <div className="form-input-with-unit">
+            <input className="form-input" id={id} {...props} />
+            {unit && <span className="form-unit">{unit}</span>}
           </div>
         </div>
-        <div class="subtitle">v1.0.11</div>
-      </div>
-      <div class="sidebar-content">
+      );
+    }
 
-        <div class="glass-panel collapsible">
-          <div class="panel-header" onclick="togglePanel(this)">
-            <h2><i class="fas fa-wrench"></i> Dimensions &amp; Slicing</h2>
-            <i class="fas fa-chevron-down collapse-icon"></i>
-          </div>
-          <div class="panel-body">
-            <div class="upload-zone mb-16" id="drop-zone">
-              <i class="fas fa-image upload-placeholder"></i>
-              <p class="upload-placeholder">Drag &amp; drop image here</p>
-              <span class="upload-placeholder">or click to browse local files</span>
-              <img id="upload-preview" class="upload-preview">
-              <div class="remove-bg-link" id="remove-bg-btn">Remove background</div>
-            </div>
-            <input type="file" id="file-input" accept="image/png, image/jpeg" class="hidden">
-
-            <div class="input-row-double mb-16">
-              <div class="input-group">
-                <label for="input-width">Print Width</label>
-                <div class="input-wrapper">
-                  <input type="number" id="input-width" min="10" max="500">
-                  <span class="input-unit">mm</span>
-                </div>
-              </div>
-              <div class="input-group">
-                <label for="input-height">Print Length</label>
-                <div class="input-wrapper">
-                  <input type="number" id="input-height" min="10" max="500">
-                  <span class="input-unit">mm</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="input-row-double mb-16">
-              <div class="input-group">
-                <label for="input-max-height">Max Height</label>
-                <div class="input-wrapper">
-                  <input type="number" id="input-max-height" step="0.1" min="0.5" max="20.0">
-                  <span class="input-unit">mm</span>
-                </div>
-              </div>
-              <div class="input-group">
-                <label for="input-base-thickness">Base Thickness</label>
-                <div class="input-wrapper">
-                  <input type="number" id="input-base-thickness" step="0.1" min="0.1" max="10.0">
-                  <span class="input-unit">mm</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="input-row-double mb-16">
-              <div class="input-group">
-                <label for="input-layer-height">Layer Height</label>
-                <div class="input-wrapper">
-                  <input type="number" id="input-layer-height" step="0.01" min="0.02" max="0.6">
-                  <span class="input-unit">mm</span>
-                </div>
-              </div>
-              <div class="input-group">
-                <label for="input-resolution">Grid Resolution</label>
-                <div class="input-wrapper">
-                  <input type="number" id="input-resolution" min="50" max="1200">
-                  <span class="input-unit"> pts</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="input-group mb-16">
-              <label for="input-triangle-quality">Mesh Triangles</label>
-              <div class="input-wrapper">
-                <select id="input-triangle-quality" class="input-select">
-                  <option value="100">100% (Finest)</option>
-                  <option value="90">90%</option>
-                  <option value="80">80%</option>
-                  <option value="70" selected>70% (Standard)</option>
-                  <option value="60">60%</option>
-                  <option value="50">50%</option>
-                  <option value="40">40%</option>
-                  <option value="30">30%</option>
-                  <option value="20">20%</option>
-                  <option value="10">10% (Lowest)</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="switch-container">
-              <div class="slider-title">Invert Layers (Engraved)</div>
-              <label class="switch">
-                <input type="checkbox" id="input-invert">
-                <span class="slider-switch"></span>
-              </label>
-            </div>
-
-            <div class="switch-container">
-              <div class="slider-title">Mirror X (Print face down)</div>
-              <label class="switch">
-                <input type="checkbox" id="input-mirror-x">
-                <span class="slider-switch"></span>
-              </label>
-            </div>
-
-            <div class="switch-container">
-              <div class="slider-title">Snap Heights (Posterize)</div>
-              <label class="switch">
-                <input type="checkbox" id="input-posterize" checked>
-                <span class="slider-switch"></span>
-              </label>
-            </div>
-
-            <div class="switch-container">
-              <div class="slider-title">Simulate Transmission</div>
-              <label class="switch">
-                <input type="checkbox" id="input-simulate-td">
-                <span class="slider-switch"></span>
-              </label>
-            </div>
-          </div>
+    /* ── Toggle Switch ─────────────────────────────────────────────── */
+    function Switch({ label, id, defaultChecked, onChange }) {
+      const [checked, setChecked] = useState(defaultChecked || false);
+      const handleChange = (e) => { setChecked(e.target.checked); onChange && onChange(e.target.checked); };
+      return (
+        <div className="switch-row">
+          <span className="switch-label">{label}</span>
+          <label className="mantine-switch">
+            <input type="checkbox" id={id} checked={checked} onChange={handleChange} />
+            <span className="track"></span>
+          </label>
         </div>
+      );
+    }
 
-        <div class="glass-panel collapsible collapsed" id="panel-color-layers">
-          <div class="panel-header" onclick="togglePanel(this)" id="header-color-layers">
-            <h2><i class="fas fa-palette"></i> Color Layers</h2>
-            <i class="fas fa-chevron-down collapse-icon"></i>
-          </div>
-          <div class="panel-body">
-            <div class="input-group mb-16">
-              <div class="slider-row">
-                <span class="slider-title">Extruder Colors</span>
-                <span class="slider-val-badge" id="label-colors-count"></span>
+    /* ── App ────────────────────────────────────────────────────────── */
+    function App() {
+      const [activeTab, setActiveTab] = useState('2d');
+      const [image, setImage] = useState(null);
+      const [layerCount, setLayerCount] = useState(4);
+
+      return (
+        <div className="app-shell">
+          {/* ── Navbar (Sidebar) ── */}
+          <nav className="navbar">
+            <div className="navbar-header">
+              <img src="/icon.png" alt="" />
+              <div>
+                <h1>Tessera <span className="version">v1.0.11</span></h1>
+                <div style={{fontSize: 11, color: 'var(--mantine-text-dim)'}}>3D Art Studio</div>
               </div>
-              <div class="slider-row align-center">
-                <button class="btn-step" id="colors-count-down"><i class="fas fa-minus"></i></button>
-                <input type="range" id="input-colors-count" min="1" max="16">
-                <button class="btn-step" id="colors-count-up"><i class="fas fa-plus"></i></button>
-              </div>
             </div>
 
-            <div class="btn-row">
-              <button class="btn-secondary" id="btn-match-colors" title="Extract colors from image">
-                <i class="fas fa-image"></i> Match
-              </button>
-              <button class="btn-secondary" id="btn-auto-distribute" title="Distribute start heights evenly">
-                <i class="fas fa-shuffle"></i> Auto
-              </button>
-            </div>
-
-            <div class="layer-list-scroll" id="layer-list">
-            </div>
-          </div>
-        </div>
-
-        <div class="glass-panel collapsible collapsed" id="panel-puzzle">
-          <div class="panel-header" onclick="togglePanel(this)" id="header-puzzle">
-            <h2><i class="fas fa-puzzle-piece"></i> Jigsaw Puzzle Split</h2>
-            <i class="fas fa-chevron-down collapse-icon"></i>
-          </div>
-          <div class="panel-body">
-            <div class="switch-container mb-16">
-              <div class="slider-title">Enable Jigsaw Split</div>
-              <label class="switch">
-                <input type="checkbox" id="input-puzzle-enable">
-                <span class="slider-switch"></span>
-              </label>
-            </div>
-
-            <div class="input-row-double mb-16">
-              <div class="input-group">
-                <label for="input-puzzle-cols">Columns</label>
-                <div class="input-wrapper">
-                  <input type="number" id="input-puzzle-cols" min="1" max="20">
-                  <span class="input-unit">pcs</span>
+            <div className="navbar-section">
+              {/* ── Dimensions & Slicing ── */}
+              <Section icon="fa-wrench" title="Dimensions & Slicing" defaultOpen={true}>
+                <div className="upload-zone" id="drop-zone">
+                  <i className="fas fa-image"></i>
+                  <p>Drag & drop image here</p>
+                  <span>or click to browse local files</span>
+                  <img id="upload-preview" className="upload-preview" />
+                  <div className="remove-bg-link">Remove background</div>
                 </div>
-              </div>
-              <div class="input-group">
-                <label for="input-puzzle-rows">Rows</label>
-                <div class="input-wrapper">
-                  <input type="number" id="input-puzzle-rows" min="1" max="20">
-                  <span class="input-unit">pcs</span>
-                </div>
-              </div>
-            </div>
+                <input type="file" id="file-input" accept="image/png, image/jpeg" className="hidden" />
 
-            <div class="input-group mb-16">
-              <div class="slider-row">
-                <span class="slider-title">Clearance / Gap</span>
-                <span class="slider-val-badge" id="label-clearance-val"></span>
-              </div>
-              <input type="range" id="input-puzzle-clearance" min="0" max="0.5" step="0.05">
-            </div>
-          </div>
-        </div>
-
-        <div class="glass-panel panel-footer">
-          <div class="export-card">
-            <button class="btn-primary-glow" id="btn-save" style="background:#03A9F4;">
-              <i class="fas fa-floppy-disk"></i> Save Project
-            </button>
-            <button class="btn-primary-glow" id="btn-export" style="background:#00C853;">
-              <i class="fas fa-download"></i> Export OBJ for BambuStudio
-            </button>
-            <button class="btn-primary-glow" id="btn-export-stl" onclick="exportSTL()" style="background:#FF9800;">
-              <i class="fas fa-cube"></i> Export STL
-            </button>
-            <div class="export-progress" id="export-progress" aria-live="polite">
-              <div class="export-progress-status" id="export-progress-status">Preparing export...</div>
-              <div class="export-progress-track">
-                <div class="export-progress-fill" id="export-progress-fill"></div>
-              </div>
-              <div class="export-progress-meta" id="export-progress-meta">0%</div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </aside>
-
-    <main class="main-content">
-      <div class="preview-column">
-
-        <div class="glass-panel mb-16 flex-0" id="user-auth-panel">
-          <div class="panel-header pb-0 cursor-default" id="user-auth-card"></div>
-        </div>
-
-        <div class="glass-panel preview-card flex-1">
-          <div class="panel-toolbar">
-            <h2><i class="fas fa-eye"></i> Live Simulation Previews</h2>
-            <div class="viewport-tabs">
-              <button class="tab-btn active" onclick="switchTab('2d')"><i class="fas fa-layer-group"></i> 2D Stack</button>
-              <button class="tab-btn" id="tab-3d" onclick="switchTab('3d')"><i class="fas fa-cube"></i> 3D Render</button>
-              <button class="tab-btn" id="tab-filament" onclick="switchTab('filament')"><i class="fas fa-sliders"></i>
-                Filament</button>
-            </div>
-          </div>
-
-          <div class="view-content-wrapper">
-            <div class="viewport-pane active" id="pane-2d">
-              <div class="canvas-2d-container">
-                <canvas id="canvas-2d"></canvas>
-                <div class="layer-nav hidden" id="layer-nav">
-                  <button class="layer-nav-btn" onclick="prev2DLayer()" id="btn-prev-layer">
-                    <i class="fas fa-chevron-left"></i>
-                  </button>
-                  <button class="layer-nav-btn" onclick="next2DLayer()" id="btn-next-layer">
-                    <i class="fas fa-chevron-right"></i>
-                  </button>
+                <div className="form-row">
+                  <InputUnit label="Print Width" id="input-width" unit="mm" type="number" min="10" max="500" />
+                  <InputUnit label="Print Length" id="input-height" unit="mm" type="number" min="10" max="500" />
                 </div>
 
-                <div class="ff-toolbar hidden" id="ff-toolbar">
-                  <div class="ff-toolbar-row">
-                    <button class="ff-btn" id="ff-toggle-btn" onclick="toggleFloodFillMode()" title="Flood Fill Tool">
-                      <i class="fas fa-paintbrush"></i> Fill Select
+                <div className="form-row">
+                  <InputUnit label="Max Height" id="input-max-height" unit="mm" type="number" step="0.1" min="0.5" max="20" />
+                  <InputUnit label="Base Thickness" id="input-base-thickness" unit="mm" type="number" step="0.1" min="0.1" max="10" />
+                </div>
+
+                <div className="form-row">
+                  <InputUnit label="Layer Height" id="input-layer-height" unit="mm" type="number" step="0.01" min="0.02" max="0.6" />
+                  <InputUnit label="Grid Resolution" id="input-resolution" unit="pts" type="number" min="50" max="1200" />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label" htmlFor="input-triangle-quality">Mesh Triangles</label>
+                  <select className="form-select" id="input-triangle-quality">
+                    <option value="100">100% (Finest)</option>
+                    <option value="90">90%</option>
+                    <option value="80">80%</option>
+                    <option value="70" selected>70% (Standard)</option>
+                    <option value="60">60%</option>
+                    <option value="50">50%</option>
+                    <option value="40">40%</option>
+                    <option value="30">30%</option>
+                    <option value="20">20%</option>
+                    <option value="10">10% (Lowest)</option>
+                  </select>
+                </div>
+
+                <Switch label="Invert Layers (Engraved)" id="input-invert" />
+                <Switch label="Mirror X (Print face down)" id="input-mirror-x" />
+                <Switch label="Snap Heights (Posterize)" id="input-posterize" defaultChecked={true} />
+                <Switch label="Simulate Transmission" id="input-simulate-td" />
+              </Section>
+
+              {/* ── Color Layers ── */}
+              <Section icon="fa-palette" title="Color Layers" defaultOpen={false}>
+                <div className="form-group">
+                  <div className="slider-row">
+                    <label>Extruder Colors</label>
+                    <span className="slider-badge" id="label-colors-count">{layerCount}</span>
+                  </div>
+                  <div className="slider-row">
+                    <button className="btn btn-icon btn-sm" onClick={() => setLayerCount(Math.max(1, layerCount - 1))}>
+                      <i className="fas fa-minus" style={{fontSize: 9}}></i>
                     </button>
-                    <button class="ff-btn hidden" id="ff-clear-btn" onclick="clearAllRegions()" title="Clear all region overrides">
-                      <i class="fas fa-trash"></i>
+                    <input type="range" min="1" max="16" value={layerCount} onChange={e => setLayerCount(parseInt(e.target.value))} />
+                    <button className="btn btn-icon btn-sm" onClick={() => setLayerCount(Math.min(16, layerCount + 1))}>
+                      <i className="fas fa-plus" style={{fontSize: 9}}></i>
                     </button>
                   </div>
-                  <div class="ff-region-panel hidden" id="ff-region-panel">
-                    <div class="ff-region-title">Region Overrides</div>
-                    <div class="ff-region-list" id="ff-region-list"></div>
-                    <div class="ff-hint">Pick color then click button <i class="fas fa-arrow-right" style="font-size:12px;"></i></div>
-                    <div class="ff-color-row">
-                      <input type="color" class="ff-color-input" id="ff-color-pick" value="#ff6600" title="Override color">
-                      <button class="ff-apply-btn" id="ff-apply-btn" onclick="applyRegionColor()" disabled>Select an area first</button>
+                </div>
+
+                <div className="btn-row">
+                  <button className="btn btn-sm" id="btn-match-colors">
+                    <i className="fas fa-image"></i> Match
+                  </button>
+                  <button className="btn btn-sm" id="btn-auto-distribute">
+                    <i className="fas fa-shuffle"></i> Auto
+                  </button>
+                </div>
+
+                <div className="layer-list" id="layer-list">
+                  {[...Array(layerCount)].map((_, i) => (
+                    <div className="layer-row" key={i}>
+                      <div className="layer-swatch" style={{background: ['#e03131','#2f9e44','#1971c2','#f08c00','#9c36b5','#c2255c','#0c8599','#e8590c'][i % 8]}}></div>
+                      <div className="layer-info">Layer {i + 1}</div>
+                      <div className="layer-controls">
+                        <input type="range" min="0" max="20" step="0.04" defaultValue={i * 3} />
+                        <span className="layer-val">L{i + 1} ({(i * 3 + 0.04).toFixed(2)} mm)</span>
+                      </div>
+                      <button className="btn btn-icon btn-sm btn-danger" disabled={i === 0} style={{width: 20, height: 20}}>
+                        <i className="fas fa-xmark" style={{fontSize: 9}}></i>
+                      </button>
                     </div>
-                  </div>
+                  ))}
                 </div>
-              </div>
+              </Section>
+
+              {/* ── Jigsaw Puzzle ── */}
+              <Section icon="fa-puzzle-piece" title="Jigsaw Puzzle Split" defaultOpen={false}>
+                <Switch label="Enable Jigsaw Split" id="input-puzzle-enable" />
+                <div className="form-row">
+                  <InputUnit label="Columns" id="input-puzzle-cols" unit="pcs" type="number" min="1" max="20" defaultValue="2" />
+                  <InputUnit label="Rows" id="input-puzzle-rows" unit="pcs" type="number" min="1" max="20" defaultValue="2" />
+                </div>
+                <div className="form-group">
+                  <div className="slider-row">
+                    <label>Clearance / Gap</label>
+                    <span className="slider-badge" id="label-clearance-val">0.10</span>
+                  </div>
+                  <input type="range" id="input-puzzle-clearance" min="0" max="0.5" step="0.05" defaultValue="0.1" />
+                </div>
+              </Section>
             </div>
-            <div class="viewport-pane" id="pane-3d">
-              <div id="container-3d"></div>
-              <div class="plate-selector" id="plate-selector">
-                <button class="plate-btn active" data-plate="0" title="185 × 185 mm">A1 Mini</button>
-                <button class="plate-btn" data-plate="1" title="265 × 265 mm">A1/P/X</button>
-                <button class="plate-btn" data-plate="2" title="355 × 346 mm">H2S/H2D</button>
-                <button class="plate-btn" data-plate="3" title="335 × 346 mm">A2L/H2C</button>
-              </div>
-              <div id="view-cube-container">
-                <canvas id="view-cube-canvas" width="120" height="120"></canvas>
-                <button id="view-cube-home" title="Reset view">
-                  <i class="fas fa-house"></i>
+
+            {/* ── Export Footer ── */}
+            <div className="navbar-footer">
+              <div className="export-stack">
+                <button className="btn-export" style={{background: '#228be6'}}>
+                  <i className="fas fa-floppy-disk"></i> Save Project
+                </button>
+                <button className="btn-export" id="btn-export" style={{background: '#2f9e44'}}>
+                  <i className="fas fa-download"></i> Export OBJ for BambuStudio
+                </button>
+                <button className="btn-export" id="btn-export-stl" style={{background: '#f08c00'}}>
+                  <i className="fas fa-cube"></i> Export STL
                 </button>
               </div>
-              <div id="model-info-card">
-                <div class="info-card-row"><span class="info-card-label">Size</span><span id="info-size">-</span></div>
-                <div class="info-card-row"><span class="info-card-label">Layers</span><span id="info-layers">-</span>
+            </div>
+          </nav>
+
+          {/* ── Main Content ── */}
+          <div className="main-content">
+            <div className="main-header">
+              <h2><i className="fas fa-eye"></i> Live Simulation Previews</h2>
+              <div style={{display: 'flex', alignItems: 'center', gap: 12}}>
+                <div className="tabs">
+                  <button className={`tab ${activeTab === '2d' ? 'active' : ''}`} onClick={() => setActiveTab('2d')}>
+                    <i className="fas fa-layer-group"></i> 2D Stack
+                  </button>
+                  <button className={`tab ${activeTab === '3d' ? 'active' : ''}`} onClick={() => setActiveTab('3d')}>
+                    <i className="fas fa-cube"></i> 3D Render
+                  </button>
+                  <button className={`tab ${activeTab === 'filament' ? 'active' : ''}`} onClick={() => setActiveTab('filament')}>
+                    <i className="fas fa-sliders"></i> Filament
+                  </button>
                 </div>
-                <div class="info-card-row"><span class="info-card-label">Layer H</span><span id="info-lh">-</span></div>
-                <div class="info-card-row"><span class="info-card-label">Max H</span><span id="info-maxh">-</span></div>
-                <div class="info-card-row"><span class="info-card-label">Grid</span><span id="info-grid">-</span></div>
-                <div class="info-card-row"><span class="info-card-label">Vertices</span><span
-                    id="info-vertices">-</span></div>
-                <div class="info-card-row"><span class="info-card-label">Triangles</span><span
-                    id="info-triangles">-</span></div>
+                <div className="auth-bar">
+                  <button className="btn btn-sm">
+                    <i className="fas fa-right-to-bracket"></i> Login
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="viewport-pane" id="pane-filament">
-              <div class="table-container">
-                <table>
+
+            <div className="viewport">
+              {/* 2D Pane */}
+              <div className={`pane ${activeTab === '2d' ? 'active' : ''}`} id="pane-2d">
+                <canvas id="canvas-2d"></canvas>
+                {!image && (
+                  <div className="empty-state">
+                    <i className="fas fa-image"></i>
+                    <p>No image loaded</p>
+                  </div>
+                )}
+                <div className="layer-nav hidden" id="layer-nav">
+                  <button className="btn btn-icon btn-sm"><i className="fas fa-chevron-left"></i></button>
+                  <button className="btn btn-icon btn-sm"><i className="fas fa-chevron-right"></i></button>
+                </div>
+              </div>
+
+              {/* 3D Pane */}
+              <div className={`pane ${activeTab === '3d' ? 'active' : ''}`} id="pane-3d">
+                <div id="three-container" style={{width:'100%',height:'100%'}}></div>
+                <div className="info-card">
+                  <div className="info-row"><span className="info-label">Size</span><span className="info-value" id="info-size">-</span></div>
+                  <div className="info-row"><span className="info-label">Layers</span><span className="info-value" id="info-layers">-</span></div>
+                  <div className="info-row"><span className="info-label">Layer H</span><span className="info-value" id="info-lh">-</span></div>
+                  <div className="info-row"><span className="info-label">Max H</span><span className="info-value" id="info-maxh">-</span></div>
+                  <div className="info-row"><span className="info-label">Grid</span><span className="info-value" id="info-grid">-</span></div>
+                  <div className="info-row"><span className="info-label">Vertices</span><span className="info-value" id="info-verts">-</span></div>
+                  <div className="info-row"><span className="info-label">Triangles</span><span className="info-value" id="info-tris">-</span></div>
+                </div>
+              </div>
+
+              {/* Filament Pane */}
+              <div className={`pane ${activeTab === 'filament' ? 'active' : ''}`} id="pane-filament" style={{flexDirection: 'column', padding: 20, overflow: 'auto', alignItems: 'stretch'}}>
+                <table className="data-table">
                   <thead>
                     <tr>
                       <th>Filament / Color Slot</th>
@@ -366,204 +786,35 @@
                     </tr>
                   </thead>
                   <tbody id="transition-table-body">
+                    {[...Array(layerCount)].map((_, i) => (
+                      <tr key={i}>
+                        <td>
+                          <span className="color-dot" style={{background: ['#e03131','#2f9e44','#1971c2','#f08c00','#9c36b5','#c2255c','#0c8599','#e8590c'][i % 8]}}></span>
+                          Layer {i + 1}
+                        </td>
+                        <td>{['#E03131','#2F9E44','#1971C2','#F08C00','#9C36B5','#C2255C','#0C8599','#E8590C'][i % 8]}</td>
+                        <td>{((i * 3) + 0.04).toFixed(2)} mm</td>
+                        <td><strong>Layer {i + 1}</strong></td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
+
+                <div className="tip-box">
+                  <i className="fas fa-circle-info"></i>
+                  <p><strong>BambuStudio 1.9.1+ Setup:</strong> A single <code>posterized_model.obj</code> file will download.
+                  Drag it directly into BambuStudio. Because it uses embedded Vertex Colors, BambuStudio will automatically
+                  detect the colors and show a <strong>color-to-AMS mapping dialog</strong> — assign each color slot to
+                  the matching filament in your AMS. The Transition Layer column above is your reference for manual filament swaps without AMS.</p>
+                </div>
               </div>
-              <div class="tip-box mt-16">
-                <i class="fas fa-circle-info"></i>
-                <p><strong>BambuStudio 1.9.1+ Setup:</strong> A single <code>posterized_model.obj</code> file will
-                  download. Drag it directly into BambuStudio. Because it uses embedded Vertex Colors, BambuStudio will
-                  automatically detect the colors and show a <strong>color-to-AMS mapping dialog</strong> — assign each
-                  color slot to the matching filament in your AMS. The Transition Layer column above is your reference
-                  for manual filament swaps without AMS.</p>
-              </div>
-            </div>
-            <div class="preview-spinner hidden" id="preview-spinner">
-              <div class="spinner"></div>
-              <div class="spinner-text" id="preview-spinner-text">Loading...</div>
-            </div>
-            <div class="preview-empty hidden" id="preview-empty">
-              <div class="empty-text">No image loaded</div>
-              <div class="empty-hint">Upload an image to start</div>
             </div>
           </div>
         </div>
+      );
+    }
 
-      </div>
-    </main>
-
-  </div>
-
-  <div class="modal-overlay hidden" id="auth-modal-overlay">
-    <div class="modal-box pos-relative">
-      <div class="modal-header">
-        <h2 id="auth-modal-title">Sign In</h2>
-        <button class="modal-close" onclick="closeAuthModal()"><i class="fas fa-xmark"></i></button>
-      </div>
-      <div class="input-group">
-        <label for="auth-input-username">Username</label>
-        <div class="input-wrapper">
-          <input type="text" id="auth-input-username" autocomplete="username" placeholder="Enter your username">
-        </div>
-      </div>
-      <div class="input-group">
-        <label for="auth-input-password">Password</label>
-        <div class="input-wrapper">
-          <input type="password" id="auth-input-password" autocomplete="current-password"
-            placeholder="Enter your password">
-        </div>
-      </div>
-      <div class="modal-error" id="auth-modal-error"></div>
-      <button class="btn-primary-glow" id="auth-modal-submit" onclick="submitAuthForm()">Sign In</button>
-      <div class="modal-toggle">
-        <span id="auth-modal-toggle-text">Don't have an account? </span>
-        <a id="auth-modal-toggle-link">Sign Up</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="dashboard-overlay hidden" id="dashboard-overlay">
-    <div class="dashboard-panel">
-      <div class="dash-header">
-        <div id="dash-avatar-container">
-          <div class="dash-avatar-placeholder"><i class="fas fa-user icon-md"></i></div>
-        </div>
-        <div class="dash-user-info">
-          <h3 class="dash-username" id="dash-username">Username</h3>
-          <div class="dash-meta" id="dash-meta">Member since —</div>
-        </div>
-        <button class="dash-close" onclick="closeDashboard()"><i class="fas fa-xmark"></i></button>
-      </div>
-
-      <div class="dash-body">
-        <div class="dash-section">
-          <h4 class="dash-section-title">Activity</h4>
-          <div class="dash-stat-grid">
-            <div class="dash-stat-card">
-              <div class="dash-stat-val" id="stat-projects">0</div>
-              <div class="dash-stat-label">Projects</div>
-            </div>
-            <div class="dash-stat-card">
-              <div class="dash-stat-val" id="stat-exports">0</div>
-              <div class="dash-stat-label">Exports</div>
-            </div>
-            <div class="dash-stat-card">
-              <div class="dash-stat-val" id="stat-saves">0</div>
-              <div class="dash-stat-label">Saves</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="dash-section">
-          <h4 class="dash-section-title">Change Username</h4>
-          <div class="dash-row">
-            <label class="dash-label">New username</label>
-            <input type="text" class="dash-input" id="dash-new-username" placeholder="Min 3 characters">
-          </div>
-          <div class="dash-row">
-            <label class="dash-label">Password</label>
-            <input type="password" class="dash-input" id="dash-username-password" placeholder="Confirm with password">
-          </div>
-          <div class="dash-msg" id="dash-username-msg"></div>
-          <div class="mt-8">
-            <button class="dash-btn dash-btn-primary dash-btn-sm" onclick="dashChangeUsername()">Update
-              Username</button>
-          </div>
-        </div>
-
-        <div class="dash-section">
-          <h4 class="dash-section-title">Change Password</h4>
-          <div class="dash-row">
-            <label class="dash-label">Current</label>
-            <input type="password" class="dash-input" id="dash-cur-password" placeholder="Current password">
-          </div>
-          <div class="dash-row">
-            <label class="dash-label">New</label>
-            <input type="password" class="dash-input" id="dash-new-password" placeholder="Min 4 characters">
-          </div>
-          <div class="dash-msg" id="dash-password-msg"></div>
-          <div class="mt-8">
-            <button class="dash-btn dash-btn-primary dash-btn-sm" onclick="dashChangePassword()">Update
-              Password</button>
-          </div>
-        </div>
-
-        <div class="dash-section">
-          <h4 class="dash-section-title">Filament Inventory</h4>
-          <div class="dash-filament-list" id="dash-filament-list"></div>
-          <div class="dash-add-row">
-            <input type="color" class="dash-input dash-color-input" id="dash-fil-color" value="#55ba08">
-            <input type="text" class="dash-input w-120" id="dash-fil-name" placeholder="Name">
-            <input type="text" class="dash-input w-90" id="dash-fil-brand" placeholder="Brand">
-            <input type="number" class="dash-input w-70" id="dash-fil-remaining" placeholder="g left"
-              min="0">
-            <button class="dash-btn dash-btn-primary dash-btn-sm" onclick="dashAddFilament()">Add</button>
-          </div>
-        </div>
-
-        <div class="dash-section">
-          <h4 class="dash-section-title">Preferences</h4>
-          <div class="dash-row">
-            <label class="dash-label">Default grid res</label>
-            <select class="dash-select" id="dash-pref-grid">
-              <option value="200">200 x 200</option>
-              <option value="400">400 x 400</option>
-              <option value="800" selected>800 x 800</option>
-              <option value="1200">1200 x 1200</option>
-              <option value="1600">1600 x 1600</option>
-            </select>
-          </div>
-          <div class="dash-row">
-            <label class="dash-label">Default layer height</label>
-            <select class="dash-select" id="dash-pref-layer">
-              <option value="0.06">0.06 mm</option>
-              <option value="0.08" selected>0.08 mm</option>
-              <option value="0.10">0.10 mm</option>
-              <option value="0.12">0.12 mm</option>
-              <option value="0.16">0.16 mm</option>
-              <option value="0.20">0.20 mm</option>
-            </select>
-          </div>
-          <div class="mt-8">
-            <button class="dash-btn dash-btn-secondary dash-btn-sm" onclick="dashSavePrefs()">Save Preferences</button>
-            <span class="dash-msg ml-8" id="dash-pref-msg"></span>
-          </div>
-        </div>
-
-        <div class="dash-section">
-          <div class="dash-danger-zone">
-            <h4 class="dash-danger-title">Delete Account</h4>
-            <p class="dash-danger-desc">This will permanently remove your account and all data. This cannot be undone.
-            </p>
-            <div class="dash-row">
-              <label class="dash-label">Password</label>
-              <input type="password" class="dash-input" id="dash-delete-password"
-                placeholder="Enter password to confirm">
-            </div>
-            <div class="dash-msg" id="dash-delete-msg"></div>
-            <button class="dash-btn dash-btn-danger dash-btn-sm mt-8" onclick="dashDeleteAccount()">Delete My Account</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="filament-picker-overlay hidden" id="filament-picker-overlay">
-    <div class="filament-picker-modal">
-      <div class="filament-picker-header">
-        <h2>Filament Library</h2>
-        <div class="filament-picker-actions">
-          <button class="modal-close dash-filter-swatch" id="filament-eyedropper" title="Pick color from screen"><i class="fas fa-eye-dropper"></i></button>
-          <button class="modal-close" onclick="closeFilamentPicker()"><i class="fas fa-xmark"></i></button>
-        </div>
-      </div>
-      <div class="filament-picker-body" id="filament-picker-body"></div>
-    </div>
-  </div>
-
-  <script src="export.js"></script>
-  <script src="auth.js"></script>
-  <script src="app.js"></script>
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
 </body>
-
 </html>
