@@ -513,7 +513,7 @@ function dashRenderFilaments() {
       <div class="dash-filament-name">${escapeHtml(f.name || 'Unnamed')}</div>
       <div class="dash-filament-brand">${escapeHtml(f.brand || '-')}</div>
       <div class="dash-filament-remaining">${f.remaining || '?'}g</div>
-      <button class="dash-filament-remove" onclick="dashRemoveFilament(${i})" title="Remove">&times;</button>
+      <button class="dash-filament-remove" onclick="dashRemoveFilament(${i})" title="Remove"><i class="fas fa-xmark"></i></button>
     </div>
   `).join('');
 }
