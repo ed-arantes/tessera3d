@@ -186,19 +186,6 @@ async function loadFilaments() {
   }
 }
 
-function updateCardShadow() {
-  const card = document.querySelector('.preview-card');
-  if (!card) return;
-  const empty = document.getElementById('preview-empty');
-  const pane2d = document.getElementById('pane-2d');
-  const isEmpty = empty && !empty.classList.contains('hidden') && pane2d && pane2d.classList.contains('active');
-  if (isEmpty) {
-    card.classList.add('is-empty');
-  } else {
-    card.classList.remove('is-empty');
-  }
-}
-
 function showEmptyState() {
   document.getElementById('preview-spinner').classList.add('hidden');
   document.getElementById('preview-empty').classList.remove('hidden');

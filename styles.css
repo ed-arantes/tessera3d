@@ -2003,6 +2003,12 @@ tr:last-child td {
   margin-top: 2px;
 }
 
+.dash-filament-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 4px 0;
+}
+
 .dash-filament-list {
   display: flex;
   flex-direction: column;
