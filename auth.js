@@ -131,43 +131,43 @@ function updateAuthUI() {
 
   if (Auth.isLoggedIn) {
     container.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-        <div style="position: relative; width: 36px; height: 36px; flex-shrink: 0; cursor: pointer;" onclick="openDashboard()" title="Open Settings">
-          <div class="avatar-placeholder" style="width:36px;height:36px;border-radius:50%;background:var(--bg-base);border:2px solid var(--accent);"></div>
+      <div class="auth-user-row">
+        <div class="auth-avatar-wrap" onclick="openDashboard()" title="Open Settings">
+          <div class="avatar-placeholder auth-avatar"></div>
           <img src="${avatarUrl(Auth.username || Auth.token || 'guest')}" alt=""
-            style="position:absolute;inset:0;width:36px;height:36px;border-radius:50%;border:2px solid var(--accent);object-fit:cover;"
+            class="auth-avatar-img"
             onerror="this.style.display='none'"
             onload="this.previousElementSibling.style.display='none'">
         </div>
         <div style="cursor: pointer;" onclick="openDashboard()" title="Open Settings">
-          <h2 style="margin: 0; padding: 0; font-size: 14px;">
+          <h2 class="auth-name">
             Welcome, <span id="auth-username">${escapeHtml(capitalise(Auth.username))}!</span>
           </h2>
         </div>
       </div>
-      <div style="display: flex; gap: 8px;">
-        <button class="btn-secondary" style="padding: 4px 12px; font-size: 14px; display: flex; align-items: center; gap: 6px;" onclick="Auth.logout()">
+      <div class="auth-actions">
+        <button class="btn-secondary auth-btn" onclick="Auth.logout()">
           <i class="fas fa-right-from-bracket"></i> Logout
         </button>
       </div>
     `;
   } else {
     container.innerHTML = `
-      <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+      <div class="auth-user-row">
         <div style="width: 32px; height: 32px; background: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; cursor: default;">
           <i class="fas fa-user"></i>
         </div>
         <div>
-          <h2 style="margin: 0; padding: 0; font-size: 14px;">
+          <h2 class="auth-name">
             Welcome, Guest!
           </h2>
         </div>
       </div>
-      <div style="display: flex; gap: 8px;">
-        <button class="btn-secondary" style="padding: 4px 12px; font-size: 14px; display: flex; align-items: center; gap: 6px;" onclick="openAuthModal('signin')">
+      <div class="auth-actions">
+        <button class="btn-secondary auth-btn" onclick="openAuthModal('signin')">
           <i class="fas fa-right-to-bracket"></i> Login
         </button>
-        <button class="btn-primary-glow" style="padding: 4px 12px; font-size: 14px; display: flex; align-items: center; gap: 6px; background: var(--accent); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 700;" onclick="openAuthModal('signup')">
+        <button class="btn-primary-glow auth-btn-signup" onclick="openAuthModal('signup')">
           <i class="fas fa-user-plus"></i> Sign Up
         </button>
       </div>
@@ -349,7 +349,7 @@ function openDashboard() {
   const avatarC = document.getElementById('dash-avatar-container');
   avatarC.innerHTML = `
     <div class="dash-avatar-placeholder" style="position:relative;">
-      <div class="avatar-placeholder" style="width:64px;height:64px;border-radius:50%;background:var(--bg-base);position:absolute;inset:0;"></div>
+      <div class="avatar-placeholder dash-avatar-ph"></div>
       <img src="${avatarUrl(Auth.username || Auth.token || 'guest')}" class="dash-avatar"
         style="position:absolute;inset:0;"
         onerror="this.style.display='none'"
@@ -504,7 +504,7 @@ function dashRenderFilaments() {
   const list = dashLoadFilaments();
   const container = document.getElementById('dash-filament-list');
   if (list.length === 0) {
-    container.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:4px 0;">No filaments added yet.</div>';
+    container.innerHTML = '<div class="dash-filament-empty">No filaments added yet.</div>';
     return;
   }
   container.innerHTML = list.map((f, i) => `

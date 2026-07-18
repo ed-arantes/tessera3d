@@ -32,8 +32,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js" defer></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 
 <body>
@@ -253,13 +251,13 @@
 
         <div class="glass-panel panel-footer">
           <div class="export-card">
-            <button class="btn-primary-glow" id="btn-save" style="background:#03A9F4;">
+            <button class="btn-primary-glow btn-save" id="btn-save">
               <i class="fas fa-floppy-disk"></i> Save Project
             </button>
-            <button class="btn-primary-glow" id="btn-export" style="background:#00C853;">
+            <button class="btn-primary-glow btn-export-obj" id="btn-export">
               <i class="fas fa-download"></i> Export OBJ for BambuStudio
             </button>
-            <button class="btn-primary-glow" id="btn-export-stl" onclick="exportSTL()" style="background:#FF9800;">
+            <button class="btn-primary-glow btn-export-stl" id="btn-export-stl" onclick="exportSTL()">
               <i class="fas fa-cube"></i> Export STL
             </button>
             <div class="export-progress" id="export-progress" aria-live="polite">
@@ -318,7 +316,7 @@
                   <div class="ff-region-panel hidden" id="ff-region-panel">
                     <div class="ff-region-title">Region Overrides</div>
                     <div class="ff-region-list" id="ff-region-list"></div>
-                    <div class="ff-hint">Pick color then click button <i class="fas fa-arrow-right" style="font-size:12px;"></i></div>
+                    <div class="ff-hint">Pick color then click button <i class="fas fa-arrow-right"></i></div>
                     <div class="ff-color-row">
                       <input type="color" class="ff-color-input" id="ff-color-pick" value="#ff6600" title="Override color">
                       <button class="ff-apply-btn" id="ff-apply-btn" onclick="applyRegionColor()" disabled>Select an area first</button>

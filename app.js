@@ -153,7 +153,7 @@ let vcDragging = false, vcDragStart = null, vcDragStartQuat = null;
 let vcDragMoved = false;
 const vcRaycaster = new THREE.Raycaster();
 const vcMouse = new THREE.Vector2();
-const DEFAULT_CAM_POS = new THREE.Vector3(0, -180, 150);
+const DEFAULT_CAM_POS = new THREE.Vector3(120, -120, 200);
 const DEFAULT_CAM_TARGET = new THREE.Vector3(0, 0, 0);
 let exportProgressResetTimer = null;
 let activeExportBtn = null;
@@ -1281,7 +1281,7 @@ function renderLayersList() {
     row.innerHTML = `
       <div class="layer-info">
         <span class="layer-title">Color ${idx + 1}</span>
-        <div style="flex:1"></div>
+        <div class="spacer"></div>
         <button class="layer-swatch" id="layer-swatch-${idx}" style="background:${layer.hex}" title="Pick filament"></button>
         <div class="td-input-container">
           <span class="td-label">TD</span>
@@ -1293,8 +1293,8 @@ function renderLayersList() {
         <input type="range" class="height-slider" min="0" max="${state.maxHeight}" step="${state.layerHeight}" 
                value="${layer.startHeight}" ${isBase ? 'disabled' : ''} id="layer-slider-${idx}">
         <button class="btn-step" id="layer-step-up-${idx}" ${isBase ? 'disabled' : ''}><i class="fas fa-plus"></i></button>
-        <span class="slider-value" id="layer-val-${idx}" style="min-width: 100px;">L${layerNum} (${(layer.startHeight + lh).toFixed(2)} mm)</span>
-        <button class="btn-step btn-remove-layer" id="layer-remove-${idx}" ${isBase ? 'disabled' : ''} title="Remove this layer" style="background: #ef4444; color: #ffffff; border-color: #ef4444; width: 20px; height: 20px; font-size: 11px;"><i class="fas fa-xmark"></i></button>
+        <span class="slider-value" id="layer-val-${idx}">L${layerNum} (${(layer.startHeight + lh).toFixed(2)} mm)</span>
+        <button class="btn-step btn-remove-layer" id="layer-remove-${idx}" ${isBase ? 'disabled' : ''} title="Remove this layer"><i class="fas fa-xmark"></i></button>
       </div>
     `;
 
@@ -2150,7 +2150,7 @@ function updateRegionPanel() {
       applyBtn.textContent = 'Re-color Region';
       applyBtn.disabled = false;
     } else if (ffLastFillSet && ffLastFillSet.size > 0) {
-      applyBtn.innerHTML = 'Add to List <i class="fas fa-arrow-down" style="font-size:12px;"></i>';
+      applyBtn.innerHTML = 'Add to List <i class="fas fa-arrow-down"></i>';
       applyBtn.disabled = false;
     } else {
       applyBtn.textContent = 'Select an area first';
@@ -2160,7 +2160,7 @@ function updateRegionPanel() {
 
   if (ids.length === 0) {
     list.innerHTML = ffModeActive
-      ? '<div style="font-size:11px;color:var(--text-sub);padding:2px 0;">Click any area on the canvas to select it.</div>'
+      ? '<div class="ff-hint-sub">Click any area on the canvas to select it.</div>'
       : '';
     return;
   }
@@ -2375,8 +2375,8 @@ function updateTransitionTable() {
 
   if (state.mirrorX) {
     const row = document.createElement('tr');
-    row.innerHTML = `<td colspan="4" style="text-align:center; color: var(--accent); padding: 20px;">
-      <i class="fas fa-triangle-exclamation" style="font-size: 16px; vertical-align: middle;"></i> 
+    row.innerHTML = `<td colspan="4" class="table-warning">
+      <i class="fas fa-triangle-exclamation"></i> 
       <strong>Face-Down Mode requires an AMS/MMU.</strong><br>
       Colors exist on the same Z-height, so manual filament swaps (M600) will not work.
     </td>`;
@@ -2546,7 +2546,7 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
   const ctx = canvas.getContext('2d');
 
   // Clear with 0 (gap)
-  ctx.fillStyle = 'rgba(0,0,0,1)';
+  ctx.fillStyle = 'rgba(0,0,0,0)';
   ctx.fillRect(0, 0, W, H);
 
   const cellW = W / cols;
