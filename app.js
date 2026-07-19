@@ -3,7 +3,6 @@
  * Main Application Logic
  */
 
-
 // Application State
 const state = {
   image: null,
@@ -35,36 +34,35 @@ const state = {
   puzzleClearanceMm: 0.15,
 
   // Color Layers
-  layersCount: 6,
   layers: [
-    { hex: '#0a0a0a', startHeight: 0.0, td: 0.5 },  // Base layer (usually dark)
-    { hex: '#3b82f6', startHeight: 0.8, td: 2.0 },  // Transition colors
-    { hex: '#ef4444', startHeight: 1.6, td: 2.0 },
-    { hex: '#ffffff', startHeight: 2.4, td: 3.0 }   // Top highlight (usually light)
+    { hex: "#0a0a0a", startHeight: 0.0, td: 0.5 }, // Base layer (usually dark)
+    { hex: "#3b82f6", startHeight: 0.8, td: 2.0 }, // Transition colors
+    { hex: "#ef4444", startHeight: 1.6, td: 2.0 },
+    { hex: "#ffffff", startHeight: 2.4, td: 3.0 }, // Top highlight (usually light)
   ],
 
   // Filament library from D1
-  filaments: []
+  filaments: [],
 };
 
 // Preset palette colors for adding new layers
 const PRESET_COLORS = [
-  '#0a0a0a', // Dark Gray/Black
-  '#3b82f6', // Blue
-  '#ef4444', // Red
-  '#ffffff', // White
-  '#10b981', // Green
-  '#f59e0b', // Yellow
-  '#8b5cf6', // Purple
-  '#ec4899', // Pink
-  '#f97316', // Orange
-  '#06b6d4', // Cyan
-  '#6b7280', // Gray
-  '#78350f', // Brown
-  '#a855f7', // Light Purple
-  '#fb7185', // Rose
-  '#84cc16', // Lime
-  '#eab308'  // Gold
+  "#0a0a0a", // Dark Gray/Black
+  "#3b82f6", // Blue
+  "#ef4444", // Red
+  "#ffffff", // White
+  "#10b981", // Green
+  "#f59e0b", // Yellow
+  "#8b5cf6", // Purple
+  "#ec4899", // Pink
+  "#f97316", // Orange
+  "#06b6d4", // Cyan
+  "#6b7280", // Gray
+  "#78350f", // Brown
+  "#a855f7", // Light Purple
+  "#fb7185", // Rose
+  "#84cc16", // Lime
+  "#eab308", // Gold
 ];
 
 // Three.js variables
@@ -98,7 +96,9 @@ function invalidate2DCache() {
 }
 
 function schedule2DRender() {
-  if (_2dRenderPending) return;
+  if (_2dRenderPending) {
+    return;
+  }
   _2dRenderPending = true;
   requestAnimationFrame(() => {
     _2dRenderPending = false;
@@ -107,13 +107,15 @@ function schedule2DRender() {
 }
 
 function get2DRenderCacheKey() {
-  const layerState = state.layers.map(l => `${l.hex}:${l.startHeight}:${l.td ?? 2}`).join('|');
+  const layerState = state.layers
+    .map((l) => `${l.hex}:${l.startHeight}:${l.td ?? 2}`)
+    .join("|");
   return `${_cachedHeightsKey}|${current2DLayerIndex}|${state.simulateTransmission}|${state.posterize}|${layerState}|${state.puzzleEnabled}`;
 }
 
 function ensure2DBaseCache(cols, rows) {
   if (!_2dBaseCacheCanvas) {
-    _2dBaseCacheCanvas = document.createElement('canvas');
+    _2dBaseCacheCanvas = document.createElement("canvas");
   }
 
   if (_2dBaseCacheCanvas.width !== cols || _2dBaseCacheCanvas.height !== rows) {
@@ -122,7 +124,11 @@ function ensure2DBaseCache(cols, rows) {
     _2dBaseCacheImageData = null;
   }
 
-  if (!_2dBaseCacheImageData || _2dBaseCacheImageData.width !== cols || _2dBaseCacheImageData.height !== rows) {
+  if (
+    !_2dBaseCacheImageData ||
+    _2dBaseCacheImageData.width !== cols ||
+    _2dBaseCacheImageData.height !== rows
+  ) {
     _2dBaseCacheImageData = new ImageData(cols, rows);
   }
 
@@ -130,24 +136,29 @@ function ensure2DBaseCache(cols, rows) {
 }
 
 // ─── Flood Fill Region State ─────────────────────────────────────────────────
-let ffModeActive = false;          // is the fill-select tool on?
-let ffRegionMask = null;           // Int16Array: -1=unassigned, >=0 = region id
-let ffRegionColors = {};           // { [regionId]: hexString }
-let ffNextRegionId = 0;            // auto-increment region ids
-let ffSelectedRegionId = null;     // which region is currently highlighted
-let ffLastFillSet = null;          // Set of pixel indices from the last BFS (pending assign)
+let ffModeActive = false; // is the fill-select tool on?
+let ffRegionMask = null; // Int16Array: -1=unassigned, >=0 = region id
+let ffRegionColors = {}; // { [regionId]: hexString }
+let ffNextRegionId = 0; // auto-increment region ids
+let ffSelectedRegionId = null; // which region is currently highlighted
+let ffLastFillSet = null; // Set of pixel indices from the last BFS (pending assign)
 // ─────────────────────────────────────────────────────────────────────────────
 
 // DOM Elements
 let dropZone, fileInput, btnAutoDistribute, btnMatchColors, btnExport;
 let container3D, canvas2D;
 let layerListContainer;
-let exportProgressContainer, exportProgressStatus, exportProgressFill, exportProgressMeta;
+let exportProgressContainer,
+  exportProgressStatus,
+  exportProgressFill,
+  exportProgressMeta;
 
 // View Cube
 let vcRenderer, vcScene, vcCamera, vcCube;
 let vcAnimating = false;
-let vcDragging = false, vcDragStart = null, vcDragStartQuat = null;
+let vcDragging = false,
+  vcDragStart = null,
+  vcDragStartQuat = null;
 let vcDragMoved = false;
 const vcRaycaster = new THREE.Raycaster();
 const vcMouse = new THREE.Vector2();
@@ -167,44 +178,50 @@ function init() {
   sync2DLayerIndex();
   showEmptyState();
 
-  const loader = document.getElementById('app-loader');
+  const loader = document.getElementById("app-loader");
   if (loader) {
-    loader.style.opacity = '0';
+    loader.style.opacity = "0";
     setTimeout(() => loader.remove(), 300);
   }
 }
 
 async function loadFilaments() {
   try {
-    const res = await fetch('/api/filaments');
+    const res = await fetch("/api/filaments");
     const data = await res.json();
     if (data.ok && data.filaments) {
       state.filaments = data.filaments;
     }
   } catch (err) {
-    console.warn('Could not load filament library:', err);
+    console.warn("Could not load filament library:", err);
   }
 }
 
 function showEmptyState() {
-  document.getElementById('preview-spinner').classList.add('hidden');
-  document.getElementById('preview-empty').classList.remove('hidden');
-  document.getElementById('layer-nav').classList.add('hidden');
-  const ffTb = document.getElementById('ff-toolbar');
-  if (ffTb) ffTb.classList.add('hidden');
+  document.getElementById("preview-spinner").classList.add("hidden");
+  document.getElementById("preview-empty").classList.remove("hidden");
+  document.getElementById("layer-nav").classList.add("hidden");
+  const ffTb = document.getElementById("ff-toolbar");
+  if (ffTb) {
+    ffTb.classList.add("hidden");
+  }
   updateTabsForImage();
 }
 
 function updateTabsForImage() {
   const hasImage = !!state.image;
-  const tab3d = document.getElementById('tab-3d');
-  const tabFil = document.getElementById('tab-filament');
-  if (tab3d) tab3d.disabled = !hasImage;
-  if (tabFil) tabFil.disabled = !hasImage;
+  const tab3d = document.getElementById("tab-3d");
+  const tabFil = document.getElementById("tab-filament");
+  if (tab3d) {
+    tab3d.disabled = !hasImage;
+  }
+  if (tabFil) {
+    tabFil.disabled = !hasImage;
+  }
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", init);
 } else {
   init();
 }
@@ -213,18 +230,18 @@ if (document.readyState === 'loading') {
 // ── DOM References ────────────────────────────────────────────────────────────
 
 function initDOM() {
-  dropZone = document.getElementById('drop-zone');
-  fileInput = document.getElementById('file-input');
-  btnAutoDistribute = document.getElementById('btn-auto-distribute');
-  btnMatchColors = document.getElementById('btn-match-colors');
-  btnExport = document.getElementById('btn-export');
-  container3D = document.getElementById('container-3d');
-  canvas2D = document.getElementById('canvas-2d');
-  layerListContainer = document.getElementById('layer-list');
-  exportProgressContainer = document.getElementById('export-progress');
-  exportProgressStatus = document.getElementById('export-progress-status');
-  exportProgressFill = document.getElementById('export-progress-fill');
-  exportProgressMeta = document.getElementById('export-progress-meta');
+  dropZone = document.getElementById("drop-zone");
+  fileInput = document.getElementById("file-input");
+  btnAutoDistribute = document.getElementById("btn-auto-distribute");
+  btnMatchColors = document.getElementById("btn-match-colors");
+  btnExport = document.getElementById("btn-export");
+  container3D = document.getElementById("container-3d");
+  canvas2D = document.getElementById("canvas-2d");
+  layerListContainer = document.getElementById("layer-list");
+  exportProgressContainer = document.getElementById("export-progress");
+  exportProgressStatus = document.getElementById("export-progress-status");
+  exportProgressFill = document.getElementById("export-progress-fill");
+  exportProgressMeta = document.getElementById("export-progress-meta");
 }
 
 // Initialize Three.js Viewport
@@ -233,7 +250,7 @@ function initThreeJS() {
   const height = container3D.clientHeight;
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color('#f4f5f7');
+  scene.background = new THREE.Color("#f4f5f7");
 
   camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
   // Position camera at a 45 degree angle looking down
@@ -242,7 +259,7 @@ function initThreeJS() {
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(width, height);
-  container3D.innerHTML = '';
+  container3D.innerHTML = "";
   container3D.appendChild(renderer.domElement);
 
   // Orbit Controls
@@ -266,10 +283,10 @@ function initThreeJS() {
 
   // ── Build Plates ──────────────────────────────────────────────
   const plateDefs = [
-    { file: 'a1m.jpg', w: 185, h: 185 },
-    { file: 'a1-x1x2-p1p2.jpg', w: 265, h: 265 },
-    { file: 'h2s-h2d.jpg', w: 355, h: 346 },
-    { file: 'h2c-a2l.jpg', w: 335, h: 346 }
+    { file: "a1m.jpg", w: 185, h: 185 },
+    { file: "a1-x1x2-p1p2.jpg", w: 265, h: 265 },
+    { file: "h2s-h2d.jpg", w: 355, h: 346 },
+    { file: "h2c-a2l.jpg", w: 335, h: 346 },
   ];
   const plateMeshes = [];
 
@@ -278,35 +295,39 @@ function initThreeJS() {
     const mat = new THREE.MeshBasicMaterial({ color: 0xe5e7eb });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.z = 0;
-    mesh.visible = (i === 0);
+    mesh.visible = i === 0;
     scene.add(mesh);
     plateMeshes.push(mesh);
 
-    fetch(`/api/plates/${def.file}?v=2`).then(r => r.blob()).then(blob => {
-      const img = new Image();
-      img.onload = () => {
-        const c = document.createElement('canvas');
-        c.width = img.width;
-        c.height = img.height;
-        c.getContext('2d').drawImage(img, 0, 0);
-        const tex = new THREE.CanvasTexture(c);
-        mat.map = tex;
-        mat.color.set(0xffffff);
-        mat.needsUpdate = true;
-        sceneNeedsRender = true;
-      };
-      img.src = URL.createObjectURL(blob);
-    });
+    fetch(`/api/plates/${def.file}?v=2`)
+      .then((r) => r.blob())
+      .then((blob) => {
+        const img = new Image();
+        img.onload = () => {
+          const c = document.createElement("canvas");
+          c.width = img.width;
+          c.height = img.height;
+          c.getContext("2d").drawImage(img, 0, 0);
+          const tex = new THREE.CanvasTexture(c);
+          mat.map = tex;
+          mat.color.set(0xffffff);
+          mat.needsUpdate = true;
+          sceneNeedsRender = true;
+        };
+        img.src = URL.createObjectURL(blob);
+      });
   });
 
   // Plate selector
-  const plateBtns = document.querySelectorAll('.plate-btn');
-  plateBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+  const plateBtns = document.querySelectorAll(".plate-btn");
+  plateBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
       const idx = parseInt(btn.dataset.plate);
-      plateBtns.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      plateMeshes.forEach((m, i) => { m.visible = (i === idx); });
+      plateBtns.forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      plateMeshes.forEach((m, i) => {
+        m.visible = i === idx;
+      });
       sceneNeedsRender = true;
     });
   });
@@ -316,16 +337,20 @@ function initThreeJS() {
   scene.add(modelGroup);
 
   // Handle resize
-  window.addEventListener('resize', onWindowResize);
+  window.addEventListener("resize", onWindowResize);
 
   // Mark scene dirty whenever the camera/controls move
-  controls.addEventListener('change', () => { sceneNeedsRender = true; });
+  controls.addEventListener("change", () => {
+    sceneNeedsRender = true;
+  });
 
   // Animation Loop - only renders when something changed
   function animate() {
     requestAnimationFrame(animate);
     const changed = controls.update(); // returns true if camera moved
-    if (changed) sceneNeedsRender = true;
+    if (changed) {
+      sceneNeedsRender = true;
+    }
     if (sceneNeedsRender) {
       renderer.render(scene, camera);
       sceneNeedsRender = false;
@@ -338,27 +363,32 @@ function initThreeJS() {
 }
 
 function onWindowResize() {
-  if (!container3D) return;
+  if (!container3D) {
+    return;
+  }
   const width = container3D.clientWidth;
   const height = container3D.clientHeight;
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
   renderer.setSize(width, height);
-  if (vcRenderer) vcRenderer.setSize(120, 120);
+  if (vcRenderer) {
+    vcRenderer.setSize(120, 120);
+  }
 }
 
 // ── View Cube ────────────────────────────────────────────────
 
 function vcMakeFaceTexture(label, bgColor, rotation) {
-  const c = document.createElement('canvas');
-  c.width = 128; c.height = 128;
-  const ctx = c.getContext('2d');
-  ctx.fillStyle = '#c4c5c6ff';
+  const c = document.createElement("canvas");
+  c.width = 128;
+  c.height = 128;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#c4c5c6ff";
   ctx.fillRect(0, 0, 128, 128);
   ctx.fillStyle = bgColor;
-  ctx.font = 'bold 22px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
+  ctx.font = "bold 22px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
   if (rotation) {
     ctx.translate(64, 64);
     ctx.rotate(rotation);
@@ -372,30 +402,41 @@ function vcMakeFaceTexture(label, bgColor, rotation) {
 }
 
 function initViewCube() {
-  const canvas = document.getElementById('view-cube-canvas');
-  if (!canvas) return;
+  const canvas = document.getElementById("view-cube-canvas");
+  if (!canvas) {
+    return;
+  }
 
   vcScene = new THREE.Scene();
   vcCamera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
   vcCamera.position.set(0, 0, 3.2);
 
-  vcRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+  vcRenderer = new THREE.WebGLRenderer({
+    canvas,
+    alpha: true,
+    antialias: true,
+  });
   vcRenderer.setPixelRatio(window.devicePixelRatio || 1);
   vcRenderer.setSize(120, 120);
   vcRenderer.setClearColor(0x000000, 0);
 
-  const BG = '#1f2937';
+  const BG = "#1f2937";
   const faces = [
-    { label: 'Right',  bg: BG, rotation: -Math.PI / 2 }, // +X
-    { label: 'Left',   bg: BG, rotation:  Math.PI / 2 }, // -X
-    { label: 'Back',   bg: BG, rotation:  Math.PI },     // +Y
-    { label: 'Front',  bg: BG, rotation: 0 },             // -Y
-    { label: 'Top',    bg: BG, rotation: 0 },             // +Z
-    { label: 'Bottom', bg: BG, rotation: Math.PI }        // -Z
+    { label: "Right", bg: BG, rotation: -Math.PI / 2 }, // +X
+    { label: "Left", bg: BG, rotation: Math.PI / 2 }, // -X
+    { label: "Back", bg: BG, rotation: Math.PI }, // +Y
+    { label: "Front", bg: BG, rotation: 0 }, // -Y
+    { label: "Top", bg: BG, rotation: 0 }, // +Z
+    { label: "Bottom", bg: BG, rotation: Math.PI }, // -Z
   ];
 
-  const faceMaterials = faces.map(f =>
-    new THREE.MeshLambertMaterial({ map: vcMakeFaceTexture(f.label, f.bg, f.rotation), transparent: true, opacity: 0.9 })
+  const faceMaterials = faces.map(
+    (f) =>
+      new THREE.MeshLambertMaterial({
+        map: vcMakeFaceTexture(f.label, f.bg, f.rotation),
+        transparent: true,
+        opacity: 0.9,
+      }),
   );
 
   const cubeGroup = new THREE.Group();
@@ -405,7 +446,11 @@ function initViewCube() {
 
   // Thin black outline on every edge
   const edgeGeo = new THREE.EdgesGeometry(cubeGeo);
-  const edgeMat = new THREE.LineBasicMaterial({ color: 0x111827, transparent: true, opacity: 0.5 });
+  const edgeMat = new THREE.LineBasicMaterial({
+    color: 0x111827,
+    transparent: true,
+    opacity: 0.5,
+  });
   const edgeLines = new THREE.LineSegments(edgeGeo, edgeMat);
   vcCube.add(edgeLines);
 
@@ -416,21 +461,21 @@ function initViewCube() {
   vcScene.add(dl);
 
   // ── Drag to orbit ──
-  canvas.addEventListener('mousedown', onVCDown);
-  canvas.addEventListener('touchstart', onVCTouchStart, { passive: false });
-  window.addEventListener('mousemove', onVCMove);
-  window.addEventListener('mouseup', onVCUp);
-  window.addEventListener('touchmove', onVCTouchMove, { passive: false });
-  window.addEventListener('touchend', onVCUp);
+  canvas.addEventListener("mousedown", onVCDown);
+  canvas.addEventListener("touchstart", onVCTouchStart, { passive: false });
+  window.addEventListener("mousemove", onVCMove);
+  window.addEventListener("mouseup", onVCUp);
+  window.addEventListener("touchmove", onVCTouchMove, { passive: false });
+  window.addEventListener("touchend", onVCUp);
 
   // ── Click face to snap view ──
-  canvas.addEventListener('mouseup', onVCClick);
-  canvas.addEventListener('touchend', onVCTouchClick);
+  canvas.addEventListener("mouseup", onVCClick);
+  canvas.addEventListener("touchend", onVCTouchClick);
 
   // ── Home button ──
-  const homeBtn = document.getElementById('view-cube-home');
+  const homeBtn = document.getElementById("view-cube-home");
   if (homeBtn) {
-    homeBtn.addEventListener('click', (e) => {
+    homeBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       animateCameraTo(DEFAULT_CAM_POS, DEFAULT_CAM_TARGET);
     });
@@ -456,28 +501,39 @@ function onVCTouchStart(e) {
 }
 
 function onVCMove(e) {
-  if (!vcDragging) return;
+  if (!vcDragging) {
+    return;
+  }
   const dx = e.clientX - vcDragStart.x;
   const dy = e.clientY - vcDragStart.y;
-  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) vcDragMoved = true;
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+    vcDragMoved = true;
+  }
   applyVCDrag(dx, dy);
 }
 
 function onVCTouchMove(e) {
-  if (!vcDragging || e.touches.length !== 1) return;
+  if (!vcDragging || e.touches.length !== 1) {
+    return;
+  }
   const dx = e.touches[0].clientX - vcDragStart.x;
   const dy = e.touches[0].clientY - vcDragStart.y;
-  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) vcDragMoved = true;
+  if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+    vcDragMoved = true;
+  }
   applyVCDrag(dx, dy);
   e.preventDefault();
 }
 
 function applyVCDrag(dx, dy) {
-  if (vcAnimating) return;
+  if (vcAnimating) {
+    return;
+  }
 
   // Horizontal drag → rotate around Z axis (up vector)
   const rotZ = new THREE.Quaternion().setFromAxisAngle(
-    new THREE.Vector3(0, 0, 1), -dx * 0.008
+    new THREE.Vector3(0, 0, 1),
+    -dx * 0.008,
   );
 
   // Vertical drag → rotate around camera's local right axis
@@ -491,8 +547,12 @@ function applyVCDrag(dx, dy) {
 
   // Clamp: don't go below ground or flip over
   const newUp = offset.z;
-  if (newUp < 2) offset.z = 2;
-  if (newUp > 290) offset.z = 290;
+  if (newUp < 2) {
+    offset.z = 2;
+  }
+  if (newUp > 290) {
+    offset.z = 290;
+  }
 
   camera.position.copy(controls.target).add(offset);
   camera.lookAt(controls.target);
@@ -506,12 +566,12 @@ function onVCUp() {
 
 // ── Click-to-face: animate camera to the clicked face's view ──
 const VC_FACE_VIEWS = [
-  { pos: new THREE.Vector3(180, 0, 150),   target: DEFAULT_CAM_TARGET.clone() }, // 0: +X Right
-  { pos: new THREE.Vector3(-180, 0, 150),  target: DEFAULT_CAM_TARGET.clone() }, // 1: -X Left
-  { pos: new THREE.Vector3(0, 180, 150),   target: DEFAULT_CAM_TARGET.clone() }, // 2: +Y Back
-  { pos: new THREE.Vector3(0, -180, 150),  target: DEFAULT_CAM_TARGET.clone() }, // 3: -Y Front
-  { pos: new THREE.Vector3(0, 0, 280),     target: DEFAULT_CAM_TARGET.clone() }, // 4: +Z Top
-  { pos: new THREE.Vector3(0, -180, 30),   target: DEFAULT_CAM_TARGET.clone() }, // 5: -Z Bottom
+  { pos: new THREE.Vector3(180, 0, 150), target: DEFAULT_CAM_TARGET.clone() }, // 0: +X Right
+  { pos: new THREE.Vector3(-180, 0, 150), target: DEFAULT_CAM_TARGET.clone() }, // 1: -X Left
+  { pos: new THREE.Vector3(0, 180, 150), target: DEFAULT_CAM_TARGET.clone() }, // 2: +Y Back
+  { pos: new THREE.Vector3(0, -180, 150), target: DEFAULT_CAM_TARGET.clone() }, // 3: -Y Front
+  { pos: new THREE.Vector3(0, 0, 280), target: DEFAULT_CAM_TARGET.clone() }, // 4: +Z Top
+  { pos: new THREE.Vector3(0, -180, 30), target: DEFAULT_CAM_TARGET.clone() }, // 5: -Z Bottom
 ];
 
 function vcRaycastFace(cx, cy) {
@@ -521,12 +581,16 @@ function vcRaycastFace(cx, cy) {
   vcMouse.y = -((cy - rect.top) / rect.height) * 2 + 1;
   vcRaycaster.setFromCamera(vcMouse, vcCamera);
   const hits = vcRaycaster.intersectObject(vcCube);
-  if (hits.length > 0) return hits[0].face.materialIndex;
+  if (hits.length > 0) {
+    return hits[0].face.materialIndex;
+  }
   return -1;
 }
 
 function onVCClick(e) {
-  if (vcDragMoved || vcAnimating) return;
+  if (vcDragMoved || vcAnimating) {
+    return;
+  }
   const faceIdx = vcRaycastFace(e.clientX, e.clientY);
   if (faceIdx >= 0 && faceIdx < VC_FACE_VIEWS.length) {
     const view = VC_FACE_VIEWS[faceIdx];
@@ -535,7 +599,9 @@ function onVCClick(e) {
 }
 
 function onVCTouchClick(e) {
-  if (vcDragMoved || vcAnimating || e.changedTouches.length !== 1) return;
+  if (vcDragMoved || vcAnimating || e.changedTouches.length !== 1) {
+    return;
+  }
   const t = e.changedTouches[0];
   const faceIdx = vcRaycastFace(t.clientX, t.clientY);
   if (faceIdx >= 0 && faceIdx < VC_FACE_VIEWS.length) {
@@ -545,13 +611,19 @@ function onVCTouchClick(e) {
 }
 
 function syncViewCube() {
-  if (!vcCube || !camera) return;
+  if (!vcCube || !camera) {
+    return;
+  }
   vcCube.quaternion.copy(camera.quaternion).invert();
-  if (vcRenderer) vcRenderer.render(vcScene, vcCamera);
+  if (vcRenderer) {
+    vcRenderer.render(vcScene, vcCamera);
+  }
 }
 
 function animateCameraTo(targetPos, targetLookAt) {
-  if (vcAnimating) return;
+  if (vcAnimating) {
+    return;
+  }
   vcAnimating = true;
 
   const startPos = camera.position.clone();
@@ -585,78 +657,115 @@ function animateCameraTo(targetPos, targetLookAt) {
 
 function setupEventListeners() {
   // Drag and Drop
-  dropZone.addEventListener('dragenter', (e) => {
+  dropZone.addEventListener("dragenter", (e) => {
     e.preventDefault();
-    dropZone.classList.add('dragover');
+    dropZone.classList.add("dragover");
   });
 
-  dropZone.addEventListener('dragover', (e) => {
+  dropZone.addEventListener("dragover", (e) => {
     e.preventDefault();
-    dropZone.classList.add('dragover');
+    dropZone.classList.add("dragover");
   });
 
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('dragover');
+  dropZone.addEventListener("dragleave", () => {
+    dropZone.classList.remove("dragover");
   });
 
-  dropZone.addEventListener('drop', (e) => {
+  dropZone.addEventListener("drop", (e) => {
     e.preventDefault();
-    dropZone.classList.remove('dragover');
+    dropZone.classList.remove("dragover");
     if (e.dataTransfer.files.length > 0) {
       handleImageFile(e.dataTransfer.files[0]);
     }
   });
 
-  dropZone.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', () => {
+  dropZone.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", () => {
     if (fileInput.files.length > 0) {
       handleImageFile(fileInput.files[0]);
     }
   });
 
   // Remove background
-  const removeBgBtn = document.getElementById('remove-bg-btn');
+  const removeBgBtn = document.getElementById("remove-bg-btn");
   if (removeBgBtn) {
-    removeBgBtn.addEventListener('click', (e) => {
+    removeBgBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       removeBackground();
     });
   }
 
   // Flood Fill canvas click
-  canvas2D.addEventListener('click', onCanvas2DClick);
+  canvas2D.addEventListener("click", onCanvas2DClick);
 
   // Dimension & Slicing Inputs
-  setupInputListener('input-width', 'widthMm', (v) => Math.min(500, Math.max(10, parseFloat(v))), debounceUpdate);
-  setupInputListener('input-height', 'heightMm', (v) => Math.min(500, Math.max(10, parseFloat(v))), debounceUpdate);
-  setupInputListener('input-max-height', 'maxHeight', (v) => Math.min(20, Math.max(0.5, parseFloat(v))), () => {
-    // Re-clamp layer slider maxes
-    validateLayerHeights();
-    renderLayersList();
-    debounceUpdate();
-  });
-  setupInputListener('input-base-thickness', 'baseThickness', (v) => Math.min(10, Math.max(0.1, parseFloat(v))), () => {
-    validateLayerHeights();
-    renderLayersList();
-    debounceUpdate();
-  });
-  setupInputListener('input-layer-height', 'layerHeight', (v) => Math.min(0.6, Math.max(0.02, parseFloat(v))), () => {
-    validateLayerHeights();
-    renderLayersList();
-    updateTransitionTable();
-    debounceUpdate();
-  });
-  setupInputListener('input-resolution', 'gridResolution', (v) => Math.min(1200, Math.max(50, parseInt(v))), () => {
-    if (state.image) processImage();
-  });
+  setupInputListener(
+    "input-width",
+    "widthMm",
+    (v) => Math.min(500, Math.max(10, parseFloat(v))),
+    debounceUpdate,
+  );
+  setupInputListener(
+    "input-height",
+    "heightMm",
+    (v) => Math.min(500, Math.max(10, parseFloat(v))),
+    debounceUpdate,
+  );
+  setupInputListener(
+    "input-max-height",
+    "maxHeight",
+    (v) => Math.min(20, Math.max(0.5, parseFloat(v))),
+    () => {
+      // Re-clamp layer slider maxes
+      validateLayerHeights();
+      renderLayersList();
+      debounceUpdate();
+    },
+  );
+  setupInputListener(
+    "input-base-thickness",
+    "baseThickness",
+    (v) => Math.min(10, Math.max(0.1, parseFloat(v))),
+    () => {
+      validateLayerHeights();
+      renderLayersList();
+      debounceUpdate();
+    },
+  );
+  setupInputListener(
+    "input-layer-height",
+    "layerHeight",
+    (v) => Math.min(0.6, Math.max(0.02, parseFloat(v))),
+    () => {
+      validateLayerHeights();
+      renderLayersList();
+      updateTransitionTable();
+      debounceUpdate();
+    },
+  );
+  setupInputListener(
+    "input-resolution",
+    "gridResolution",
+    (v) => Math.min(1200, Math.max(50, parseInt(v))),
+    () => {
+      if (state.image) {
+        processImage();
+      }
+    },
+  );
 
-  document.getElementById('input-triangle-quality').addEventListener('change', (e) => {
-    state.triangleQuality = parseInt(e.target.value, 10);
-    update3DPreviewDebounced();
-  });
+  document
+    .getElementById("input-triangle-quality")
+    .addEventListener("change", (e) => {
+      state.triangleQuality = parseInt(e.target.value, 10);
+      _cachedHeights = null;
+      if (state.image) {
+        debounceUpdate();
+      }
+    });
 
-  const checkboxInvert = document.getElementById('input-invert');
-  checkboxInvert.addEventListener('change', () => {
+  const checkboxInvert = document.getElementById("input-invert");
+  checkboxInvert.addEventListener("change", () => {
     state.invertHeights = checkboxInvert.checked;
     // Reverse color order of all layers
     if (state.layers.length > 1) {
@@ -668,9 +777,9 @@ function setupEventListeners() {
     }
   });
 
-  const checkboxMirrorX = document.getElementById('input-mirror-x');
+  const checkboxMirrorX = document.getElementById("input-mirror-x");
   if (checkboxMirrorX) {
-    checkboxMirrorX.addEventListener('change', () => {
+    checkboxMirrorX.addEventListener("change", () => {
       state.mirrorX = checkboxMirrorX.checked;
       if (state.image) {
         processImage();
@@ -678,9 +787,9 @@ function setupEventListeners() {
     });
   }
 
-  const checkboxPosterize = document.getElementById('input-posterize');
+  const checkboxPosterize = document.getElementById("input-posterize");
   if (checkboxPosterize) {
-    checkboxPosterize.addEventListener('change', () => {
+    checkboxPosterize.addEventListener("change", () => {
       state.posterize = checkboxPosterize.checked;
       if (state.posterize && checkboxSimulate && checkboxSimulate.checked) {
         checkboxSimulate.checked = false;
@@ -692,11 +801,15 @@ function setupEventListeners() {
     });
   }
 
-  const checkboxSimulate = document.getElementById('input-simulate-td');
+  const checkboxSimulate = document.getElementById("input-simulate-td");
   if (checkboxSimulate) {
-    checkboxSimulate.addEventListener('change', () => {
+    checkboxSimulate.addEventListener("change", () => {
       state.simulateTransmission = checkboxSimulate.checked;
-      if (state.simulateTransmission && checkboxPosterize && checkboxPosterize.checked) {
+      if (
+        state.simulateTransmission &&
+        checkboxPosterize &&
+        checkboxPosterize.checked
+      ) {
         checkboxPosterize.checked = false;
         state.posterize = false;
       }
@@ -707,9 +820,9 @@ function setupEventListeners() {
   }
 
   // Color Count Slider
-  const sliderColorsCount = document.getElementById('input-colors-count');
-  const labelColorsCount = document.getElementById('label-colors-count');
-  sliderColorsCount.addEventListener('input', () => {
+  const sliderColorsCount = document.getElementById("input-colors-count");
+  const labelColorsCount = document.getElementById("label-colors-count");
+  sliderColorsCount.addEventListener("input", () => {
     const val = parseInt(sliderColorsCount.value);
     labelColorsCount.textContent = val;
     updateLayersCount(val);
@@ -718,44 +831,53 @@ function setupEventListeners() {
     debounceUpdate();
   });
 
-  document.getElementById('colors-count-down').addEventListener('click', () => {
-    sliderColorsCount.value = Math.max(1, parseInt(sliderColorsCount.value) - 1);
-    sliderColorsCount.dispatchEvent(new Event('input'));
+  document.getElementById("colors-count-down").addEventListener("click", () => {
+    sliderColorsCount.value = Math.max(
+      1,
+      parseInt(sliderColorsCount.value) - 1,
+    );
+    sliderColorsCount.dispatchEvent(new Event("input"));
   });
-  document.getElementById('colors-count-up').addEventListener('click', () => {
-    sliderColorsCount.value = Math.min(16, parseInt(sliderColorsCount.value) + 1);
-    sliderColorsCount.dispatchEvent(new Event('input'));
+  document.getElementById("colors-count-up").addEventListener("click", () => {
+    sliderColorsCount.value = Math.min(
+      16,
+      parseInt(sliderColorsCount.value) + 1,
+    );
+    sliderColorsCount.dispatchEvent(new Event("input"));
   });
 
   // Puzzle UI Listeners
-  const puzEnable = document.getElementById('input-puzzle-enable');
-  const puzCols = document.getElementById('input-puzzle-cols');
-  const puzRows = document.getElementById('input-puzzle-rows');
-  const puzClearance = document.getElementById('input-puzzle-clearance');
-  const puzClearanceLabel = document.getElementById('label-clearance-val');
+  const puzEnable = document.getElementById("input-puzzle-enable");
+  const puzCols = document.getElementById("input-puzzle-cols");
+  const puzRows = document.getElementById("input-puzzle-rows");
+  const puzClearance = document.getElementById("input-puzzle-clearance");
+  const puzClearanceLabel = document.getElementById("label-clearance-val");
 
-  puzEnable.addEventListener('change', (e) => {
+  puzEnable.addEventListener("change", (e) => {
     state.puzzleEnabled = e.target.checked;
     debounceUpdate();
   });
 
-  puzCols.addEventListener('input', (e) => {
+  puzCols.addEventListener("input", (e) => {
     state.puzzleCols = Math.min(20, Math.max(1, parseInt(e.target.value) || 1));
     debounceUpdate();
   });
 
-  puzRows.addEventListener('input', (e) => {
+  puzRows.addEventListener("input", (e) => {
     state.puzzleRows = Math.min(20, Math.max(1, parseInt(e.target.value) || 1));
     debounceUpdate();
   });
 
-  puzClearance.addEventListener('input', (e) => {
-    state.puzzleClearanceMm = Math.min(0.5, Math.max(0, parseFloat(e.target.value) || 0));
-    puzClearanceLabel.textContent = state.puzzleClearanceMm.toFixed(2) + ' mm';
+  puzClearance.addEventListener("input", (e) => {
+    state.puzzleClearanceMm = Math.min(
+      0.5,
+      Math.max(0, parseFloat(e.target.value) || 0),
+    );
+    puzClearanceLabel.textContent = state.puzzleClearanceMm.toFixed(2) + " mm";
     debounceUpdate();
   });
   // Auto-distribute button
-  btnAutoDistribute.addEventListener('click', () => {
+  btnAutoDistribute.addEventListener("click", () => {
     const targetCount = Math.max(1, state.layers.length);
     if (state.layers.length !== targetCount) {
       updateLayersCount(targetCount);
@@ -768,8 +890,8 @@ function setupEventListeners() {
   });
 
   if (btnMatchColors) {
-    btnMatchColors.addEventListener('click', () => {
-      showPreviewSpinner('Matching image colors...');
+    btnMatchColors.addEventListener("click", () => {
+      showPreviewSpinner("Matching image colors...");
       setTimeout(() => {
         matchImageColors();
       }, 50);
@@ -777,21 +899,29 @@ function setupEventListeners() {
   }
 
   // Export 3MF button
-  btnExport.addEventListener('click', export3MF);
+  btnExport.addEventListener("click", export3MF);
 
   // Keyboard navigation for 2D layer viewer
-  document.addEventListener('keydown', (e) => {
-    const pane2D = document.getElementById('pane-2d');
-    if (!pane2D || !pane2D.classList.contains('active')) return;
-    if (e.key === 'ArrowLeft') { prev2DLayer(); e.preventDefault(); }
-    if (e.key === 'ArrowRight') { next2DLayer(); e.preventDefault(); }
+  document.addEventListener("keydown", (e) => {
+    const pane2D = document.getElementById("pane-2d");
+    if (!pane2D || !pane2D.classList.contains("active")) {
+      return;
+    }
+    if (e.key === "ArrowLeft") {
+      prev2DLayer();
+      e.preventDefault();
+    }
+    if (e.key === "ArrowRight") {
+      next2DLayer();
+      e.preventDefault();
+    }
   });
 
   // Close filament picker on Escape
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      const overlay = document.getElementById('filament-picker-overlay');
-      if (overlay && !overlay.classList.contains('hidden')) {
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const overlay = document.getElementById("filament-picker-overlay");
+      if (overlay && !overlay.classList.contains("hidden")) {
         closeFilamentPicker();
       }
     }
@@ -801,14 +931,16 @@ function setupEventListeners() {
 // Helper to bind slider/number values back to state
 function setupInputListener(elementId, stateField, parseFn, callback) {
   const el = document.getElementById(elementId);
-  el.addEventListener('input', () => {
+  el.addEventListener("input", () => {
     const val = parseFn(el.value);
     if (!isNaN(val)) {
       state[stateField] = val;
-      if (callback) callback();
+      if (callback) {
+        callback();
+      }
     }
   });
-  el.addEventListener('change', () => {
+  el.addEventListener("change", () => {
     const val = parseFn(el.value);
     if (!isNaN(val)) {
       el.value = val;
@@ -817,41 +949,10 @@ function setupInputListener(elementId, stateField, parseFn, callback) {
   });
 }
 
-// Default Gradient Image (useful on initial load)
-// ── Image Pipeline ───────────────────────────────────────────────────────────
-
-function loadDefaultImage() {
-  const canvas = document.createElement('canvas');
-  canvas.width = 300;
-  canvas.height = 300;
-  const ctx = canvas.getContext('2d');
-
-  // Create a nice radial gradient for a test heightmap
-  const grad = ctx.createRadialGradient(150, 150, 20, 150, 150, 140);
-  grad.addColorStop(0, '#ffffff');
-  grad.addColorStop(0.3, '#cccccc');
-  grad.addColorStop(0.7, '#666666');
-  grad.addColorStop(1, '#000000');
-
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, 0, 300, 300);
-
-  const img = new Image();
-  img.onload = () => {
-    state.image = img;
-    state.imgWidth = img.width;
-    state.imgHeight = img.height;
-    const preview = document.getElementById('upload-preview');
-    if (preview) { preview.src = img.src; dropZone.classList.add('has-image'); }
-    processImage();
-  };
-  img.src = canvas.toDataURL();
-}
-
 // Process Image File
 function handleImageFile(file) {
-  if (!file.type.match('image.*')) {
-    alert('Please upload an image file (PNG/JPG).');
+  if (!file.type.match("image.*")) {
+    alert("Please upload an image file (PNG/JPG).");
     return;
   }
 
@@ -859,7 +960,7 @@ function handleImageFile(file) {
   reader.onload = (e) => {
     const img = new Image();
     img.onload = () => {
-      showPreviewSpinner('Processing image...');
+      showPreviewSpinner("Processing image...");
       state.image = img;
       state.imgWidth = img.width;
       state.imgHeight = img.height;
@@ -874,12 +975,15 @@ function handleImageFile(file) {
         state.widthMm = Math.round(150 * aspect);
       }
 
-      document.getElementById('input-width').value = state.widthMm;
-      document.getElementById('input-height').value = state.heightMm;
+      document.getElementById("input-width").value = state.widthMm;
+      document.getElementById("input-height").value = state.heightMm;
 
       // Show preview in upload zone
-      const preview = document.getElementById('upload-preview');
-      if (preview) { preview.src = img.src; dropZone.classList.add('has-image'); }
+      const preview = document.getElementById("upload-preview");
+      if (preview) {
+        preview.src = img.src;
+        dropZone.classList.add("has-image");
+      }
 
       // Reset flood fill regions when new image is loaded
       ffRegionMask = null;
@@ -887,10 +991,12 @@ function handleImageFile(file) {
       ffNextRegionId = 0;
       ffSelectedRegionId = null;
       ffLastFillSet = null;
-      const ffClearBtn = document.getElementById('ff-clear-btn');
-      if (ffClearBtn) ffClearBtn.classList.add('hidden');
+      const ffClearBtn = document.getElementById("ff-clear-btn");
+      if (ffClearBtn) {
+        ffClearBtn.classList.add("hidden");
+      }
       updateRegionPanel();
-      
+
       // Reset color state signature since new geometry is being generated
       _lastColorStateSignature = null;
 
@@ -898,7 +1004,9 @@ function handleImageFile(file) {
       matchImageColors();
       autoDistributeHeights();
       renderLayersList();
-      if (typeof dashTrackProject === 'function') dashTrackProject();
+      if (typeof dashTrackProject === "function") {
+        dashTrackProject();
+      }
     };
     img.src = e.target.result;
   };
@@ -907,20 +1015,26 @@ function handleImageFile(file) {
 
 // Remove background from the loaded image using flood-fill from edges
 function removeBackground() {
-  if (!state.image) return;
+  if (!state.image) {
+    return;
+  }
 
-  if (typeof showPreviewSpinner === 'function') showPreviewSpinner('Removing background...');
+  if (typeof showPreviewSpinner === "function") {
+    showPreviewSpinner("Removing background...");
+  }
 
   const img = state.image;
-  const c = document.createElement('canvas');
+  const c = document.createElement("canvas");
   c.width = img.width;
   c.height = img.height;
-  const ctx = c.getContext('2d');
+  const ctx = c.getContext("2d");
   ctx.drawImage(img, 0, 0);
   const imgData = ctx.getImageData(0, 0, c.width, c.height);
   const data = imgData.data;
 
-  const bgR = data[0], bgG = data[1], bgB = data[2];
+  const bgR = data[0],
+    bgG = data[1],
+    bgB = data[2];
   const tolerance = 45;
 
   const visited = new Uint8Array(c.width * c.height);
@@ -938,7 +1052,9 @@ function removeBackground() {
   let head = 0;
   while (head < queue.length) {
     const idx = queue[head++];
-    if (visited[idx]) continue;
+    if (visited[idx]) {
+      continue;
+    }
 
     const i = idx * 4;
     const dr = Math.abs(data[i] - bgR);
@@ -952,36 +1068,58 @@ function removeBackground() {
       const x = idx % c.width;
       const y = Math.floor(idx / c.width);
 
-      if (x > 0 && !visited[idx - 1]) queue.push(idx - 1);
-      if (x < c.width - 1 && !visited[idx + 1]) queue.push(idx + 1);
-      if (y > 0 && !visited[idx - c.width]) queue.push(idx - c.width);
-      if (y < c.height - 1 && !visited[idx + c.width]) queue.push(idx + c.width);
+      if (x > 0 && !visited[idx - 1]) {
+        queue.push(idx - 1);
+      }
+      if (x < c.width - 1 && !visited[idx + 1]) {
+        queue.push(idx + 1);
+      }
+      if (y > 0 && !visited[idx - c.width]) {
+        queue.push(idx - c.width);
+      }
+      if (y < c.height - 1 && !visited[idx + c.width]) {
+        queue.push(idx + c.width);
+      }
     }
   }
 
   ctx.putImageData(imgData, 0, 0);
-  const newSrc = c.toDataURL('image/png');
+  const newSrc = c.toDataURL("image/png");
 
   const newImg = new Image();
   newImg.onload = () => {
     state.image = newImg;
     state.imgWidth = newImg.width;
     state.imgHeight = newImg.height;
-    const preview = document.getElementById('upload-preview');
-    if (preview) preview.src = newSrc;
+    const preview = document.getElementById("upload-preview");
+    if (preview) {
+      preview.src = newSrc;
+    }
 
-    if (typeof processImage === 'function') processImage();
-    if (typeof matchImageColors === 'function') matchImageColors();
-    if (typeof autoDistributeHeights === 'function') autoDistributeHeights();
-    if (typeof renderLayersList === 'function') renderLayersList();
-    if (typeof hidePreviewSpinner === 'function') hidePreviewSpinner();
+    if (typeof processImage === "function") {
+      processImage();
+    }
+    if (typeof matchImageColors === "function") {
+      matchImageColors();
+    }
+    if (typeof autoDistributeHeights === "function") {
+      autoDistributeHeights();
+    }
+    if (typeof renderLayersList === "function") {
+      renderLayersList();
+    }
+    if (typeof hidePreviewSpinner === "function") {
+      hidePreviewSpinner();
+    }
   };
   newImg.src = newSrc;
 }
 
 // Extract luminance values from image at the active grid resolution
 function processImage() {
-  if (!state.image) return;
+  if (!state.image) {
+    return;
+  }
 
   const res = state.gridResolution;
   const aspect = state.imgWidth / state.imgHeight;
@@ -998,10 +1136,10 @@ function processImage() {
   state.gridCols = cols;
   state.gridRows = rows;
 
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   canvas.width = cols;
   canvas.height = rows;
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
 
   ctx.drawImage(state.image, 0, 0, cols, rows);
   const imgData = ctx.getImageData(0, 0, cols, rows);
@@ -1040,16 +1178,23 @@ function processImage() {
 }
 
 function syncColorCountUI() {
-  const slider = document.getElementById('input-colors-count');
-  const label = document.getElementById('label-colors-count');
-  if (slider) slider.value = state.layers.length;
-  if (label) label.textContent = state.layers.length;
+  const slider = document.getElementById("input-colors-count");
+  const label = document.getElementById("label-colors-count");
+  if (slider) {
+    slider.value = state.layers.length;
+  }
+  if (label) {
+    label.textContent = state.layers.length;
+  }
 }
 
 function getAdaptiveLayerCount() {
-  const requested = Math.max(1, parseInt(state.layersCount) || 1);
+  const requested = Math.max(1, state.layers.length);
 
-  if (!state.colorSampleRGB || state.colorSampleWidth * state.colorSampleHeight === 0) {
+  if (
+    !state.colorSampleRGB ||
+    state.colorSampleWidth * state.colorSampleHeight === 0
+  ) {
     return Math.max(requested, 4);
   }
 
@@ -1066,14 +1211,19 @@ function getAdaptiveLayerCount() {
   }
 
   const distinctBins = bins.size;
-  const estimated = Math.max(4, Math.min(8, Math.ceil(Math.log2(distinctBins + 1))));
+  const estimated = Math.max(
+    4,
+    Math.min(8, Math.ceil(Math.log2(distinctBins + 1))),
+  );
   return Math.max(requested, estimated);
 }
 
 // Update layers structure based on count slider
 function updateLayersCount(newCount) {
   const currentCount = state.layers.length;
-  if (newCount === currentCount) return;
+  if (newCount === currentCount) {
+    return;
+  }
 
   if (newCount < currentCount) {
     state.layers = state.layers.slice(0, newCount);
@@ -1093,36 +1243,45 @@ function updateLayersCount(newCount) {
       }
       state.layers.push({
         hex: hex,
-        startHeight: state.baseThickness + (state.maxHeight - state.baseThickness) * (i / newCount),
-        td: td
+        startHeight:
+          state.baseThickness +
+          (state.maxHeight - state.baseThickness) * (i / newCount),
+        td: td,
       });
     }
   }
 
   validateLayerHeights();
-  state.layersCount = newCount;
 }
 
 function addLayerFromColor(hex, td = 2.0) {
-  if (!hex) return false;
+  if (!hex) {
+    return false;
+  }
 
   const normalized = String(hex).toLowerCase();
-  const existingLayerIndex = state.layers.findIndex(layer => String(layer.hex).toLowerCase() === normalized);
-  const existingFilamentIndex = state.filaments.findIndex(f => String(f.hex).toLowerCase() === normalized);
+  const existingLayerIndex = state.layers.findIndex(
+    (layer) => String(layer.hex).toLowerCase() === normalized,
+  );
+  const existingFilamentIndex = state.filaments.findIndex(
+    (f) => String(f.hex).toLowerCase() === normalized,
+  );
 
   if (existingFilamentIndex === -1) {
     state.filaments.push({
       id: `custom-${Date.now()}`,
-      brand: 'Custom',
-      material: 'Custom',
-      name: 'Custom Color',
+      brand: "Custom",
+      material: "Custom",
+      name: "Custom Color",
       hex,
-      td
+      td,
     });
   } else {
     state.filaments[existingFilamentIndex].td = td;
-    state.filaments[existingFilamentIndex].brand = state.filaments[existingFilamentIndex].brand || 'Custom';
-    state.filaments[existingFilamentIndex].name = state.filaments[existingFilamentIndex].name || 'Custom Color';
+    state.filaments[existingFilamentIndex].brand =
+      state.filaments[existingFilamentIndex].brand || "Custom";
+    state.filaments[existingFilamentIndex].name =
+      state.filaments[existingFilamentIndex].name || "Custom Color";
   }
 
   if (existingLayerIndex !== -1) {
@@ -1151,14 +1310,18 @@ function validateLayerHeights() {
   const base = state.baseThickness;
   const max = state.maxHeight;
 
-  if (state.layers.length === 0) return;
+  if (state.layers.length === 0) {
+    return;
+  }
 
   // Layer 1 is always locked at 0
   state.layers[0].startHeight = 0.0;
 
   for (let i = 1; i < state.layers.length; i++) {
     // Snap to layer height multiple
-    state.layers[i].startHeight = Math.round(state.layers[i].startHeight / state.layerHeight) * state.layerHeight;
+    state.layers[i].startHeight =
+      Math.round(state.layers[i].startHeight / state.layerHeight) *
+      state.layerHeight;
 
     let prevHeight = i === 1 ? base : state.layers[i - 1].startHeight;
     prevHeight = Math.ceil(prevHeight / state.layerHeight) * state.layerHeight;
@@ -1177,13 +1340,22 @@ function validateLayerHeights() {
 }
 
 function reorderLayers(fromIndex, toIndex) {
-  if (!state.layers.length || fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
-  if (fromIndex === 0 || toIndex === 0) return;
+  if (
+    !state.layers.length ||
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0
+  ) {
+    return;
+  }
+  if (fromIndex === 0 || toIndex === 0) {
+    return;
+  }
 
   const [moved] = state.layers.splice(fromIndex, 1);
   state.layers.splice(toIndex, 0, moved);
 
-  const orderedHeights = state.layers.map(layer => layer.startHeight);
+  const orderedHeights = state.layers.map((layer) => layer.startHeight);
   const baseHeight = state.baseThickness;
   const maxHeight = state.maxHeight;
   const step = state.layerHeight;
@@ -1193,9 +1365,14 @@ function reorderLayers(fromIndex, toIndex) {
     const prevHeight = i === 1 ? baseHeight : state.layers[i - 1].startHeight;
     const minHeight = Math.ceil(prevHeight / step) * step;
     const maxH = Math.floor(maxHeight / step) * step;
-    let nextHeight = orderedHeights[i] !== undefined ? orderedHeights[i] : minHeight;
-    if (nextHeight < minHeight) nextHeight = minHeight;
-    if (nextHeight > maxH) nextHeight = maxH;
+    let nextHeight =
+      orderedHeights[i] !== undefined ? orderedHeights[i] : minHeight;
+    if (nextHeight < minHeight) {
+      nextHeight = minHeight;
+    }
+    if (nextHeight > maxH) {
+      nextHeight = maxH;
+    }
     state.layers[i].startHeight = nextHeight;
   }
 
@@ -1208,7 +1385,9 @@ function reorderLayers(fromIndex, toIndex) {
 }
 
 function removeLayerAt(index) {
-  if (!state.layers.length || index <= 0) return;
+  if (!state.layers.length || index <= 0) {
+    return;
+  }
 
   const removedStart = state.layers[index].startHeight;
   state.layers.splice(index, 1);
@@ -1233,17 +1412,21 @@ function removeLayerAt(index) {
 // Distribute layer heights smartly based on color luminance
 function autoDistributeHeights() {
   const count = state.layers.length;
-  if (count <= 1) return;
+  if (count <= 1) {
+    return;
+  }
 
   state.layers[0].startHeight = 0.0;
   const base = state.baseThickness;
   const max = state.maxHeight;
 
   // Extract normalized luminance of each color
-  const lums = state.layers.map(layer => {
+  const lums = state.layers.map((layer) => {
     const rgb = hexToRgb(layer.hex);
     let L = (0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b) / 255;
-    if (state.invertHeights) L = 1.0 - L;
+    if (state.invertHeights) {
+      L = 1.0 - L;
+    }
     return L;
   });
 
@@ -1259,19 +1442,20 @@ function autoDistributeHeights() {
 // ── Layer Management ─────────────────────────────────────────────────────────
 
 function renderLayersList() {
-  layerListContainer.innerHTML = '';
+  layerListContainer.innerHTML = "";
 
   const lh = state.layerHeight;
 
   state.layers.forEach((layer, idx) => {
-    const row = document.createElement('div');
-    row.className = 'layer-row';
+    const row = document.createElement("div");
+    row.className = "layer-row";
 
     const isBase = idx === 0;
-    const layerNum = layer.startHeight === 0 ? 1 : Math.round(layer.startHeight / lh);
+    const layerNum =
+      layer.startHeight === 0 ? 1 : Math.round(layer.startHeight / lh);
 
     row.draggable = !isBase;
-    row.setAttribute('data-layer-index', idx);
+    row.setAttribute("data-layer-index", idx);
     row.innerHTML = `
       <div class="layer-info">
         <span class="layer-title">Color ${idx + 1}</span>
@@ -1283,52 +1467,54 @@ function renderLayersList() {
         </div>
       </div>
       <div class="layer-controls">
-        <button class="btn-step" id="layer-step-down-${idx}" ${isBase ? 'disabled' : ''}><i class="fas fa-minus"></i></button>
+        <button class="btn-step" id="layer-step-down-${idx}" ${isBase ? "disabled" : ""}><i class="fas fa-minus"></i></button>
         <input type="range" class="height-slider" min="0" max="${state.maxHeight}" step="${state.layerHeight}" 
-               value="${layer.startHeight}" ${isBase ? 'disabled' : ''} id="layer-slider-${idx}">
-        <button class="btn-step" id="layer-step-up-${idx}" ${isBase ? 'disabled' : ''}><i class="fas fa-plus"></i></button>
+               value="${layer.startHeight}" ${isBase ? "disabled" : ""} id="layer-slider-${idx}">
+        <button class="btn-step" id="layer-step-up-${idx}" ${isBase ? "disabled" : ""}><i class="fas fa-plus"></i></button>
         <span class="slider-value" id="layer-val-${idx}">L${layerNum} (${(layer.startHeight + lh).toFixed(2)} mm)</span>
-        <button class="btn-step btn-remove-layer" id="layer-remove-${idx}" ${isBase ? 'disabled' : ''} title="Remove this layer"><i class="fas fa-xmark"></i></button>
+        <button class="btn-step btn-remove-layer" id="layer-remove-${idx}" ${isBase ? "disabled" : ""} title="Remove this layer"><i class="fas fa-xmark"></i></button>
       </div>
     `;
 
     layerListContainer.appendChild(row);
 
     if (!isBase) {
-      row.addEventListener('dragstart', (e) => {
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/plain', String(idx));
-        row.classList.add('dragging');
+      row.addEventListener("dragstart", (e) => {
+        e.dataTransfer.effectAllowed = "move";
+        e.dataTransfer.setData("text/plain", String(idx));
+        row.classList.add("dragging");
       });
 
-      row.addEventListener('dragover', (e) => {
+      row.addEventListener("dragover", (e) => {
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        row.classList.add('drag-over');
+        e.dataTransfer.dropEffect = "move";
+        row.classList.add("drag-over");
       });
 
-      row.addEventListener('dragleave', () => {
-        row.classList.remove('drag-over');
+      row.addEventListener("dragleave", () => {
+        row.classList.remove("drag-over");
       });
 
-      row.addEventListener('drop', (e) => {
+      row.addEventListener("drop", (e) => {
         e.preventDefault();
-        row.classList.remove('drag-over');
-        const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+        row.classList.remove("drag-over");
+        const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
         const toIndex = idx;
         reorderLayers(fromIndex, toIndex);
       });
 
-      row.addEventListener('dragend', () => {
-        row.classList.remove('dragging');
-        document.querySelectorAll('.layer-row.drag-over').forEach(el => el.classList.remove('drag-over'));
+      row.addEventListener("dragend", () => {
+        row.classList.remove("dragging");
+        document
+          .querySelectorAll(".layer-row.drag-over")
+          .forEach((el) => el.classList.remove("drag-over"));
       });
     }
 
     // Bind Layer Swatch (opens filament library)
     const swatchBtn = document.getElementById(`layer-swatch-${idx}`);
     if (swatchBtn) {
-      swatchBtn.addEventListener('click', (e) => {
+      swatchBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         openFilamentPicker(idx);
       });
@@ -1336,14 +1522,14 @@ function renderLayersList() {
 
     // Bind TD Event
     const tdInput = document.getElementById(`layer-td-${idx}`);
-    tdInput.addEventListener('change', () => {
+    tdInput.addEventListener("change", () => {
       layer.td = parseFloat(tdInput.value) || 2.0;
       debounceUpdate();
     });
 
     const removeBtn = document.getElementById(`layer-remove-${idx}`);
     if (removeBtn) {
-      removeBtn.addEventListener('click', () => {
+      removeBtn.addEventListener("click", () => {
         removeLayerAt(idx);
       });
     }
@@ -1360,14 +1546,22 @@ function renderLayersList() {
         val = Math.round(val / state.layerHeight) * state.layerHeight;
 
         // Enforce constraints in real-time
-        let prevH = idx === 1 ? state.baseThickness : state.layers[idx - 1].startHeight;
+        let prevH =
+          idx === 1 ? state.baseThickness : state.layers[idx - 1].startHeight;
         prevH = Math.ceil(prevH / state.layerHeight) * state.layerHeight;
 
-        let nextH = (idx + 1 < state.layers.length) ? state.layers[idx + 1].startHeight : state.maxHeight;
+        let nextH =
+          idx + 1 < state.layers.length
+            ? state.layers[idx + 1].startHeight
+            : state.maxHeight;
         nextH = Math.floor(nextH / state.layerHeight) * state.layerHeight;
 
-        if (val < prevH) val = prevH;
-        if (val > nextH) val = nextH;
+        if (val < prevH) {
+          val = prevH;
+        }
+        if (val > nextH) {
+          val = nextH;
+        }
 
         slider.value = val;
         layer.startHeight = val;
@@ -1377,15 +1571,15 @@ function renderLayersList() {
         debounceUpdate();
       };
 
-      slider.addEventListener('input', () => {
+      slider.addEventListener("input", () => {
         updateVal(parseFloat(slider.value));
       });
 
-      btnDown.addEventListener('click', () => {
+      btnDown.addEventListener("click", () => {
         updateVal(layer.startHeight - state.layerHeight);
       });
 
-      btnUp.addEventListener('click', () => {
+      btnUp.addEventListener("click", () => {
         updateVal(layer.startHeight + state.layerHeight);
       });
     }
@@ -1398,41 +1592,44 @@ function updateUIFromState() {
     updateLayersCount(state.layersCount);
   }
 
-  document.getElementById('input-width').value = state.widthMm;
-  document.getElementById('input-height').value = state.heightMm;
-  document.getElementById('input-max-height').value = state.maxHeight;
-  document.getElementById('input-base-thickness').value = state.baseThickness;
-  document.getElementById('input-layer-height').value = state.layerHeight;
-  document.getElementById('input-resolution').value = state.gridResolution;
-  document.getElementById('input-triangle-quality').value = state.triangleQuality;
-  document.getElementById('input-invert').checked = state.invertHeights;
-  const checkboxMirrorX = document.getElementById('input-mirror-x');
+  document.getElementById("input-width").value = state.widthMm;
+  document.getElementById("input-height").value = state.heightMm;
+  document.getElementById("input-max-height").value = state.maxHeight;
+  document.getElementById("input-base-thickness").value = state.baseThickness;
+  document.getElementById("input-layer-height").value = state.layerHeight;
+  document.getElementById("input-resolution").value = state.gridResolution;
+  document.getElementById("input-triangle-quality").value =
+    state.triangleQuality;
+  document.getElementById("input-invert").checked = state.invertHeights;
+  const checkboxMirrorX = document.getElementById("input-mirror-x");
   if (checkboxMirrorX) {
     checkboxMirrorX.checked = state.mirrorX;
   }
-  const checkboxPosterize = document.getElementById('input-posterize');
+  const checkboxPosterize = document.getElementById("input-posterize");
   if (checkboxPosterize) {
     checkboxPosterize.checked = state.posterize;
   }
-  const checkboxSimulate = document.getElementById('input-simulate-td');
+  const checkboxSimulate = document.getElementById("input-simulate-td");
   if (checkboxSimulate) {
     checkboxSimulate.checked = state.simulateTransmission;
   }
-  document.getElementById('input-puzzle-enable').checked = state.puzzleEnabled;
-  document.getElementById('input-puzzle-cols').value = state.puzzleCols;
-  document.getElementById('input-puzzle-rows').value = state.puzzleRows;
-  document.getElementById('input-puzzle-clearance').value = state.puzzleClearanceMm;
-  document.getElementById('label-clearance-val').textContent = state.puzzleClearanceMm.toFixed(2) + ' mm';
+  document.getElementById("input-puzzle-enable").checked = state.puzzleEnabled;
+  document.getElementById("input-puzzle-cols").value = state.puzzleCols;
+  document.getElementById("input-puzzle-rows").value = state.puzzleRows;
+  document.getElementById("input-puzzle-clearance").value =
+    state.puzzleClearanceMm;
+  document.getElementById("label-clearance-val").textContent =
+    state.puzzleClearanceMm.toFixed(2) + " mm";
 
-  document.getElementById('input-colors-count').value = state.layersCount;
-  document.getElementById('label-colors-count').textContent = state.layersCount;
+  document.getElementById("input-colors-count").value = state.layersCount;
+  document.getElementById("label-colors-count").textContent = state.layersCount;
 
   renderLayersList();
 }
 
 // Get a signature representing the current color state
 function getColorStateSignature() {
-  const layerHexes = state.layers.map(l => l.hex).join('|');
+  const layerHexes = state.layers.map((l) => l.hex).join("|");
   return `${layerHexes}:${state.simulateTransmission}`;
 }
 
@@ -1444,7 +1641,7 @@ function hasOnlyColorChanged() {
   if (hasGeometryChanged()) {
     return false; // Geometry changed too
   }
-  
+
   const currentSig = getColorStateSignature();
   return currentSig !== _lastColorStateSignature;
 }
@@ -1461,7 +1658,7 @@ function hasGeometryChanged() {
   // - gridResolution (grid size)
   // - widthMm, heightMm (scale)
   // Note: colors do NOT affect geometry
-  
+
   // Simplified: if heights aren't cached, assume geometry changed
   // Otherwise, heights would be cached from last full rebuild
   return _cachedHeights === null;
@@ -1469,17 +1666,23 @@ function hasGeometryChanged() {
 
 // Update vertex colors in existing meshes without rebuilding geometry
 async function updateMeshColorsOnly() {
-  if (modelGroup.children.length === 0) return;
+  if (modelGroup.children.length === 0) {
+    return;
+  }
 
   const cols = state.gridCols;
   const rows = state.gridRows;
   const heights = state.simulateTransmission ? getHeightsGrid() : null;
 
   for (const mesh of modelGroup.children) {
-    if (!mesh.geometry || !mesh.userData) continue;
+    if (!mesh.geometry || !mesh.userData) {
+      continue;
+    }
 
     const layerIndex = mesh.userData.layerIndex;
-    if (typeof layerIndex !== 'number') continue;
+    if (typeof layerIndex !== "number") {
+      continue;
+    }
 
     const colorData = mesh.geometry.attributes.color.array;
 
@@ -1493,20 +1696,28 @@ async function updateMeshColorsOnly() {
         const py = posData[i + 1];
         const x = Math.round((px / scaleX + 0.5) * (cols - 1));
         const y = Math.round((-py / scaleY + 0.5) * (rows - 1));
-        let currentR = 0, currentG = 0, currentB = 0;
+        let currentR = 0,
+          currentG = 0,
+          currentB = 0;
         if (x >= 0 && x < cols && y >= 0 && y < rows) {
           const h = heights[y * cols + x];
           for (let j = 0; j <= layerIndex; j++) {
             const lStart = state.layers[j].startHeight;
-            const lEnd = (j + 1 < state.layers.length) ? state.layers[j + 1].startHeight : state.maxHeight;
+            const lEnd =
+              j + 1 < state.layers.length
+                ? state.layers[j + 1].startHeight
+                : state.maxHeight;
             if (h > lStart) {
               const thickness = Math.min(h, lEnd) - lStart;
               if (thickness > 0) {
-                const layerTD = state.layers[j].td !== undefined ? state.layers[j].td : 2.0;
+                const layerTD =
+                  state.layers[j].td !== undefined ? state.layers[j].td : 2.0;
                 const opacity = 1.0 - Math.pow(0.05, thickness / layerTD);
                 const rgb = hexToRgb(state.layers[j].hex);
                 if (j === 0) {
-                  currentR = rgb.r; currentG = rgb.g; currentB = rgb.b;
+                  currentR = rgb.r;
+                  currentG = rgb.g;
+                  currentB = rgb.b;
                 } else {
                   currentR = currentR * (1 - opacity) + rgb.r * opacity;
                   currentG = currentG * (1 - opacity) + rgb.g * opacity;
@@ -1548,14 +1759,16 @@ function debounceUpdate() {
     clearTimeout(renderDebounceTimer);
   }
 
-  const is3DActive = document.getElementById('pane-3d')?.classList.contains('active');
+  const is3DActive = document
+    .getElementById("pane-3d")
+    ?.classList.contains("active");
 
   if (is3DActive) {
-    showPreviewSpinner('Rendering...');
+    showPreviewSpinner("Rendering...");
   }
 
   const draw2DIdle = () => schedule2DRender();
-  if (typeof requestIdleCallback !== 'undefined') {
+  if (typeof requestIdleCallback !== "undefined") {
     requestIdleCallback(draw2DIdle, { timeout: 300 });
   } else {
     setTimeout(draw2DIdle, 0);
@@ -1571,7 +1784,7 @@ function debounceUpdate() {
     renderDebounceTimer = null;
 
     // If 3D tab is no longer active, skip the heavy work
-    if (!document.getElementById('pane-3d')?.classList.contains('active')) {
+    if (!document.getElementById("pane-3d")?.classList.contains("active")) {
       updateTransitionTable();
       hidePreviewSpinner();
       return;
@@ -1588,12 +1801,14 @@ function debounceUpdate() {
       await update3DPreview();
       updateTransitionTable();
     }
-    
+
     // Update signature tracking for next change detection
     _lastColorStateSignature = getColorStateSignature();
-    
+
     hidePreviewSpinner();
-    if (typeof dashTrackSave === 'function') dashTrackSave();
+    if (typeof dashTrackSave === "function") {
+      dashTrackSave();
+    }
   }, 200);
 }
 
@@ -1605,12 +1820,15 @@ function showExportProgress() {
     exportProgressResetTimer = null;
   }
   if (exportProgressContainer) {
-    exportProgressContainer.classList.add('visible');
+    exportProgressContainer.classList.add("visible");
   }
 }
 
 function updateExportProgress(percent, status) {
-  const safePercent = Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0));
+  const safePercent = Math.max(
+    0,
+    Math.min(100, Number.isFinite(percent) ? percent : 0),
+  );
   showExportProgress();
   if (exportProgressStatus && status) {
     exportProgressStatus.textContent = status;
@@ -1627,19 +1845,19 @@ function updateExportProgress(percent, status) {
 }
 
 function finishExportProgress(status) {
-  updateExportProgress(100, status || 'Export complete.');
+  updateExportProgress(100, status || "Export complete.");
   exportProgressResetTimer = setTimeout(() => {
     if (exportProgressContainer) {
-      exportProgressContainer.classList.remove('visible');
+      exportProgressContainer.classList.remove("visible");
     }
     if (exportProgressFill) {
-      exportProgressFill.style.width = '0%';
+      exportProgressFill.style.width = "0%";
     }
     if (exportProgressMeta) {
-      exportProgressMeta.textContent = '0%';
+      exportProgressMeta.textContent = "0%";
     }
     if (exportProgressStatus) {
-      exportProgressStatus.textContent = 'Preparing export...';
+      exportProgressStatus.textContent = "Preparing export...";
     }
   }, 2000);
 }
@@ -1647,35 +1865,43 @@ function finishExportProgress(status) {
 function failExportProgress(status) {
   showExportProgress();
   if (exportProgressStatus) {
-    exportProgressStatus.textContent = status || 'Export failed.';
+    exportProgressStatus.textContent = status || "Export failed.";
   }
 }
 
 function yieldToUI() {
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     requestAnimationFrame(() => resolve());
   });
 }
 
 function showPreviewSpinner(text) {
-  document.getElementById('preview-empty').classList.add('hidden');
-  const spinner = document.getElementById('preview-spinner');
-  const textEl = document.getElementById('preview-spinner-text');
-  if (spinner) spinner.classList.remove('hidden');
-  if (textEl && text) textEl.textContent = text;
+  document.getElementById("preview-empty").classList.add("hidden");
+  const spinner = document.getElementById("preview-spinner");
+  const textEl = document.getElementById("preview-spinner-text");
+  if (spinner) {
+    spinner.classList.remove("hidden");
+  }
+  if (textEl && text) {
+    textEl.textContent = text;
+  }
 }
 
 function hidePreviewSpinner() {
-  document.getElementById('preview-spinner').classList.add('hidden');
+  document.getElementById("preview-spinner").classList.add("hidden");
   if (!state.rawLuminance) {
-    document.getElementById('preview-empty').classList.remove('hidden');
-    document.getElementById('layer-nav').classList.add('hidden');
-    const ffTb = document.getElementById('ff-toolbar');
-    if (ffTb) ffTb.classList.add('hidden');
+    document.getElementById("preview-empty").classList.remove("hidden");
+    document.getElementById("layer-nav").classList.add("hidden");
+    const ffTb = document.getElementById("ff-toolbar");
+    if (ffTb) {
+      ffTb.classList.add("hidden");
+    }
   } else {
-    document.getElementById('layer-nav').classList.remove('hidden');
-    const ffTb = document.getElementById('ff-toolbar');
-    if (ffTb) ffTb.classList.remove('hidden');
+    document.getElementById("layer-nav").classList.remove("hidden");
+    const ffTb = document.getElementById("ff-toolbar");
+    if (ffTb) {
+      ffTb.classList.remove("hidden");
+    }
   }
 }
 
@@ -1685,106 +1911,42 @@ function hexToRgb(hex) {
   return {
     r: parseInt(hex.slice(1, 3), 16),
     g: parseInt(hex.slice(3, 5), 16),
-    b: parseInt(hex.slice(5, 7), 16)
+    b: parseInt(hex.slice(5, 7), 16),
   };
-}
-
-function shadeHex(hex, factor) {
-  const { r, g, b } = hexToRgb(hex);
-  const shade = (channel) => Math.max(0, Math.min(255, Math.round(channel * factor)));
-  const toHex = (channel) => shade(channel).toString(16).padStart(2, '0');
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-function buildLayerSliceCanvas(layerIndex, heights, cols, rows) {
-  const layer = state.layers[layerIndex];
-  const offscreen = document.createElement('canvas');
-  offscreen.width = cols;
-  offscreen.height = rows;
-
-  const ctx = offscreen.getContext('2d');
-  const imgData = ctx.createImageData(cols, rows);
-  const data = imgData.data;
-
-  // Re-calculate colors for each pixel based on transmission or posterization
-  for (let i = 0; i < cols * rows; i++) {
-    let h = heights[i];
-    let r, g, b;
-
-    if (state.simulateTransmission && state.layers.length > 0) {
-      // Simulate Light Transmission
-      let currentR = 0, currentG = 0, currentB = 0;
-
-      for (let j = 0; j < state.layers.length; j++) {
-        const lStart = state.layers[j].startHeight;
-        const lEnd = (j + 1 < state.layers.length) ? state.layers[j + 1].startHeight : state.maxHeight;
-
-        if (h > lStart) {
-          const thickness = Math.min(h, lEnd) - lStart;
-          if (thickness > 0) {
-            const layerTD = state.layers[j].td !== undefined ? state.layers[j].td : 2.0;
-            // Opacity based on transmission: opacity approaches 95% at TD
-            const opacity = 1.0 - Math.pow(0.05, thickness / layerTD);
-
-            const rgb = hexToRgb(state.layers[j].hex);
-            if (j === 0) {
-              // Base layer is fully opaque
-              currentR = rgb.r; currentG = rgb.g; currentB = rgb.b;
-            } else {
-              currentR = currentR * (1 - opacity) + rgb.r * opacity;
-              currentG = currentG * (1 - opacity) + rgb.g * opacity;
-              currentB = currentB * (1 - opacity) + rgb.b * opacity;
-            }
-          }
-        }
-      }
-      r = currentR; g = currentG; b = currentB;
-    } else {
-      // Standard Posterized Rendering
-      let layerIdx = 0;
-      for (let j = 1; j < state.layers.length; j++) {
-        if (h >= state.layers[j].startHeight) {
-          layerIdx = j;
-        }
-      }
-      const baseColor = hexToRgb(state.layers[layerIdx].hex);
-      r = baseColor.r; g = baseColor.g; b = baseColor.b;
-    }
-
-    if (h < layer.startHeight) {
-      // Background pixels or lower layers transparent
-      data[i * 4 + 3] = 0;
-    } else {
-      data[i * 4] = r;
-      data[i * 4 + 1] = g;
-      data[i * 4 + 2] = b;
-      data[i * 4 + 3] = 255;
-    }
-  }
-
-  ctx.putImageData(imgData, 0, 0);
-  return offscreen;
 }
 
 // ── 2D Rendering ─────────────────────────────────────────────────────────────
 
 function draw2DSimulation() {
-  if (!state.rawLuminance || !canvas2D) return;
+  if (!state.rawLuminance || !canvas2D) {
+    return;
+  }
 
   const cols = state.gridCols;
   const rows = state.gridRows;
   const heights = getHeightsGrid();
   const idx = current2DLayerIndex;
 
-  const canvasW = canvas2D.parentElement ? canvas2D.parentElement.clientWidth - 40 : 300;
-  const canvasH = canvas2D.parentElement ? canvas2D.parentElement.clientHeight - 40 : 300;
-  const cellSize = Math.max(2, Math.floor(Math.min(canvasW / cols, canvasH / rows)));
+  const canvasW = canvas2D.parentElement
+    ? canvas2D.parentElement.clientWidth - 40
+    : 300;
+  const canvasH = canvas2D.parentElement
+    ? canvas2D.parentElement.clientHeight - 40
+    : 300;
+  const cellSize = Math.max(
+    2,
+    Math.floor(Math.min(canvasW / cols, canvasH / rows)),
+  );
   const imgW = cols * cellSize;
   const imgH = rows * cellSize;
   const targetHeight = imgH + 60;
 
   const renderKey = get2DRenderCacheKey();
-  const needsRebuild = _2dBaseCacheKey !== renderKey || !_2dBaseCacheCanvas || _2dBaseCacheCanvas.width !== cols || _2dBaseCacheCanvas.height !== rows;
+  const needsRebuild =
+    _2dBaseCacheKey !== renderKey ||
+    !_2dBaseCacheCanvas ||
+    _2dBaseCacheCanvas.width !== cols ||
+    _2dBaseCacheCanvas.height !== rows;
 
   if (needsRebuild) {
     const imgData = ensure2DBaseCache(cols, rows);
@@ -1798,41 +1960,68 @@ function draw2DSimulation() {
         const overrideHex = ffRegionColors[ffRegionMask[i]];
         if (overrideHex) {
           const oc = hexToRgb(overrideHex);
-          r = oc.r; g = oc.g; b = oc.b;
-          data[i * 4] = r; data[i * 4 + 1] = g; data[i * 4 + 2] = b; data[i * 4 + 3] = 255;
+          r = oc.r;
+          g = oc.g;
+          b = oc.b;
+          data[i * 4] = r;
+          data[i * 4 + 1] = g;
+          data[i * 4 + 2] = b;
+          data[i * 4 + 3] = 255;
           continue;
         }
       }
 
       if (state.rawAlpha && state.rawAlpha[i] < 128) {
-        data[i * 4] = 0; data[i * 4 + 1] = 0; data[i * 4 + 2] = 0; data[i * 4 + 3] = 0;
+        data[i * 4] = 0;
+        data[i * 4 + 1] = 0;
+        data[i * 4 + 2] = 0;
+        data[i * 4 + 3] = 0;
         continue;
       }
 
       if (state.simulateTransmission && state.layers.length > 0) {
-        let cr = 0, cg = 0, cb = 0;
+        let cr = 0,
+          cg = 0,
+          cb = 0;
         for (let j = 0; j <= idx; j++) {
           const ls = state.layers[j].startHeight;
-          const le = (j + 1 < state.layers.length) ? state.layers[j + 1].startHeight : state.maxHeight;
+          const le =
+            j + 1 < state.layers.length
+              ? state.layers[j + 1].startHeight
+              : state.maxHeight;
           if (h > ls) {
             const t = Math.min(h, le) - ls;
             if (t > 0) {
-              const td = state.layers[j].td !== undefined ? state.layers[j].td : 2.0;
+              const td =
+                state.layers[j].td !== undefined ? state.layers[j].td : 2.0;
               const op = 1.0 - Math.pow(0.05, t / td);
               const rgb = hexToRgb(state.layers[j].hex);
-              if (j === 0) { cr = rgb.r; cg = rgb.g; cb = rgb.b; }
-              else { cr = cr * (1 - op) + rgb.r * op; cg = cg * (1 - op) + rgb.g * op; cb = cb * (1 - op) + rgb.b * op; }
+              if (j === 0) {
+                cr = rgb.r;
+                cg = rgb.g;
+                cb = rgb.b;
+              } else {
+                cr = cr * (1 - op) + rgb.r * op;
+                cg = cg * (1 - op) + rgb.g * op;
+                cb = cb * (1 - op) + rgb.b * op;
+              }
             }
           }
         }
-        r = cr; g = cg; b = cb;
+        r = cr;
+        g = cg;
+        b = cb;
       } else {
         let li = 0;
         for (let j = 1; j <= idx; j++) {
-          if (h >= state.layers[j].startHeight) li = j;
+          if (h >= state.layers[j].startHeight) {
+            li = j;
+          }
         }
         const bc = hexToRgb(state.layers[li].hex);
-        r = bc.r; g = bc.g; b = bc.b;
+        r = bc.r;
+        g = bc.g;
+        b = bc.b;
       }
 
       data[i * 4] = r;
@@ -1841,7 +2030,7 @@ function draw2DSimulation() {
       data[i * 4 + 3] = 255;
     }
 
-    const baseCtx = _2dBaseCacheCanvas.getContext('2d');
+    const baseCtx = _2dBaseCacheCanvas.getContext("2d");
     baseCtx.putImageData(imgData, 0, 0);
     _2dBaseCacheKey = renderKey;
   }
@@ -1851,7 +2040,7 @@ function draw2DSimulation() {
     canvas2D.height = targetHeight;
   }
 
-  const ctx = canvas2D.getContext('2d');
+  const ctx = canvas2D.getContext("2d");
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas2D.width, canvas2D.height);
   ctx.imageSmoothingEnabled = false;
@@ -1860,27 +2049,56 @@ function draw2DSimulation() {
 
   // Draw flood fill pending selection highlight (last BFS result before assign)
   if (ffLastFillSet && ffLastFillSet.size > 0) {
-    ctx.fillStyle = 'rgba(85, 186, 8, 0.30)';
+    ctx.fillStyle = "rgba(85, 186, 8, 0.30)";
     for (const pixIdx of ffLastFillSet) {
       const px = pixIdx % cols;
       const py = Math.floor(pixIdx / cols);
       ctx.fillRect(px * cellSize, py * cellSize, cellSize, cellSize);
     }
     // Draw marching-ants border (simple thick outline)
-    ctx.strokeStyle = 'rgba(85,186,8,0.9)';
+    ctx.strokeStyle = "rgba(85,186,8,0.9)";
     ctx.lineWidth = 1.5;
     for (const pixIdx of ffLastFillSet) {
       const px = pixIdx % cols;
       const py = Math.floor(pixIdx / cols);
       const neighbors = [
-        [px - 1, py], [px + 1, py], [px, py - 1], [px, py + 1]
+        [px - 1, py],
+        [px + 1, py],
+        [px, py - 1],
+        [px, py + 1],
       ];
       for (const [nx, ny] of neighbors) {
-        if (nx < 0 || nx >= cols || ny < 0 || ny >= rows || !ffLastFillSet.has(ny * cols + nx)) {
-          const ex1 = nx < px ? px * cellSize : (nx > px ? (px + 1) * cellSize : px * cellSize);
-          const ey1 = ny < py ? py * cellSize : (ny > py ? (py + 1) * cellSize : py * cellSize);
-          const ex2 = nx < px ? px * cellSize : (nx > px ? (px + 1) * cellSize : (px + 1) * cellSize);
-          const ey2 = ny < py ? py * cellSize : (ny > py ? (py + 1) * cellSize : (py + 1) * cellSize);
+        if (
+          nx < 0 ||
+          nx >= cols ||
+          ny < 0 ||
+          ny >= rows ||
+          !ffLastFillSet.has(ny * cols + nx)
+        ) {
+          const ex1 =
+            nx < px
+              ? px * cellSize
+              : nx > px
+                ? (px + 1) * cellSize
+                : px * cellSize;
+          const ey1 =
+            ny < py
+              ? py * cellSize
+              : ny > py
+                ? (py + 1) * cellSize
+                : py * cellSize;
+          const ex2 =
+            nx < px
+              ? px * cellSize
+              : nx > px
+                ? (px + 1) * cellSize
+                : (px + 1) * cellSize;
+          const ey2 =
+            ny < py
+              ? py * cellSize
+              : ny > py
+                ? (py + 1) * cellSize
+                : (py + 1) * cellSize;
           ctx.beginPath();
           ctx.moveTo(ex1, ey1);
           ctx.lineTo(ex2, ey2);
@@ -1892,7 +2110,7 @@ function draw2DSimulation() {
 
   // Draw selected region highlight
   if (ffSelectedRegionId !== null && ffRegionMask) {
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
+    ctx.fillStyle = "rgba(255,255,255,0.22)";
     for (let i = 0; i < ffRegionMask.length; i++) {
       if (ffRegionMask[i] === ffSelectedRegionId) {
         const px = i % cols;
@@ -1903,9 +2121,16 @@ function draw2DSimulation() {
   }
 
   if (state.puzzleEnabled) {
-    drawPuzzleCuts(ctx, cols, rows, state.puzzleCols, state.puzzleRows, cellSize);
+    drawPuzzleCuts(
+      ctx,
+      cols,
+      rows,
+      state.puzzleCols,
+      state.puzzleRows,
+      cellSize,
+    );
   } else {
-    ctx.strokeStyle = 'rgba(0,0,0,0.06)';
+    ctx.strokeStyle = "rgba(0,0,0,0.06)";
     ctx.lineWidth = 0.5;
     for (let x = 0; x <= cols; x++) {
       ctx.beginPath();
@@ -1922,19 +2147,20 @@ function draw2DSimulation() {
   }
 
   const barY = imgH + 8;
-  ctx.fillStyle = '#f4f5f7';
+  ctx.fillStyle = "#f4f5f7";
   ctx.fillRect(0, barY, canvas2D.width, 56);
 
-  ctx.fillStyle = '#111827';
-  ctx.font = '600 30px Poppins, sans-serif';
-  ctx.textAlign = 'left';
+  ctx.fillStyle = "#111827";
+  ctx.font = "600 30px Poppins, sans-serif";
+  ctx.textAlign = "left";
   ctx.fillText(`Layer ${idx + 1} of ${state.layers.length}`, 12, barY + 40);
 
   // Right-aligned color swatches - layer 1 shows 1, layer 2 shows 2, etc.
   const swatchSize = 24;
   const swatchGap = 5;
   const numSwatches = idx + 1;
-  const totalSwatchesW = numSwatches * swatchSize + (numSwatches - 1) * swatchGap + 8;
+  const totalSwatchesW =
+    numSwatches * swatchSize + (numSwatches - 1) * swatchGap + 8;
   let sx = canvas2D.width - totalSwatchesW - 12;
   const sy = barY + (56 - swatchSize) / 2;
   for (let i = 0; i < numSwatches; i++) {
@@ -1943,7 +2169,7 @@ function draw2DSimulation() {
     const yOff = isCurrent ? -4 : 0;
     ctx.fillStyle = state.layers[i].hex;
     ctx.fillRect(sx, sy + yOff, s, s);
-    ctx.strokeStyle = isCurrent ? '#111827' : 'rgba(0,0,0,0.12)';
+    ctx.strokeStyle = isCurrent ? "#111827" : "rgba(0,0,0,0.12)";
     ctx.lineWidth = isCurrent ? 2.5 : 1;
     ctx.strokeRect(sx, sy + yOff, s, s);
     sx += s + swatchGap;
@@ -1954,13 +2180,15 @@ function draw2DSimulation() {
 
 function toggleFloodFillMode() {
   ffModeActive = !ffModeActive;
-  const btn = document.getElementById('ff-toggle-btn');
-  const panel = document.getElementById('ff-region-panel');
-  if (btn) btn.classList.toggle('active', ffModeActive);
-  canvas2D.classList.toggle('ff-cursor', ffModeActive);
+  const btn = document.getElementById("ff-toggle-btn");
+  const panel = document.getElementById("ff-region-panel");
+  if (btn) {
+    btn.classList.toggle("active", ffModeActive);
+  }
+  canvas2D.classList.toggle("ff-cursor", ffModeActive);
 
   if (ffModeActive) {
-    panel.classList.remove('hidden');
+    panel.classList.remove("hidden");
     ffLastFillSet = null;
     updateRegionPanel();
     schedule2DRender();
@@ -1969,7 +2197,7 @@ function toggleFloodFillMode() {
     ffSelectedRegionId = null;
     // Keep panel visible if there are saved regions
     if (Object.keys(ffRegionColors).length === 0) {
-      panel.classList.add('hidden');
+      panel.classList.add("hidden");
     }
     updateRegionPanel();
     schedule2DRender();
@@ -1992,12 +2220,19 @@ function floodFillBFS(startIdx) {
     const cx = cur % cols;
     const cy = Math.floor(cur / cols);
     const neighbors = [
-      [cx - 1, cy], [cx + 1, cy], [cx, cy - 1], [cx, cy + 1]
+      [cx - 1, cy],
+      [cx + 1, cy],
+      [cx, cy - 1],
+      [cx, cy + 1],
     ];
     for (const [nx, ny] of neighbors) {
-      if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) continue;
+      if (nx < 0 || nx >= cols || ny < 0 || ny >= rows) {
+        continue;
+      }
       const nIdx = ny * cols + nx;
-      if (visited.has(nIdx)) continue;
+      if (visited.has(nIdx)) {
+        continue;
+      }
       if (Math.abs(heights[nIdx] - targetH) <= tolerance) {
         visited.add(nIdx);
         queue.push(nIdx);
@@ -2015,7 +2250,9 @@ function initRegionMask() {
 }
 
 function onCanvas2DClick(e) {
-  if (!ffModeActive || !state.rawLuminance) return;
+  if (!ffModeActive || !state.rawLuminance) {
+    return;
+  }
 
   const rect = canvas2D.getBoundingClientRect();
   const scaleX = canvas2D.width / rect.width;
@@ -2029,15 +2266,22 @@ function onCanvas2DClick(e) {
   // Compute cell size (same as draw2DSimulation)
   const canvasW = canvas2D.parentElement.clientWidth - 40;
   const canvasH = canvas2D.parentElement.clientHeight - 40;
-  const cellSize = Math.max(2, Math.floor(Math.min(canvasW / cols, canvasH / rows)));
+  const cellSize = Math.max(
+    2,
+    Math.floor(Math.min(canvasW / cols, canvasH / rows)),
+  );
   const imgH = rows * cellSize;
 
   // Ignore clicks in the info bar below the image
-  if (cy >= imgH) return;
+  if (cy >= imgH) {
+    return;
+  }
 
   const gridX = Math.floor(cx / cellSize);
   const gridY = Math.floor(cy / cellSize);
-  if (gridX < 0 || gridX >= cols || gridY < 0 || gridY >= rows) return;
+  if (gridX < 0 || gridX >= cols || gridY < 0 || gridY >= rows) {
+    return;
+  }
 
   const pixIdx = gridY * cols + gridX;
 
@@ -2045,11 +2289,11 @@ function onCanvas2DClick(e) {
   if (ffRegionMask && ffRegionMask[pixIdx] >= 0) {
     ffSelectedRegionId = ffRegionMask[pixIdx];
     ffLastFillSet = null;
-    const panel = document.getElementById('ff-region-panel');
-    panel.classList.remove('hidden');
-    const applyBtn = document.getElementById('ff-apply-btn');
+    const panel = document.getElementById("ff-region-panel");
+    panel.classList.remove("hidden");
+    const applyBtn = document.getElementById("ff-apply-btn");
     if (applyBtn) {
-      applyBtn.textContent = 'Apply to Selection';
+      applyBtn.textContent = "Apply to Selection";
       applyBtn.disabled = false;
     }
     updateRegionPanel();
@@ -2061,18 +2305,20 @@ function onCanvas2DClick(e) {
   ffSelectedRegionId = null;
   ffLastFillSet = floodFillBFS(pixIdx);
 
-  const panel = document.getElementById('ff-region-panel');
-  panel.classList.remove('hidden');
-  const applyBtn = document.getElementById('ff-apply-btn');
-  if (applyBtn) applyBtn.disabled = false;
+  const panel = document.getElementById("ff-region-panel");
+  panel.classList.remove("hidden");
+  const applyBtn = document.getElementById("ff-apply-btn");
+  if (applyBtn) {
+    applyBtn.disabled = false;
+  }
   updateRegionPanel();
   invalidate2DCache();
   schedule2DRender();
 }
 
 function applyRegionColor() {
-  const colorInput = document.getElementById('ff-color-pick');
-  const hex = colorInput ? colorInput.value : '#ff6600';
+  const colorInput = document.getElementById("ff-color-pick");
+  const hex = colorInput ? colorInput.value : "#ff6600";
 
   if (ffSelectedRegionId !== null) {
     // Re-color an existing region
@@ -2087,29 +2333,41 @@ function applyRegionColor() {
       ffRegionMask[idx] = rid;
     }
     ffLastFillSet = null;
-    const clearBtn = document.getElementById('ff-clear-btn');
-    if (clearBtn) clearBtn.classList.remove('hidden');
+    const clearBtn = document.getElementById("ff-clear-btn");
+    if (clearBtn) {
+      clearBtn.classList.remove("hidden");
+    }
   }
 
   addLayerFromColor(hex);
 
-  const applyBtn = document.getElementById('ff-apply-btn');
-  if (applyBtn) applyBtn.disabled = true;
+  const applyBtn = document.getElementById("ff-apply-btn");
+  if (applyBtn) {
+    applyBtn.disabled = true;
+  }
   updateRegionPanel();
   invalidate2DCache();
   schedule2DRender();
 }
 
 function deleteRegion(rid) {
-  if (!ffRegionMask) return;
+  if (!ffRegionMask) {
+    return;
+  }
   for (let i = 0; i < ffRegionMask.length; i++) {
-    if (ffRegionMask[i] === rid) ffRegionMask[i] = -1;
+    if (ffRegionMask[i] === rid) {
+      ffRegionMask[i] = -1;
+    }
   }
   delete ffRegionColors[rid];
-  if (ffSelectedRegionId === rid) ffSelectedRegionId = null;
+  if (ffSelectedRegionId === rid) {
+    ffSelectedRegionId = null;
+  }
   if (Object.keys(ffRegionColors).length === 0) {
-    const clearBtn = document.getElementById('ff-clear-btn');
-    if (clearBtn) clearBtn.classList.add('hidden');
+    const clearBtn = document.getElementById("ff-clear-btn");
+    if (clearBtn) {
+      clearBtn.classList.add("hidden");
+    }
   }
   updateRegionPanel();
   schedule2DRender();
@@ -2121,39 +2379,45 @@ function clearAllRegions() {
   ffNextRegionId = 0;
   ffSelectedRegionId = null;
   ffLastFillSet = null;
-  const clearBtn = document.getElementById('ff-clear-btn');
-  if (clearBtn) clearBtn.classList.add('hidden');
-  const applyBtn = document.getElementById('ff-apply-btn');
-  if (applyBtn) applyBtn.disabled = true;
+  const clearBtn = document.getElementById("ff-clear-btn");
+  if (clearBtn) {
+    clearBtn.classList.add("hidden");
+  }
+  const applyBtn = document.getElementById("ff-apply-btn");
+  if (applyBtn) {
+    applyBtn.disabled = true;
+  }
   updateRegionPanel();
   schedule2DRender();
 }
 
 function updateRegionPanel() {
-  const list = document.getElementById('ff-region-list');
-  const panel = document.getElementById('ff-region-panel');
-  const applyBtn = document.getElementById('ff-apply-btn');
-  if (!list) return;
+  const list = document.getElementById("ff-region-list");
+  const panel = document.getElementById("ff-region-panel");
+  const applyBtn = document.getElementById("ff-apply-btn");
+  if (!list) {
+    return;
+  }
 
   const ids = Object.keys(ffRegionColors);
 
   // Show panel if fill mode is active OR if there are saved regions
   if (panel) {
     if (ffModeActive || ids.length > 0) {
-      panel.classList.remove('hidden');
+      panel.classList.remove("hidden");
     }
   }
 
   // Update apply button text/state
   if (applyBtn) {
     if (ffSelectedRegionId !== null) {
-      applyBtn.textContent = 'Re-color Region';
+      applyBtn.textContent = "Re-color Region";
       applyBtn.disabled = false;
     } else if (ffLastFillSet && ffLastFillSet.size > 0) {
       applyBtn.innerHTML = 'Add to List <i class="fas fa-arrow-down"></i>';
       applyBtn.disabled = false;
     } else {
-      applyBtn.textContent = 'Select an area first';
+      applyBtn.textContent = "Select an area first";
       applyBtn.disabled = true;
     }
   }
@@ -2161,27 +2425,29 @@ function updateRegionPanel() {
   if (ids.length === 0) {
     list.innerHTML = ffModeActive
       ? '<div class="ff-hint-sub">Click any area on the canvas to select it.</div>'
-      : '';
+      : "";
     return;
   }
 
-  list.innerHTML = ids.map(rid => {
-    const hex = ffRegionColors[rid];
-    const isSelected = parseInt(rid) === ffSelectedRegionId;
-    return `<div class="ff-region-item${isSelected ? ' selected' : ''}" onclick="selectRegionFromPanel(${rid})">
+  list.innerHTML = ids
+    .map((rid) => {
+      const hex = ffRegionColors[rid];
+      const isSelected = parseInt(rid) === ffSelectedRegionId;
+      return `<div class="ff-region-item${isSelected ? " selected" : ""}" onclick="selectRegionFromPanel(${rid})">
       <div class="ff-region-swatch" style="background:${hex}"></div>
       <span class="ff-region-label">Region ${parseInt(rid) + 1}</span>
       <button class="ff-region-del" onclick="event.stopPropagation();deleteRegion(${rid})" title="Remove region"><i class="fas fa-xmark"></i></button>
     </div>`;
-  }).join('');
+    })
+    .join("");
 }
 
 function selectRegionFromPanel(rid) {
   ffSelectedRegionId = rid;
   ffLastFillSet = null;
-  const applyBtn = document.getElementById('ff-apply-btn');
+  const applyBtn = document.getElementById("ff-apply-btn");
   if (applyBtn) {
-    applyBtn.textContent = 'Apply to Selection';
+    applyBtn.textContent = "Apply to Selection";
     applyBtn.disabled = false;
   }
   updateRegionPanel();
@@ -2206,8 +2472,9 @@ function next2DLayer() {
 
 // Build height map grid of physical heights (cached)
 function getHeightsGrid() {
-  const key = `${state.gridCols},${state.gridRows},${state.baseThickness},${state.maxHeight},${state.posterize},` +
-    (state.layers ? state.layers.map(l => l.startHeight).join(',') : '');
+  const key =
+    `${state.gridCols},${state.gridRows},${state.baseThickness},${state.maxHeight},${state.posterize},` +
+    (state.layers ? state.layers.map((l) => l.startHeight).join(",") : "");
 
   if (_cachedHeights && _cachedHeightsKey === key) {
     return _cachedHeights;
@@ -2220,7 +2487,6 @@ function getHeightsGrid() {
 
   const heights = new Float32Array(cols * rows);
   for (let i = 0; i < cols * rows; i++) {
-
     // Drop transparent pixels entirely
     if (state.rawAlpha && state.rawAlpha[i] < 128) {
       heights[i] = 0;
@@ -2236,7 +2502,10 @@ function getHeightsGrid() {
           layerIdx = j;
         }
       }
-      let snappedH = layerIdx === state.layers.length - 1 ? max : state.layers[layerIdx + 1].startHeight - 0.001;
+      let snappedH =
+        layerIdx === state.layers.length - 1
+          ? max
+          : state.layers[layerIdx + 1].startHeight - 0.001;
       h = Math.max(base, snappedH);
     }
 
@@ -2252,10 +2521,14 @@ function getHeightsGrid() {
 // ── 3D Preview ───────────────────────────────────────────────────────────────
 
 async function update3DPreview() {
-  if (!state.rawLuminance) return;
+  if (!state.rawLuminance) {
+    return;
+  }
 
-  const pane3D = document.getElementById('pane-3d');
-  if (pane3D && !pane3D.classList.contains('active')) return;
+  const pane3D = document.getElementById("pane-3d");
+  if (pane3D && !pane3D.classList.contains("active")) {
+    return;
+  }
 
   // Skip full rebuild if model already rendered and nothing changed
   if (modelGroup.children.length > 0) {
@@ -2270,7 +2543,7 @@ async function update3DPreview() {
     const obj = modelGroup.children[0];
     obj.geometry.dispose();
     if (Array.isArray(obj.material)) {
-      obj.material.forEach(m => m.dispose());
+      obj.material.forEach((m) => m.dispose());
     } else {
       obj.material.dispose();
     }
@@ -2290,25 +2563,58 @@ async function update3DPreview() {
   let puzzleMap = null;
   let numPieces = 1;
   if (state.puzzleEnabled) {
-    puzzleMap = generatePuzzleMap(cols, rows, state.puzzleCols, state.puzzleRows, state.puzzleClearanceMm, scaleX, scaleY);
+    puzzleMap = generatePuzzleMap(
+      cols,
+      rows,
+      state.puzzleCols,
+      state.puzzleRows,
+      state.puzzleClearanceMm,
+      scaleX,
+      scaleY,
+    );
     numPieces = state.puzzleCols * state.puzzleRows;
   }
 
   for (let k = 0; k < state.layers.length; k++) {
     const layer = state.layers[k];
     const zMin = layer.startHeight;
-    const zMax = (k + 1 < state.layers.length) ? state.layers[k + 1].startHeight : state.maxHeight;
+    const zMax =
+      k + 1 < state.layers.length
+        ? state.layers[k + 1].startHeight
+        : state.maxHeight;
 
     for (let p = 1; p <= numPieces; p++) {
-      const meshData = buildLayerGeometry(heights, cols, rows, scaleX, scaleY, zMin, zMax, puzzleMap, state.puzzleEnabled ? p : 0, k === 0, state.mirrorX, state.maxHeight, k);
-      if (meshData.triangles.length === 0) continue;
+      const meshData = buildLayerGeometry(
+        heights,
+        cols,
+        rows,
+        scaleX,
+        scaleY,
+        zMin,
+        zMax,
+        puzzleMap,
+        state.puzzleEnabled ? p : 0,
+        k === 0,
+        state.mirrorX,
+        state.maxHeight,
+        k,
+      );
+      if (meshData.triangles.length === 0) {
+        continue;
+      }
 
       _modelVertexCount += meshData.vertices.length / 3;
       _modelTriangleCount += meshData.triangles.length / 3;
 
       const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.BufferAttribute(meshData.vertices, 3));
-      geometry.setAttribute('color', new THREE.BufferAttribute(meshData.colors, 3));
+      geometry.setAttribute(
+        "position",
+        new THREE.BufferAttribute(meshData.vertices, 3),
+      );
+      geometry.setAttribute(
+        "color",
+        new THREE.BufferAttribute(meshData.colors, 3),
+      );
       geometry.setIndex(new THREE.BufferAttribute(meshData.triangles, 1));
       geometry.computeVertexNormals();
 
@@ -2317,7 +2623,7 @@ async function update3DPreview() {
         roughness: 0.7,
         metalness: 0.1,
         flatShading: false,
-        side: THREE.DoubleSide
+        side: THREE.DoubleSide,
       });
 
       const mesh = new THREE.Mesh(geometry, material);
@@ -2336,25 +2642,27 @@ async function update3DPreview() {
 
   sceneNeedsRender = true;
   updateModelInfoCard();
-  
+
   // Initialize color state signature after full rebuild for future comparisons
   _lastColorStateSignature = getColorStateSignature();
 }
 
 function updateModelInfoCard() {
-  const sizeEl = document.getElementById('info-size');
-  const layersEl = document.getElementById('info-layers');
-  const lhEl = document.getElementById('info-lh');
-  const maxhEl = document.getElementById('info-maxh');
-  const gridEl = document.getElementById('info-grid');
-  const vertsEl = document.getElementById('info-vertices');
-  const trisEl = document.getElementById('info-triangles');
-  if (!sizeEl) return;
+  const sizeEl = document.getElementById("info-size");
+  const layersEl = document.getElementById("info-layers");
+  const lhEl = document.getElementById("info-lh");
+  const maxhEl = document.getElementById("info-maxh");
+  const gridEl = document.getElementById("info-grid");
+  const vertsEl = document.getElementById("info-vertices");
+  const trisEl = document.getElementById("info-triangles");
+  if (!sizeEl) {
+    return;
+  }
 
   sizeEl.textContent = `${Math.round(state.widthMm)} × ${Math.round(state.heightMm)} mm`;
   layersEl.textContent = state.layers.length;
-  lhEl.textContent = state.layerHeight.toFixed(2) + ' mm';
-  maxhEl.textContent = state.maxHeight.toFixed(2) + ' mm';
+  lhEl.textContent = state.layerHeight.toFixed(2) + " mm";
+  maxhEl.textContent = state.maxHeight.toFixed(2) + " mm";
   gridEl.textContent = `${state.gridCols} × ${state.gridRows}`;
   vertsEl.textContent = _modelVertexCount.toLocaleString();
   trisEl.textContent = _modelTriangleCount.toLocaleString();
@@ -2362,13 +2670,15 @@ function updateModelInfoCard() {
 
 // Updates filament transition instructions text/table
 function updateTransitionTable() {
-  const tableBody = document.getElementById('transition-table-body');
-  if (!tableBody) return;
+  const tableBody = document.getElementById("transition-table-body");
+  if (!tableBody) {
+    return;
+  }
 
-  tableBody.innerHTML = '';
+  tableBody.innerHTML = "";
 
   if (state.mirrorX) {
-    const row = document.createElement('tr');
+    const row = document.createElement("tr");
     row.innerHTML = `<td colspan="4" class="table-warning">
       <i class="fas fa-triangle-exclamation"></i> 
       <strong>Face-Down Mode requires an AMS/MMU.</strong><br>
@@ -2379,13 +2689,15 @@ function updateTransitionTable() {
   }
 
   const lh = state.layerHeight;
-  if (lh <= 0) return;
+  if (lh <= 0) {
+    return;
+  }
 
   state.layers.forEach((layer, idx) => {
     const height = layer.startHeight;
     const layerNum = height === 0 ? 1 : Math.round(height / lh);
 
-    const row = document.createElement('tr');
+    const row = document.createElement("tr");
     row.innerHTML = `
       <td><span class="color-swatch-sm" style="background-color: ${layer.hex}"></span> Layer ${idx + 1}</td>
       <td>${layer.hex.toUpperCase()}</td>
@@ -2398,7 +2710,7 @@ function updateTransitionTable() {
 
 // Puzzle edge cache (shared across 2D, 3D, and export so all views use the same balanced edge patterns)
 let _puzzleEdgeCache = null;
-let _puzzleEdgeCacheKey = '';
+let _puzzleEdgeCacheKey = "";
 
 function getBalancedPuzzleParams() {
   const tabRatio = 0.18 + (Math.random() - 0.5) * 0.04;
@@ -2410,13 +2722,15 @@ function getBalancedPuzzleParams() {
     tabRatio: Math.max(0.13, Math.min(0.24, tabRatio)),
     neckRatio: Math.max(0.04, Math.min(0.09, neckRatio)),
     headRatio: Math.max(0.1, Math.min(0.17, headRatio)),
-    bowRatio: Math.max(0.002, Math.min(0.03, bowRatio))
+    bowRatio: Math.max(0.002, Math.min(0.03, bowRatio)),
   };
 }
 
 function generateEdges(cols, rows) {
-  const key = cols + 'x' + rows;
-  if (_puzzleEdgeCache && _puzzleEdgeCacheKey === key) return _puzzleEdgeCache;
+  const key = cols + "x" + rows;
+  if (_puzzleEdgeCache && _puzzleEdgeCacheKey === key) {
+    return _puzzleEdgeCache;
+  }
 
   const vEdges = [];
   const vEdgeParams = [];
@@ -2465,7 +2779,7 @@ function drawJigsawLine(ctx, x0, y0, x1, y1, tabDir, params) {
   const cx = len / 2;
   const neck = len * (params ? params.neckRatio : 0.08);
   const head = len * (params ? params.headRatio : 0.16);
-  const h = len * (params ? params.tabRatio : 0.22) * (-tabDir);
+  const h = len * (params ? params.tabRatio : 0.22) * -tabDir;
   const bow = len * (params ? params.bowRatio : 0.03) * tabDir;
 
   function lb(lx, ly, lx2, ly2, lx3, ly3) {
@@ -2475,7 +2789,7 @@ function drawJigsawLine(ctx, x0, y0, x1, y1, tabDir, params) {
       x0 + lx2 * nx + ly2 * px,
       y0 + lx2 * ny + ly2 * py,
       x0 + lx3 * nx + ly3 * px,
-      y0 + lx3 * ny + ly3 * py
+      y0 + lx3 * ny + ly3 * py,
     );
   }
 
@@ -2486,7 +2800,14 @@ function drawJigsawLine(ctx, x0, y0, x1, y1, tabDir, params) {
   lb(0.65 * len, bow, 0.85 * len, bow, len, 0);
 }
 
-function drawPuzzleCuts(ctx, gridCols, gridRows, puzzleCols, puzzleRows, cellSize) {
+function drawPuzzleCuts(
+  ctx,
+  gridCols,
+  gridRows,
+  puzzleCols,
+  puzzleRows,
+  cellSize,
+) {
   const edges = generateEdges(puzzleCols, puzzleRows);
   const { vEdges, vEdgeParams, hEdges, hEdgeParams } = edges;
 
@@ -2494,10 +2815,10 @@ function drawPuzzleCuts(ctx, gridCols, gridRows, puzzleCols, puzzleRows, cellSiz
   const pieceH = (gridRows * cellSize) / puzzleRows;
 
   ctx.save();
-  ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+  ctx.strokeStyle = "rgba(0,0,0,0.35)";
   ctx.lineWidth = Math.max(1, Math.min(pieceW, pieceH) * 0.08);
-  ctx.lineJoin = 'round';
-  ctx.lineCap = 'round';
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
 
   // Horizontal cuts (between puzzle rows)
   for (let r = 0; r < puzzleRows - 1; r++) {
@@ -2526,7 +2847,7 @@ function drawPuzzleCuts(ctx, gridCols, gridRows, puzzleCols, puzzleRows, cellSiz
   }
 
   // Outer boundary
-  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.strokeStyle = "rgba(0,0,0,0.25)";
   ctx.lineWidth = Math.max(1.5, Math.min(pieceW, pieceH) * 0.1);
   ctx.strokeRect(0, 0, gridCols * cellSize, gridRows * cellSize);
   ctx.restore();
@@ -2534,19 +2855,22 @@ function drawPuzzleCuts(ctx, gridCols, gridRows, puzzleCols, puzzleRows, cellSiz
 
 // Generate a 2D map of puzzle pieces, where each pixel corresponds to a piece ID (1 to N) or 0 (clearance gap)
 function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
-  const canvas = document.createElement('canvas');
+  const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
-  const ctx = canvas.getContext('2d');
+  const ctx = canvas.getContext("2d");
 
   // Clear with 0 (gap)
-  ctx.fillStyle = 'rgba(0,0,0,0)';
+  ctx.fillStyle = "rgba(0,0,0,0)";
   ctx.fillRect(0, 0, W, H);
 
   const cellW = W / cols;
   const cellH = H / rows;
 
-  const { vEdges, vEdgeParams, hEdges, hEdgeParams } = generateEdges(cols, rows);
+  const { vEdges, vEdgeParams, hEdges, hEdgeParams } = generateEdges(
+    cols,
+    rows,
+  );
 
   // Draw each puzzle piece
   let pieceId = 1;
@@ -2561,13 +2885,45 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
       ctx.moveTo(x0, y0);
 
       // Top edge
-      drawJigsawLine(ctx, x0, y0, x1, y0, r === 0 ? 0 : -hEdges[r - 1][c], r === 0 ? null : hEdgeParams[r - 1][c]);
+      drawJigsawLine(
+        ctx,
+        x0,
+        y0,
+        x1,
+        y0,
+        r === 0 ? 0 : -hEdges[r - 1][c],
+        r === 0 ? null : hEdgeParams[r - 1][c],
+      );
       // Right edge
-      drawJigsawLine(ctx, x1, y0, x1, y1, c === cols - 1 ? 0 : vEdges[r][c], c === cols - 1 ? null : vEdgeParams[r][c]);
+      drawJigsawLine(
+        ctx,
+        x1,
+        y0,
+        x1,
+        y1,
+        c === cols - 1 ? 0 : vEdges[r][c],
+        c === cols - 1 ? null : vEdgeParams[r][c],
+      );
       // Bottom edge
-      drawJigsawLine(ctx, x1, y1, x0, y1, r === rows - 1 ? 0 : hEdges[r][c], r === rows - 1 ? null : hEdgeParams[r][c]);
+      drawJigsawLine(
+        ctx,
+        x1,
+        y1,
+        x0,
+        y1,
+        r === rows - 1 ? 0 : hEdges[r][c],
+        r === rows - 1 ? null : hEdgeParams[r][c],
+      );
       // Left edge
-      drawJigsawLine(ctx, x0, y1, x0, y0, c === 0 ? 0 : -vEdges[r][c - 1], c === 0 ? null : vEdgeParams[r][c - 1]);
+      drawJigsawLine(
+        ctx,
+        x0,
+        y1,
+        x0,
+        y0,
+        c === 0 ? 0 : -vEdges[r][c - 1],
+        c === 0 ? null : vEdgeParams[r][c - 1],
+      );
 
       ctx.closePath();
 
@@ -2581,10 +2937,10 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
   // Now, stroke all boundaries with 0 to create the clearance gap
   const clearancePixels = (clearanceMm / scaleX) * W;
   if (clearancePixels > 0) {
-    ctx.globalCompositeOperation = 'destination-out';
+    ctx.globalCompositeOperation = "destination-out";
     ctx.lineWidth = clearancePixels;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
 
     // Stroke all piece edges
     for (let r = 0; r < rows; r++) {
@@ -2596,10 +2952,42 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
 
         ctx.beginPath();
         ctx.moveTo(x0, y0);
-        drawJigsawLine(ctx, x0, y0, x1, y0, r === 0 ? 0 : -hEdges[r - 1][c], r === 0 ? null : hEdgeParams[r - 1][c]);
-        drawJigsawLine(ctx, x1, y0, x1, y1, c === cols - 1 ? 0 : vEdges[r][c], c === cols - 1 ? null : vEdgeParams[r][c]);
-        drawJigsawLine(ctx, x1, y1, x0, y1, r === rows - 1 ? 0 : hEdges[r][c], r === rows - 1 ? null : hEdgeParams[r][c]);
-        drawJigsawLine(ctx, x0, y1, x0, y0, c === 0 ? 0 : -vEdges[r][c - 1], c === 0 ? null : vEdgeParams[r][c - 1]);
+        drawJigsawLine(
+          ctx,
+          x0,
+          y0,
+          x1,
+          y0,
+          r === 0 ? 0 : -hEdges[r - 1][c],
+          r === 0 ? null : hEdgeParams[r - 1][c],
+        );
+        drawJigsawLine(
+          ctx,
+          x1,
+          y0,
+          x1,
+          y1,
+          c === cols - 1 ? 0 : vEdges[r][c],
+          c === cols - 1 ? null : vEdgeParams[r][c],
+        );
+        drawJigsawLine(
+          ctx,
+          x1,
+          y1,
+          x0,
+          y1,
+          r === rows - 1 ? 0 : hEdges[r][c],
+          r === rows - 1 ? null : hEdgeParams[r][c],
+        );
+        drawJigsawLine(
+          ctx,
+          x0,
+          y1,
+          x0,
+          y0,
+          c === 0 ? 0 : -vEdges[r][c - 1],
+          c === 0 ? null : vEdgeParams[r][c - 1],
+        );
         ctx.stroke();
       }
     }
@@ -2617,13 +3005,31 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
 }
 
 // Build Watertight Mesh Geometry for a single layer slice
-function buildLayerGeometry(heights, W, H, scaleX, scaleY, zMin, zMax, puzzleMap = null, targetPieceId = 0, isBaseLayer = false, isFaceDown = false, maxHeight = 3.0, layerIndex = 0) {
+function buildLayerGeometry(
+  heights,
+  W,
+  H,
+  scaleX,
+  scaleY,
+  zMin,
+  zMax,
+  puzzleMap = null,
+  targetPieceId = 0,
+  isBaseLayer = false,
+  isFaceDown = false,
+  maxHeight = 3.0,
+  layerIndex = 0,
+) {
   let step = 1;
-  if (typeof state.triangleQuality === 'number') {
+  if (typeof state.triangleQuality === "number") {
     step = Math.max(1, Math.round(Math.sqrt(100 / state.triangleQuality)));
-  } else if (state.triangleQuality === 'low') step = 8;
-  else if (state.triangleQuality === 'normal') step = 4;
-  else if (state.triangleQuality === 'high') step = 2;
+  } else if (state.triangleQuality === "low") {
+    step = 8;
+  } else if (state.triangleQuality === "normal") {
+    step = 4;
+  } else if (state.triangleQuality === "high") {
+    step = 2;
+  }
 
   const vertices = [];
   const triangles = [];
@@ -2644,8 +3050,8 @@ function buildLayerGeometry(heights, W, H, scaleX, scaleY, zMin, zMax, puzzleMap
       }
     } else {
       return { bot: zMin, top: Math.max(zMin, Math.min(h, zMax)) };
-  }
-};
+    }
+  };
 
   // Scan cells to identify active regions
   for (let y = 0; y < H - 1; y += step) {
@@ -2660,10 +3066,12 @@ function buildLayerGeometry(heights, W, H, scaleX, scaleY, zMin, zMax, puzzleMap
 
       // If puzzle mode is active, check if all 4 corners belong to the target piece
       if (puzzleMap && targetPieceId > 0) {
-        if (puzzleMap[idxA] !== targetPieceId ||
+        if (
+          puzzleMap[idxA] !== targetPieceId ||
           puzzleMap[idxB] !== targetPieceId ||
           puzzleMap[idxC] !== targetPieceId ||
-          puzzleMap[idxD] !== targetPieceId) {
+          puzzleMap[idxD] !== targetPieceId
+        ) {
           continue; // Not active for this piece
         }
       }
@@ -2702,7 +3110,11 @@ function buildLayerGeometry(heights, W, H, scaleX, scaleY, zMin, zMax, puzzleMap
   }
 
   if (activeVertCount === 0) {
-    return { vertices: new Float32Array(0), triangles: new Uint32Array(0), colors: new Float32Array(0) };
+    return {
+      vertices: new Float32Array(0),
+      triangles: new Uint32Array(0),
+      colors: new Float32Array(0),
+    };
   }
 
   // 2 groups of vertices: Top grid and Bottom grid
@@ -2737,18 +3149,26 @@ function buildLayerGeometry(heights, W, H, scaleX, scaleY, zMin, zMax, puzzleMap
         // Calculate Vertex Color (Simulate Transmission)
         let r, g, b;
         if (state.simulateTransmission && state.layers.length > 0) {
-          let currentR = 0, currentG = 0, currentB = 0;
+          let currentR = 0,
+            currentG = 0,
+            currentB = 0;
           for (let j = 0; j <= layerIndex; j++) {
             const lStart = state.layers[j].startHeight;
-            const lEnd = (j + 1 < state.layers.length) ? state.layers[j + 1].startHeight : state.maxHeight;
+            const lEnd =
+              j + 1 < state.layers.length
+                ? state.layers[j + 1].startHeight
+                : state.maxHeight;
             if (h > lStart) {
               const thickness = Math.min(h, lEnd) - lStart;
               if (thickness > 0) {
-                const layerTD = state.layers[j].td !== undefined ? state.layers[j].td : 2.0;
+                const layerTD =
+                  state.layers[j].td !== undefined ? state.layers[j].td : 2.0;
                 const opacity = 1.0 - Math.pow(0.05, thickness / layerTD);
                 const rgb = hexToRgb(state.layers[j].hex);
                 if (j === 0) {
-                  currentR = rgb.r; currentG = rgb.g; currentB = rgb.b;
+                  currentR = rgb.r;
+                  currentG = rgb.g;
+                  currentB = rgb.b;
                 } else {
                   currentR = currentR * (1 - opacity) + rgb.r * opacity;
                   currentG = currentG * (1 - opacity) + rgb.g * opacity;
@@ -2757,10 +3177,14 @@ function buildLayerGeometry(heights, W, H, scaleX, scaleY, zMin, zMax, puzzleMap
               }
             }
           }
-          r = currentR / 255; g = currentG / 255; b = currentB / 255;
+          r = currentR / 255;
+          g = currentG / 255;
+          b = currentB / 255;
         } else {
           const baseC = hexToRgb(state.layers[layerIndex].hex);
-          r = baseC.r / 255; g = baseC.g / 255; b = baseC.b / 255;
+          r = baseC.r / 255;
+          g = baseC.g / 255;
+          b = baseC.b / 255;
         }
 
         colorData[vIdx * 3] = r;
@@ -2832,7 +3256,7 @@ function buildLayerGeometry(heights, W, H, scaleX, scaleY, zMin, zMax, puzzleMap
   return {
     vertices: vertexData,
     triangles: new Uint32Array(triangles),
-    colors: colorData
+    colors: colorData,
   };
 }
 
@@ -2847,7 +3271,7 @@ async function export3MF() {
 
   btnExport.disabled = true;
   activeExportBtn = btnExport;
-  updateExportProgress(2, 'Preparing export...');
+  updateExportProgress(2, "Preparing export...");
 
   try {
     const cols = state.gridCols;
@@ -2861,9 +3285,17 @@ async function export3MF() {
     let puzzleMap = null;
     let numPieces = 1;
     if (state.puzzleEnabled) {
-      updateExportProgress(8, 'Generating puzzle split map...');
+      updateExportProgress(8, "Generating puzzle split map...");
       await yieldToUI();
-      puzzleMap = generatePuzzleMap(cols, rows, state.puzzleCols, state.puzzleRows, state.puzzleClearanceMm, scaleX, scaleY);
+      puzzleMap = generatePuzzleMap(
+        cols,
+        rows,
+        state.puzzleCols,
+        state.puzzleRows,
+        state.puzzleClearanceMm,
+        scaleX,
+        scaleY,
+      );
       numPieces = state.puzzleCols * state.puzzleRows;
     }
 
@@ -2874,7 +3306,10 @@ async function export3MF() {
       for (let k = 0; k < state.layers.length; k++) {
         const layer = state.layers[k];
         const zMin = layer.startHeight;
-        const zMax = (k + 1 < state.layers.length) ? state.layers[k + 1].startHeight : state.maxHeight;
+        const zMax =
+          k + 1 < state.layers.length
+            ? state.layers[k + 1].startHeight
+            : state.maxHeight;
         const currentSlice = completedSlices + 1;
         const slicePercent = 12 + (currentSlice / totalSlices) * 63;
         const status = state.puzzleEnabled
@@ -2885,9 +3320,25 @@ async function export3MF() {
           await yieldToUI();
         }
 
-        const meshData = buildLayerGeometry(heights, cols, rows, scaleX, scaleY, zMin, zMax, puzzleMap, state.puzzleEnabled ? p : 0, k === 0, state.mirrorX, state.maxHeight, k);
+        const meshData = buildLayerGeometry(
+          heights,
+          cols,
+          rows,
+          scaleX,
+          scaleY,
+          zMin,
+          zMax,
+          puzzleMap,
+          state.puzzleEnabled ? p : 0,
+          k === 0,
+          state.mirrorX,
+          state.maxHeight,
+          k,
+        );
         completedSlices++;
-        if (meshData.triangles.length === 0) continue;
+        if (meshData.triangles.length === 0) {
+          continue;
+        }
 
         // Give a meaningful name for BambuStudio object hierarchy
         let layerName = `Part_${k + 1}_Color_${layer.hex.toUpperCase()}_Start_${zMin.toFixed(2)}mm`;
@@ -2899,53 +3350,59 @@ async function export3MF() {
           name: layerName,
           hex: layer.hex,
           vertices: meshData.vertices,
-          triangles: meshData.triangles
+          triangles: meshData.triangles,
         });
       }
     }
 
     if (layersData.length === 0) {
-      alert("No geometry was generated! Make sure layer heights are set correctly.");
+      alert(
+        "No geometry was generated! Make sure layer heights are set correctly.",
+      );
       activeExportBtn = null;
       btnExport.disabled = false;
       btnExport.textContent = "Export 3MF for BambuStudio";
-      failExportProgress('No geometry was generated.');
+      failExportProgress("No geometry was generated.");
       return;
     }
 
     // Export triggers a single OBJ download with embedded vertex colors
-    updateExportProgress(80, 'Writing OBJ file...');
+    updateExportProgress(80, "Writing OBJ file...");
     await yieldToUI();
-    await window.Exporter3MF.export(layersData, (percent, status) => {
+    await window.Exporter.export(layersData, (percent, status) => {
       const mappedPercent = 80 + percent * 0.2;
-      updateExportProgress(mappedPercent, status || 'Writing OBJ file...');
+      updateExportProgress(mappedPercent, status || "Writing OBJ file...");
     });
-    finishExportProgress('OBJ exported successfully.');
-    if (typeof dashTrackExport === 'function') dashTrackExport();
-
+    finishExportProgress("OBJ exported successfully.");
+    if (typeof dashTrackExport === "function") {
+      dashTrackExport();
+    }
   } catch (error) {
     console.error(error);
-    failExportProgress('Export failed.');
+    failExportProgress("Export failed.");
     alert("Export failed: " + error.message);
   } finally {
     activeExportBtn = null;
     btnExport.disabled = false;
-    btnExport.innerHTML = '<i class="fas fa-download"></i> Export OBJ for BambuStudio';
+    btnExport.innerHTML =
+      '<i class="fas fa-download"></i> Export OBJ for BambuStudio';
   }
 }
 
 // Export single merged binary STL
 async function exportSTL() {
   if (!state.rawLuminance) {
-    alert('Please upload an image first.');
+    alert("Please upload an image first.");
     return;
   }
 
-  const btnSTL = document.getElementById('btn-export-stl');
-  if (btnSTL) btnSTL.disabled = true;
+  const btnSTL = document.getElementById("btn-export-stl");
+  if (btnSTL) {
+    btnSTL.disabled = true;
+  }
   activeExportBtn = btnSTL;
 
-  updateExportProgress(2, 'Preparing STL export...');
+  updateExportProgress(2, "Preparing STL export...");
 
   try {
     const cols = state.gridCols;
@@ -2957,9 +3414,17 @@ async function exportSTL() {
     let puzzleMap = null;
     let numPieces = 1;
     if (state.puzzleEnabled) {
-      updateExportProgress(8, 'Generating puzzle split map...');
+      updateExportProgress(8, "Generating puzzle split map...");
       await yieldToUI();
-      puzzleMap = generatePuzzleMap(cols, rows, state.puzzleCols, state.puzzleRows, state.puzzleClearanceMm, scaleX, scaleY);
+      puzzleMap = generatePuzzleMap(
+        cols,
+        rows,
+        state.puzzleCols,
+        state.puzzleRows,
+        state.puzzleClearanceMm,
+        scaleX,
+        scaleY,
+      );
       numPieces = state.puzzleCols * state.puzzleRows;
     }
 
@@ -2971,35 +3436,58 @@ async function exportSTL() {
       for (let k = 0; k < state.layers.length; k++) {
         const layer = state.layers[k];
         const zMin = layer.startHeight;
-        const zMax = (k + 1 < state.layers.length) ? state.layers[k + 1].startHeight : state.maxHeight;
+        const zMax =
+          k + 1 < state.layers.length
+            ? state.layers[k + 1].startHeight
+            : state.maxHeight;
         completedSlices++;
         const slicePercent = 12 + (completedSlices / totalSlices) * 68;
-        updateExportProgress(slicePercent, `Building STL layer ${k + 1}/${state.layers.length}...`);
-        if (completedSlices % 2 === 0) await yieldToUI();
+        updateExportProgress(
+          slicePercent,
+          `Building STL layer ${k + 1}/${state.layers.length}...`,
+        );
+        if (completedSlices % 2 === 0) {
+          await yieldToUI();
+        }
 
-        const meshData = buildLayerGeometry(heights, cols, rows, scaleX, scaleY, zMin, zMax, puzzleMap, state.puzzleEnabled ? p : 0, k === 0, state.mirrorX, state.maxHeight, k);
-        if (meshData.triangles.length === 0) continue;
+        const meshData = buildLayerGeometry(
+          heights,
+          cols,
+          rows,
+          scaleX,
+          scaleY,
+          zMin,
+          zMax,
+          puzzleMap,
+          state.puzzleEnabled ? p : 0,
+          k === 0,
+          state.mirrorX,
+          state.maxHeight,
+          k,
+        );
+        if (meshData.triangles.length === 0) {
+          continue;
+        }
         allMeshes.push(meshData);
       }
     }
 
     if (allMeshes.length === 0) {
-      alert('No geometry was generated!');
+      alert("No geometry was generated!");
       activeExportBtn = null;
       return;
     }
 
-    updateExportProgress(82, 'Writing binary STL...');
+    updateExportProgress(82, "Writing binary STL...");
     await yieldToUI();
-    await window.Exporter3MF.exportSTL(allMeshes, (pct, status) => {
+    await window.Exporter.exportSTL(allMeshes, (pct, status) => {
       updateExportProgress(82 + pct * 0.18, status);
     });
-    finishExportProgress('STL exported successfully.');
-
+    finishExportProgress("STL exported successfully.");
   } catch (error) {
     console.error(error);
-    failExportProgress('STL export failed.');
-    alert('STL export failed: ' + error.message);
+    failExportProgress("STL export failed.");
+    alert("STL export failed: " + error.message);
   } finally {
     activeExportBtn = null;
     if (btnSTL) {
@@ -3026,9 +3514,9 @@ function rgbToOklab(r, g, b) {
   m = Math.cbrt(m);
   s = Math.cbrt(s);
   return [
-    0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
-    1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
-    0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
+    0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
   ];
 }
 
@@ -3041,12 +3529,16 @@ function deltaEOK(a, b) {
 
 // ── K-Means Color Matching ────────────────────────────────────────────────
 function matchImageColors() {
-  if (!state.image) return;
+  if (!state.image) {
+    return;
+  }
 
   // Use full-resolution pixel data from processImage (no separate 64x64 resample)
   const pixels = state.colorSampleRGB;
   const pixelCount = state.colorSampleWidth * state.colorSampleHeight;
-  if (!pixels || pixelCount === 0) return;
+  if (!pixels || pixelCount === 0) {
+    return;
+  }
 
   const targetCount = getAdaptiveLayerCount();
   if (targetCount !== state.layers.length) {
@@ -3055,7 +3547,9 @@ function matchImageColors() {
   }
 
   const k = state.layers.length;
-  if (k === 0) return;
+  if (k === 0) {
+    return;
+  }
 
   // Precompute OKLab for all sample pixels
   // 1. Group similar colors into bins to prevent massive areas from dominating
@@ -3119,14 +3613,20 @@ function matchImageColors() {
   // ── Deterministic centroid initialization ──
 
   // Compute average OKLab of the image
-  let sumL = 0, sumA = 0, sumB = 0;
+  let sumL = 0,
+    sumA = 0,
+    sumB = 0;
   for (let si = 0; si < sampledCount; si++) {
     const idx = indices[si] * 3;
     sumL += labData[idx];
     sumA += labData[idx + 1];
     sumB += labData[idx + 2];
   }
-  const avgLab = [sumL / sampledCount, sumA / sampledCount, sumB / sampledCount];
+  const avgLab = [
+    sumL / sampledCount,
+    sumA / sampledCount,
+    sumB / sampledCount,
+  ];
 
   // First centroid: pixel farthest from average in OKLab distance (ensures an extreme)
   let centroids = [];
@@ -3134,10 +3634,21 @@ function matchImageColors() {
   let bestIdx = 0;
   for (let si = 0; si < sampledCount; si++) {
     const idx = indices[si] * 3;
-    const d = deltaEOK(avgLab, [labData[idx], labData[idx + 1], labData[idx + 2]]);
-    if (d > bestDist) { bestDist = d; bestIdx = indices[si]; }
+    const d = deltaEOK(avgLab, [
+      labData[idx],
+      labData[idx + 1],
+      labData[idx + 2],
+    ]);
+    if (d > bestDist) {
+      bestDist = d;
+      bestIdx = indices[si];
+    }
   }
-  centroids.push([labData[bestIdx * 3], labData[bestIdx * 3 + 1], labData[bestIdx * 3 + 2]]);
+  centroids.push([
+    labData[bestIdx * 3],
+    labData[bestIdx * 3 + 1],
+    labData[bestIdx * 3 + 2],
+  ]);
 
   // Remaining centroids: farthest-point sampling (k-means++ style, deterministic)
   const initStep = Math.max(1, Math.floor(sampledCount / 600));
@@ -3150,11 +3661,20 @@ function matchImageColors() {
       let minD = Infinity;
       for (let j = 0; j < centroids.length; j++) {
         const d = deltaEOK(plab, centroids[j]);
-        if (d < minD) minD = d;
+        if (d < minD) {
+          minD = d;
+        }
       }
-      if (minD > bestDist) { bestDist = minD; bestIdx = indices[si]; }
+      if (minD > bestDist) {
+        bestDist = minD;
+        bestIdx = indices[si];
+      }
     }
-    centroids.push([labData[bestIdx * 3], labData[bestIdx * 3 + 1], labData[bestIdx * 3 + 2]]);
+    centroids.push([
+      labData[bestIdx * 3],
+      labData[bestIdx * 3 + 1],
+      labData[bestIdx * 3 + 2],
+    ]);
   }
 
   // ── K-means iterations in OKLab space ──
@@ -3170,13 +3690,21 @@ function matchImageColors() {
       let bestC = 0;
       for (let j = 0; j < k; j++) {
         const d = deltaEOK(plab, centroids[j]);
-        if (d < minD) { minD = d; bestC = j; }
+        if (d < minD) {
+          minD = d;
+          bestC = j;
+        }
       }
       assignment[si] = bestC;
     }
 
     // Recompute centroids
-    const sums = Array.from({ length: k }, () => ({ L: 0, a: 0, b: 0, count: 0 }));
+    const sums = Array.from({ length: k }, () => ({
+      L: 0,
+      a: 0,
+      b: 0,
+      count: 0,
+    }));
     for (let si = 0; si < sampledCount; si++) {
       const c = assignment[si];
       const idx = indices[si] * 3;
@@ -3188,21 +3716,33 @@ function matchImageColors() {
 
     let changed = false;
     for (let j = 0; j < k; j++) {
-      if (sums[j].count === 0) continue;
+      if (sums[j].count === 0) {
+        continue;
+      }
       const newL = sums[j].L / sums[j].count;
       const newa = sums[j].a / sums[j].count;
       const newb = sums[j].b / sums[j].count;
-      const drift = Math.abs(centroids[j][0] - newL) +
+      const drift =
+        Math.abs(centroids[j][0] - newL) +
         Math.abs(centroids[j][1] - newa) +
         Math.abs(centroids[j][2] - newb);
-      if (drift > 0.001) changed = true;
+      if (drift > 0.001) {
+        changed = true;
+      }
       centroids[j] = [newL, newa, newb];
     }
-    if (!changed) break;
+    if (!changed) {
+      break;
+    }
   }
 
   // ── Compute RGB centroids and cluster populations ──
-  const rgbSums = Array.from({ length: k }, () => ({ r: 0, g: 0, b: 0, count: 0 }));
+  const rgbSums = Array.from({ length: k }, () => ({
+    r: 0,
+    g: 0,
+    b: 0,
+    count: 0,
+  }));
   for (let si = 0; si < sampledCount; si++) {
     const c = assignment[si];
     const idx = indices[si] * 3;
@@ -3243,19 +3783,26 @@ function matchImageColors() {
 
   // Symmetric protection for the lightest (top) layer
   const last = clusterInfo.length - 1;
-  if (clusterInfo.length >= 2 && clusterInfo[last].pop < clusterInfo[last - 1].pop) {
-    const lumDiff = clusterInfo[last].luminance - clusterInfo[last - 1].luminance;
+  if (
+    clusterInfo.length >= 2 &&
+    clusterInfo[last].pop < clusterInfo[last - 1].pop
+  ) {
+    const lumDiff =
+      clusterInfo[last].luminance - clusterInfo[last - 1].luminance;
     if (lumDiff <= MAX_SWAP_LUM_DIFF) {
-      [clusterInfo[last], clusterInfo[last - 1]] = [clusterInfo[last - 1], clusterInfo[last]];
+      [clusterInfo[last], clusterInfo[last - 1]] = [
+        clusterInfo[last - 1],
+        clusterInfo[last],
+      ];
     }
   }
 
   // ── Convert to hex and apply to layers ──
   const toHex = (c) => {
     const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
-    const r = clamp(c[0]).toString(16).padStart(2, '0');
-    const g = clamp(c[1]).toString(16).padStart(2, '0');
-    const b = clamp(c[2]).toString(16).padStart(2, '0');
+    const r = clamp(c[0]).toString(16).padStart(2, "0");
+    const g = clamp(c[1]).toString(16).padStart(2, "0");
+    const b = clamp(c[2]).toString(16).padStart(2, "0");
     return `#${r}${g}${b}`;
   };
 
@@ -3271,37 +3818,51 @@ function matchImageColors() {
 // ── Filament Picker Modal ──────────────────────────────────────
 
 function openFilamentPicker(layerIndex) {
-  const overlay = document.getElementById('filament-picker-overlay');
-  const body = document.getElementById('filament-picker-body');
-  if (!overlay || !body) return;
+  const overlay = document.getElementById("filament-picker-overlay");
+  const body = document.getElementById("filament-picker-body");
+  if (!overlay || !body) {
+    return;
+  }
 
   const brands = {};
-  state.filaments.forEach(f => {
-    const brand = f.brand || 'Unknown';
-    const material = f.material || 'Unknown';
-    if (!brands[brand]) brands[brand] = {};
-    if (!brands[brand][material]) brands[brand][material] = [];
+  state.filaments.forEach((f) => {
+    const brand = f.brand || "Unknown";
+    const material = f.material || "Unknown";
+    if (!brands[brand]) {
+      brands[brand] = {};
+    }
+    if (!brands[brand][material]) {
+      brands[brand][material] = [];
+    }
     brands[brand][material].push(f);
   });
 
-  const sortedBrands = Object.keys(brands).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+  const sortedBrands = Object.keys(brands).sort((a, b) =>
+    a.toLowerCase().localeCompare(b.toLowerCase()),
+  );
 
-  sortedBrands.forEach(brand => {
+  sortedBrands.forEach((brand) => {
     const materials = brands[brand];
-    const sortedMaterials = Object.keys(materials).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-    sortedMaterials.forEach(mat => {
-      materials[mat].sort((a, b) => hexToRGBValue(a.hex) - hexToRGBValue(b.hex));
+    const sortedMaterials = Object.keys(materials).sort((a, b) =>
+      a.toLowerCase().localeCompare(b.toLowerCase()),
+    );
+    sortedMaterials.forEach((mat) => {
+      materials[mat].sort(
+        (a, b) => hexToRGBValue(a.hex) - hexToRGBValue(b.hex),
+      );
     });
   });
 
-  let html = '';
-  sortedBrands.forEach(brand => {
+  let html = "";
+  sortedBrands.forEach((brand) => {
     html += `<div class="filament-brand-group"><div class="filament-brand-header">${brand}</div>`;
     const materials = brands[brand];
-    const sortedMaterials = Object.keys(materials).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
-    sortedMaterials.forEach(mat => {
+    const sortedMaterials = Object.keys(materials).sort((a, b) =>
+      a.toLowerCase().localeCompare(b.toLowerCase()),
+    );
+    sortedMaterials.forEach((mat) => {
       html += `<div class="filament-material-header">${mat}</div><div class="filament-brand-grid">`;
-      materials[mat].forEach(f => {
+      materials[mat].forEach((f) => {
         html += `<div class="filament-picker-swatch" data-hex="${f.hex}" data-td="${f.td}" data-layer-index="${layerIndex}" title="${f.brand} - ${f.name} (${f.material}, TD ${f.td})" style="background:${f.hex}"></div>`;
       });
       html += `</div>`;
@@ -3314,23 +3875,26 @@ function openFilamentPicker(layerIndex) {
   }
 
   body.innerHTML = html;
-  overlay.classList.remove('hidden');
+  overlay.classList.remove("hidden");
 
   // Eyedropper button
-  const eyedropperBtn = document.getElementById('filament-eyedropper');
+  const eyedropperBtn = document.getElementById("filament-eyedropper");
   if (eyedropperBtn) {
     eyedropperBtn.onclick = () => {
-      if ('EyeDropper' in window) {
+      if ("EyeDropper" in window) {
         const eyeDropper = new EyeDropper();
-        eyeDropper.open().then(result => {
-          applyFilamentColor(layerIndex, result.sRGBHex, null);
-        }).catch(() => {});
+        eyeDropper
+          .open()
+          .then((result) => {
+            applyFilamentColor(layerIndex, result.sRGBHex, null);
+          })
+          .catch(() => {});
       } else {
         // Fallback: create a temporary color input and trigger it
-        const tempInput = document.createElement('input');
-        tempInput.type = 'color';
-        tempInput.value = state.layers[layerIndex]?.hex || '#000000';
-        tempInput.addEventListener('input', () => {
+        const tempInput = document.createElement("input");
+        tempInput.type = "color";
+        tempInput.value = state.layers[layerIndex]?.hex || "#000000";
+        tempInput.addEventListener("input", () => {
           applyFilamentColor(layerIndex, tempInput.value, null);
         });
         tempInput.click();
@@ -3338,32 +3902,46 @@ function openFilamentPicker(layerIndex) {
     };
   }
 
-  body.querySelectorAll('.filament-picker-swatch').forEach(swatch => {
-    swatch.addEventListener('click', () => {
-      applyFilamentColor(parseInt(swatch.dataset.layerIndex), swatch.dataset.hex, parseFloat(swatch.dataset.td) || 2.0);
+  body.querySelectorAll(".filament-picker-swatch").forEach((swatch) => {
+    swatch.addEventListener("click", () => {
+      applyFilamentColor(
+        parseInt(swatch.dataset.layerIndex),
+        swatch.dataset.hex,
+        parseFloat(swatch.dataset.td) || 2.0,
+      );
     });
   });
 }
 
 function applyFilamentColor(idx, hex, td) {
   const layer = state.layers[idx];
-  if (!layer) return;
+  if (!layer) {
+    return;
+  }
 
   layer.hex = hex;
-  if (td !== null) layer.td = td;
+  if (td !== null) {
+    layer.td = td;
+  }
 
   const swatchBtn = document.getElementById(`layer-swatch-${idx}`);
   const tdInput = document.getElementById(`layer-td-${idx}`);
-  if (swatchBtn) swatchBtn.style.backgroundColor = hex;
-  if (tdInput) tdInput.value = layer.td;
+  if (swatchBtn) {
+    swatchBtn.style.backgroundColor = hex;
+  }
+  if (tdInput) {
+    tdInput.value = layer.td;
+  }
 
   closeFilamentPicker();
   debounceUpdate();
 }
 
 function closeFilamentPicker() {
-  const overlay = document.getElementById('filament-picker-overlay');
-  if (overlay) overlay.classList.add('hidden');
+  const overlay = document.getElementById("filament-picker-overlay");
+  if (overlay) {
+    overlay.classList.add("hidden");
+  }
 }
 
 function hexToRGBValue(hex) {
@@ -3376,19 +3954,51 @@ function hexToRGBValue(hex) {
 // ── Background gradient layers ──────────────────────────────────────────────
 (function initBgLayers() {
   const layers = [
-    { bg: 'radial-gradient(ellipse 60% 50% at 20% 25%, rgba(85,186,8,0.16) 0%, transparent 70%)', anim: 'bg-drift-1', dur: '55s' },
-    { bg: 'radial-gradient(ellipse 55% 45% at 80% 20%, rgba(59,130,246,0.13) 0%, transparent 65%)', anim: 'bg-drift-2', dur: '62s' },
-    { bg: 'radial-gradient(ellipse 50% 55% at 45% 75%, rgba(139,92,246,0.11) 0%, transparent 60%)', anim: 'bg-drift-3', dur: '58s' },
-    { bg: 'radial-gradient(ellipse 65% 40% at 30% 55%, rgba(253,186,116,0.09) 0%, transparent 65%)', anim: 'bg-drift-4', dur: '52s' },
-    { bg: 'radial-gradient(ellipse 40% 50% at 70% 50%, rgba(85,186,8,0.09) 0%, transparent 55%)', anim: 'bg-drift-1', dur: '60s' },
-    { bg: 'radial-gradient(ellipse 50% 45% at 15% 80%, rgba(200,230,200,0.12) 0%, transparent 60%)', anim: 'bg-drift-2', dur: '50s' },
-    { bg: 'radial-gradient(ellipse 45% 40% at 85% 70%, rgba(210,230,255,0.10) 0%, transparent 55%)', anim: 'bg-drift-3', dur: '56s' },
-    { bg: 'radial-gradient(ellipse 55% 50% at 50% 40%, rgba(255,255,255,0.15) 0%, transparent 60%)', anim: 'bg-drift-4', dur: '64s' },
+    {
+      bg: "radial-gradient(ellipse 60% 50% at 20% 25%, rgba(85,186,8,0.16) 0%, transparent 70%)",
+      anim: "bg-drift-1",
+      dur: "55s",
+    },
+    {
+      bg: "radial-gradient(ellipse 55% 45% at 80% 20%, rgba(59,130,246,0.13) 0%, transparent 65%)",
+      anim: "bg-drift-2",
+      dur: "62s",
+    },
+    {
+      bg: "radial-gradient(ellipse 50% 55% at 45% 75%, rgba(139,92,246,0.11) 0%, transparent 60%)",
+      anim: "bg-drift-3",
+      dur: "58s",
+    },
+    {
+      bg: "radial-gradient(ellipse 65% 40% at 30% 55%, rgba(253,186,116,0.09) 0%, transparent 65%)",
+      anim: "bg-drift-4",
+      dur: "52s",
+    },
+    {
+      bg: "radial-gradient(ellipse 40% 50% at 70% 50%, rgba(85,186,8,0.09) 0%, transparent 55%)",
+      anim: "bg-drift-1",
+      dur: "60s",
+    },
+    {
+      bg: "radial-gradient(ellipse 50% 45% at 15% 80%, rgba(200,230,200,0.12) 0%, transparent 60%)",
+      anim: "bg-drift-2",
+      dur: "50s",
+    },
+    {
+      bg: "radial-gradient(ellipse 45% 40% at 85% 70%, rgba(210,230,255,0.10) 0%, transparent 55%)",
+      anim: "bg-drift-3",
+      dur: "56s",
+    },
+    {
+      bg: "radial-gradient(ellipse 55% 50% at 50% 40%, rgba(255,255,255,0.15) 0%, transparent 60%)",
+      anim: "bg-drift-4",
+      dur: "64s",
+    },
   ];
 
   layers.forEach((def, i) => {
-    const el = document.createElement('div');
-    el.className = 'bg-layer';
+    const el = document.createElement("div");
+    el.className = "bg-layer";
     el.style.cssText =
       `background:${def.bg};` +
       `animation:${def.anim} ${def.dur} ease-in-out infinite;` +
@@ -3399,50 +4009,71 @@ function hexToRGBValue(hex) {
 
 // ── Tab Switcher ─────────────────────────────────────────────────────────────
 function switchTab(tab) {
-  if (tab === '3d' && document.getElementById('tab-3d')?.disabled) return;
-  if (tab === 'filament' && document.getElementById('tab-filament')?.disabled) return;
+  if (tab === "3d" && document.getElementById("tab-3d")?.disabled) {
+    return;
+  }
+  if (tab === "filament" && document.getElementById("tab-filament")?.disabled) {
+    return;
+  }
 
-  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-  document.querySelectorAll('.viewport-pane').forEach(pane => pane.classList.remove('active'));
+  document
+    .querySelectorAll(".tab-btn")
+    .forEach((btn) => btn.classList.remove("active"));
+  document
+    .querySelectorAll(".viewport-pane")
+    .forEach((pane) => pane.classList.remove("active"));
 
-  if (tab === '2d') {
-    document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
-    document.getElementById('pane-2d').classList.add('active');
+  if (tab === "2d") {
+    document.querySelector(".tab-btn:nth-child(1)").classList.add("active");
+    document.getElementById("pane-2d").classList.add("active");
     draw2DSimulation();
-  } else if (tab === '3d') {
-    document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
-    document.getElementById('pane-3d').classList.add('active');
-    showPreviewSpinner('Rendering...');
-    new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))
+  } else if (tab === "3d") {
+    document.querySelector(".tab-btn:nth-child(2)").classList.add("active");
+    document.getElementById("pane-3d").classList.add("active");
+    showPreviewSpinner("Rendering...");
+    new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
       .then(() => update3DPreview())
       .then(() => hidePreviewSpinner());
-    window.dispatchEvent(new Event('resize'));
-  } else if (tab === 'filament') {
-    document.querySelector('.tab-btn:nth-child(3)').classList.add('active');
-    document.getElementById('pane-filament').classList.add('active');
+    window.dispatchEvent(new Event("resize"));
+  } else if (tab === "filament") {
+    document.querySelector(".tab-btn:nth-child(3)").classList.add("active");
+    document.getElementById("pane-filament").classList.add("active");
     updateTransitionTable();
   }
-};
+}
 
 // ── Panel Toggle ─────────────────────────────────────────────────────────────
 function togglePanel(header) {
-  const panel = header.closest('.collapsible');
-  const isCollapsed = panel.classList.contains('collapsed');
+  const panel = header.closest(".collapsible");
+  const isCollapsed = panel.classList.contains("collapsed");
 
-  if (isCollapsed && (header.id === 'header-color-layers' || header.id === 'header-puzzle')) {
-    if (!state.image) return;
+  if (
+    isCollapsed &&
+    (header.id === "header-color-layers" || header.id === "header-puzzle")
+  ) {
+    if (!state.image) {
+      return;
+    }
   }
 
   const parent = panel.parentElement;
-  parent.querySelectorAll('.collapsible').forEach(p => p.classList.add('collapsed'));
-  if (isCollapsed) panel.classList.remove('collapsed');
-
-  const allCollapsed = [...parent.querySelectorAll('.collapsible')].every(p => p.classList.contains('collapsed'));
-  if (allCollapsed) {
-    const dims = parent.querySelector('.collapsible');
-    if (dims) dims.classList.remove('collapsed');
+  parent
+    .querySelectorAll(".collapsible")
+    .forEach((p) => p.classList.add("collapsed"));
+  if (isCollapsed) {
+    panel.classList.remove("collapsed");
   }
-};
+
+  const allCollapsed = [...parent.querySelectorAll(".collapsible")].every((p) =>
+    p.classList.contains("collapsed"),
+  );
+  if (allCollapsed) {
+    const dims = parent.querySelector(".collapsible");
+    if (dims) {
+      dims.classList.remove("collapsed");
+    }
+  }
+}
 
 // ── Public API (exposed for inline onclick handlers in HTML) ─────────────────
 window.state = state;
