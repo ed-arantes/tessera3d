@@ -573,15 +573,17 @@ label {
 
 .input-wrapper input[type="number"] {
   width: 100%;
+  height: var(--h-md);
+  padding: 0 32px 0 12px;
   background: #ffffff;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 10px 32px 10px 12px;
   color: var(--text-main);
   font-size: var(--text-sm);
   font-weight: 500;
   font-family: var(--font-body);
   transition: all 0.2s;
+  box-sizing: border-box;
 }
 
 .input-wrapper input[type="number"]:focus {
@@ -593,17 +595,23 @@ label {
 
 .input-wrapper .input-select {
   width: 100%;
+  height: var(--h-md);
+  padding: 0 12px;
   background: #ffffff;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 10px 12px;
   color: var(--text-main);
   font-size: var(--text-sm);
   font-weight: 500;
   font-family: var(--font-body);
   transition: all 0.2s;
   cursor: pointer;
-  appearance: auto;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M3 4.5l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 30px;
 }
 
 .input-wrapper .input-select:focus {
@@ -627,8 +635,10 @@ label {
 .input-unit {
   position: absolute;
   right: 5px;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  height: var(--h-md);
+  display: flex;
+  align-items: center;
   width: 25px;
   text-align: left;
   font-size: var(--text-xs);
@@ -941,12 +951,14 @@ input:checked + .slider-switch:before {
 
 .td-input {
   width: 60px;
-  padding: 4px;
+  height: var(--h-sm);
+  padding: 0 4px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   text-align: center;
   font-family: var(--font-body);
+  box-sizing: border-box;
 }
 
 .td-label {
@@ -1307,8 +1319,8 @@ input:checked + .slider-switch:before {
 }
 
 .layer-nav-btn {
-  width: 36px;
-  height: 36px;
+  width: var(--h-md);
+  height: var(--h-md);
   border-radius: var(--radius-pill);
   border: 1px solid var(--border);
   background: #ffffff;
@@ -1361,8 +1373,8 @@ input:checked + .slider-switch:before {
   gap: 6px;
   padding: 0 12px;
   height: var(--h-md);
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
   background: #fff;
   color: var(--text-main);
   font-size: var(--text-sm);
@@ -1477,13 +1489,14 @@ input:checked + .slider-switch:before {
 }
 
 .ff-color-input {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  border: 1.5px solid var(--border);
-  padding: 2px;
+  width: var(--h-md);
+  height: var(--h-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  padding: 3px;
   cursor: pointer;
   background: none;
+  box-sizing: border-box;
 }
 
 .ff-apply-btn {
@@ -1822,14 +1835,15 @@ tr:last-child td {
 .modal-box .input-wrapper input[type="text"],
 .modal-box .input-wrapper input[type="password"] {
   width: 100%;
+  height: var(--h-md);
+  padding: 0 12px;
   background: #fff;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 12px;
   font-size: var(--text-sm);
   font-family: var(--font-body);
   outline: none;
-  transition: border-color 0.2s;
+  transition: all 0.2s;
   box-sizing: border-box;
 }
 
@@ -1875,8 +1889,8 @@ tr:last-child td {
   top: 16px;
   right: 16px;
   cursor: pointer;
-  width: 28px;
-  height: 28px;
+  width: var(--h-sm);
+  height: var(--h-sm);
   background: var(--bg-base);
   border: none;
   border-radius: var(--radius-pill);
@@ -1904,8 +1918,8 @@ tr:last-child td {
   position: fixed;
   inset: 0;
   z-index: 200;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(6px);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2047,7 +2061,7 @@ tr:last-child td {
   padding: 0 12px;
   height: var(--h-md);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-family: var(--font-body);
   outline: none;
@@ -2064,7 +2078,7 @@ tr:last-child td {
 .dash-btn {
   padding: 0 16px;
   height: var(--h-md);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-weight: 600;
   font-family: var(--font-body);
@@ -2106,7 +2120,7 @@ tr:last-child td {
 
 .dash-btn-sm {
   padding: 0 12px;
-  height: 32px;
+  height: var(--h-sm);
   font-size: var(--text-sm);
 }
 
@@ -2228,16 +2242,21 @@ tr:last-child td {
 
 
 .dash-select {
-  padding: 0 10px;
+  padding: 0 30px 0 10px;
   height: var(--h-md);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   font-size: var(--text-sm);
   font-family: var(--font-body);
   background: #fff;
   outline: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M3 4.5l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
 }
 
 .dash-select option {
@@ -2330,10 +2349,14 @@ tr:last-child td {
   padding: 2px 0;
 }
 .dash-color-input {
-  width: 40px;
-  height: 34px;
-  padding: 2px;
+  width: var(--h-md);
+  height: var(--h-md);
+  padding: 3px;
   cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: #fff;
+  box-sizing: border-box;
 }
 .dash-filter-swatch {
   position: static;
