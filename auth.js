@@ -188,7 +188,7 @@ function updateAuthUI() {
         </div>
       </div>
       <div class="auth-actions">
-        <button class="btn-secondary auth-btn" onclick="Auth.logout()">
+        <button class="btn-secondary auth-btn auth-btn-fixed" onclick="Auth.logout()">
           <i class="fas fa-right-from-bracket"></i> Logout
         </button>
       </div>
@@ -206,10 +206,10 @@ function updateAuthUI() {
         </div>
       </div>
       <div class="auth-actions">
-        <button class="btn-secondary auth-btn" onclick="openAuthModal('signin')">
+        <button class="btn-secondary auth-btn auth-btn-fixed" onclick="openAuthModal('signin')">
           <i class="fas fa-right-to-bracket"></i> Login
         </button>
-        <button class="btn-primary-glow auth-btn-signup" onclick="openAuthModal('signup')">
+        <button class="btn-primary-glow auth-btn-signup auth-btn-fixed" onclick="openAuthModal('signup')">
           <i class="fas fa-user-plus"></i> Sign Up
         </button>
       </div>
