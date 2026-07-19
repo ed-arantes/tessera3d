@@ -783,7 +783,7 @@ input:checked + .slider-switch:before {
   border-radius: var(--radius-md);
   color: var(--text-main);
   padding: 0 16px;
-  height: 42px;
+  height: var(--h-md);
   font-size: var(--text-sm);
   font-weight: 600;
   font-family: var(--font-body);
@@ -803,8 +803,9 @@ input:checked + .slider-switch:before {
 }
 
 .auth-btn-fixed {
-  width: 120px;
-  height: 42px;
+  width: 130px;
+  height: var(--h-md);
+  padding: 0;
 }
 
 .layer-list-scroll {
@@ -1638,10 +1639,7 @@ input:checked + .slider-switch:before {
   border: none;
   border-radius: var(--radius-md);
   color: var(--text-inverse);
-  padding: 10px 24px;
-  height: 42px;
   font-family: var(--font-header);
-  font-size: var(--text-sm);
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -1651,6 +1649,17 @@ input:checked + .slider-switch:before {
   box-shadow: none;
   transition: all 0.2s ease;
   box-sizing: border-box;
+}
+
+.btn-primary-glow {
+  padding: 14px 24px;
+  font-size: var(--text-sm);
+}
+
+.dash-btn-primary {
+  padding: 0 16px;
+  height: var(--h-md);
+  font-size: var(--text-sm);
 }
 
 .btn-primary-glow:hover,
