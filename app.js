@@ -33,23 +33,6 @@ const state = {
   puzzleRows: 3,
   puzzleClearanceMm: 0.15,
 
-  // Puzzle Advanced Settings
-  puzzleSeed: 0,
-  puzzleRandomness: 0,
-  puzzleTabOffset: 0,
-  puzzleTabOffsetH: 0,
-  puzzleTabOffsetV: 0,
-  puzzleTabOffsetIndividual: false,
-  puzzleWavinessAmount: 0,
-  puzzleWavinessFrequency: 50,
-  puzzleWavinessRandomness: 0,
-  puzzleWavinessSmoothness: 50,
-  puzzleTabSizeVar: 0,
-  puzzleTabWidthVar: 0,
-  puzzleNeckWidthVar: 0,
-  puzzleCurveTension: 50,
-  puzzleCornerRandomness: 0,
-
   // Color Layers
   layers: [
     { hex: "#0a0a0a", startHeight: 0.0, td: 0.5 }, // Base layer (usually dark)
@@ -905,75 +888,6 @@ function setupEventListeners() {
     puzClearanceLabel.textContent = state.puzzleClearanceMm.toFixed(2) + " mm";
     debounceUpdate();
   });
-
-  // Puzzle Advanced Listeners
-  const puzRandomness = document.getElementById("input-puzzle-randomness");
-  const puzSeed = document.getElementById("input-puzzle-seed");
-  const puzNewLayout = document.getElementById("btn-puzzle-new-layout");
-  const puzTabOffset = document.getElementById("input-puzzle-tab-offset");
-  const puzTabOffsetH = document.getElementById("input-puzzle-tab-offset-h");
-  const puzTabOffsetV = document.getElementById("input-puzzle-tab-offset-v");
-  const puzTabIndividual = document.getElementById("input-puzzle-tab-individual");
-  const puzWavinessAmt = document.getElementById("input-puzzle-waviness-amount");
-  const puzWavinessFreq = document.getElementById("input-puzzle-waviness-frequency");
-  const puzWavinessRand = document.getElementById("input-puzzle-waviness-randomness");
-  const puzWavinessSmooth = document.getElementById("input-puzzle-waviness-smoothness");
-  const puzTabSizeVar = document.getElementById("input-puzzle-tab-size-var");
-  const puzTabWidthVar = document.getElementById("input-puzzle-tab-width-var");
-  const puzNeckWidthVar = document.getElementById("input-puzzle-neck-width-var");
-  const puzCurveTension = document.getElementById("input-puzzle-curve-tension");
-  const puzCornerRand = document.getElementById("input-puzzle-corner-randomness");
-
-  function wirePuzzleSlider(el, labelEl, stateKey, formatter, triggersUpdate) {
-    if (!el) return;
-    el.addEventListener("input", () => {
-      const val = parseFloat(el.value) || 0;
-      state[stateKey] = val;
-      if (labelEl) labelEl.textContent = formatter ? formatter(val) : val;
-      if (triggersUpdate) {
-        _puzzleEdgeCache = null;
-        debounceUpdate();
-      }
-    });
-  }
-
-  wirePuzzleSlider(puzRandomness, document.getElementById("label-puzzle-randomness"), "puzzleRandomness", v => v + "%", true);
-  wirePuzzleSlider(puzTabOffset, document.getElementById("label-puzzle-tab-offset"), "puzzleTabOffset", v => v + "%", true);
-  wirePuzzleSlider(puzTabOffsetH, null, "puzzleTabOffsetH", null, true);
-  wirePuzzleSlider(puzTabOffsetV, null, "puzzleTabOffsetV", null, true);
-  wirePuzzleSlider(puzWavinessAmt, document.getElementById("label-puzzle-waviness-amount"), "puzzleWavinessAmount", v => v + "%", true);
-  wirePuzzleSlider(puzWavinessFreq, document.getElementById("label-puzzle-waviness-freq"), "puzzleWavinessFrequency", v => v + "%", true);
-  wirePuzzleSlider(puzWavinessRand, document.getElementById("label-puzzle-waviness-random"), "puzzleWavinessRandomness", v => v + "%", true);
-  wirePuzzleSlider(puzWavinessSmooth, document.getElementById("label-puzzle-waviness-smooth"), "puzzleWavinessSmoothness", v => v + "%", true);
-  wirePuzzleSlider(puzTabSizeVar, document.getElementById("label-puzzle-tab-size-var"), "puzzleTabSizeVar", v => v + "%", true);
-  wirePuzzleSlider(puzTabWidthVar, document.getElementById("label-puzzle-tab-width-var"), "puzzleTabWidthVar", v => v + "%", true);
-  wirePuzzleSlider(puzNeckWidthVar, document.getElementById("label-puzzle-neck-width-var"), "puzzleNeckWidthVar", v => v + "%", true);
-  wirePuzzleSlider(puzCurveTension, document.getElementById("label-puzzle-curve-tension"), "puzzleCurveTension", v => v + "%", true);
-  wirePuzzleSlider(puzCornerRand, document.getElementById("label-puzzle-corner-random"), "puzzleCornerRandomness", v => v + "%", true);
-
-  if (puzSeed) {
-    puzSeed.addEventListener("input", () => {
-      state.puzzleSeed = parseInt(puzSeed.value) || 0;
-      debounceUpdate();
-    });
-  }
-
-  if (puzTabIndividual) {
-    puzTabIndividual.addEventListener("change", () => {
-      state.puzzleTabOffsetIndividual = puzTabIndividual.checked;
-      debounceUpdate();
-    });
-  }
-
-  if (puzNewLayout) {
-    puzNewLayout.addEventListener("click", () => {
-      const newSeed = Math.floor(Math.random() * 999999) + 1;
-      state.puzzleSeed = newSeed;
-      if (puzSeed) puzSeed.value = newSeed;
-      debounceUpdate();
-    });
-  }
-
   // Auto-distribute button
   btnAutoDistribute.addEventListener("click", () => {
     const targetCount = Math.max(1, state.layers.length);
@@ -1717,34 +1631,6 @@ function updateUIFromState() {
     state.puzzleClearanceMm;
   document.getElementById("label-clearance-val").textContent =
     state.puzzleClearanceMm.toFixed(2) + " mm";
-
-  // Restore advanced puzzle controls
-  document.getElementById("input-puzzle-randomness").value = state.puzzleRandomness;
-  document.getElementById("label-puzzle-randomness").textContent = state.puzzleRandomness + "%";
-  document.getElementById("input-puzzle-seed").value = state.puzzleSeed;
-  document.getElementById("input-puzzle-tab-offset").value = state.puzzleTabOffset;
-  document.getElementById("label-puzzle-tab-offset").textContent = state.puzzleTabOffset + "%";
-  document.getElementById("input-puzzle-tab-offset-h").value = state.puzzleTabOffsetH;
-  document.getElementById("input-puzzle-tab-offset-v").value = state.puzzleTabOffsetV;
-  document.getElementById("input-puzzle-tab-individual").checked = state.puzzleTabOffsetIndividual;
-  document.getElementById("input-puzzle-waviness-amount").value = state.puzzleWavinessAmount;
-  document.getElementById("label-puzzle-waviness-amount").textContent = state.puzzleWavinessAmount + "%";
-  document.getElementById("input-puzzle-waviness-frequency").value = state.puzzleWavinessFrequency;
-  document.getElementById("label-puzzle-waviness-freq").textContent = state.puzzleWavinessFrequency + "%";
-  document.getElementById("input-puzzle-waviness-randomness").value = state.puzzleWavinessRandomness;
-  document.getElementById("label-puzzle-waviness-random").textContent = state.puzzleWavinessRandomness + "%";
-  document.getElementById("input-puzzle-waviness-smoothness").value = state.puzzleWavinessSmoothness;
-  document.getElementById("label-puzzle-waviness-smooth").textContent = state.puzzleWavinessSmoothness + "%";
-  document.getElementById("input-puzzle-tab-size-var").value = state.puzzleTabSizeVar;
-  document.getElementById("label-puzzle-tab-size-var").textContent = state.puzzleTabSizeVar + "%";
-  document.getElementById("input-puzzle-tab-width-var").value = state.puzzleTabWidthVar;
-  document.getElementById("label-puzzle-tab-width-var").textContent = state.puzzleTabWidthVar + "%";
-  document.getElementById("input-puzzle-neck-width-var").value = state.puzzleNeckWidthVar;
-  document.getElementById("label-puzzle-neck-width-var").textContent = state.puzzleNeckWidthVar + "%";
-  document.getElementById("input-puzzle-curve-tension").value = state.puzzleCurveTension;
-  document.getElementById("label-puzzle-curve-tension").textContent = state.puzzleCurveTension + "%";
-  document.getElementById("input-puzzle-corner-randomness").value = state.puzzleCornerRandomness;
-  document.getElementById("label-puzzle-corner-random").textContent = state.puzzleCornerRandomness + "%";
 
   document.getElementById("input-colors-count").value = state.layersCount;
   document.getElementById("label-colors-count").textContent = state.layersCount;
@@ -2671,7 +2557,6 @@ async function update3DPreview() {
       state.puzzleClearanceMm,
       scaleX,
       scaleY,
-      getPuzzleRng(),
     );
     numPieces = state.puzzleCols * state.puzzleRows;
   }
@@ -2809,51 +2694,29 @@ function updateTransitionTable() {
   });
 }
 
-// ── Seeded PRNG (mulberry32) ────────────────────────────────────────────────────
-function createRng(seed) {
-  let s = seed | 0;
-  return function () {
-    s |= 0;
-    s = (s + 0x6d2b79f5) | 0;
-    let t = Math.imul(s ^ (s >>> 15), 1 | s);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-// Return an RNG for the current puzzle seed. seed=0 → Math.random (backward compat).
-function getPuzzleRng() {
-  return state.puzzleSeed !== 0 ? createRng(state.puzzleSeed) : Math.random;
-}
-
-// ── Puzzle edge cache ────────────────────────────────────────────────────────────
+// Puzzle edge cache (shared across 2D, 3D, and export so all views use the same balanced edge patterns)
 let _puzzleEdgeCache = null;
 let _puzzleEdgeCacheKey = "";
 
-function getBalancedPuzzleParams(rng, randomness) {
-  const r = rng || Math.random;
-  const amp = randomness != null ? 1 + randomness / 100 : 1;
-  const tabRatio = 0.18 + (r() - 0.5) * 0.04 * amp;
-  const neckRatio = 0.06 + (r() - 0.5) * 0.015 * amp;
-  const headRatio = 0.13 + (r() - 0.5) * 0.02 * amp;
-  const bowRatio = 0.012 + (r() - 0.5) * 0.012 * amp;
+function getBalancedPuzzleParams() {
+  const tabRatio = 0.18 + (Math.random() - 0.5) * 0.04;
+  const neckRatio = 0.06 + (Math.random() - 0.5) * 0.015;
+  const headRatio = 0.13 + (Math.random() - 0.5) * 0.02;
+  const bowRatio = 0.012 + (Math.random() - 0.5) * 0.012;
 
   return {
-    tabRatio: Math.max(0.08, Math.min(0.3, tabRatio)),
-    neckRatio: Math.max(0.03, Math.min(0.12, neckRatio)),
-    headRatio: Math.max(0.08, Math.min(0.2, headRatio)),
-    bowRatio: Math.max(0.001, Math.min(0.05, bowRatio)),
+    tabRatio: Math.max(0.13, Math.min(0.24, tabRatio)),
+    neckRatio: Math.max(0.04, Math.min(0.09, neckRatio)),
+    headRatio: Math.max(0.1, Math.min(0.17, headRatio)),
+    bowRatio: Math.max(0.002, Math.min(0.03, bowRatio)),
   };
 }
 
-function generateEdges(cols, rows, rng, randomness) {
-  const key = cols + "x" + rows + "|r" + (randomness || 0) + "|s" + (state.puzzleSeed || 0);
+function generateEdges(cols, rows) {
+  const key = cols + "x" + rows;
   if (_puzzleEdgeCache && _puzzleEdgeCacheKey === key) {
     return _puzzleEdgeCache;
   }
-
-  const r = rng || Math.random;
-  const rand = randomness || 0;
 
   const vEdges = [];
   const vEdgeParams = [];
@@ -2861,8 +2724,8 @@ function generateEdges(cols, rows, rng, randomness) {
     const rowEdges = [];
     const rowParams = [];
     for (let c = 0; c < cols - 1; c++) {
-      rowEdges.push(r() > 0.5 ? 1 : -1);
-      rowParams.push(getBalancedPuzzleParams(r, rand));
+      rowEdges.push(Math.random() > 0.5 ? 1 : -1);
+      rowParams.push(getBalancedPuzzleParams());
     }
     vEdges.push(rowEdges);
     vEdgeParams.push(rowParams);
@@ -2874,8 +2737,8 @@ function generateEdges(cols, rows, rng, randomness) {
     const rowEdges = [];
     const rowParams = [];
     for (let c = 0; c < cols; c++) {
-      rowEdges.push(r() > 0.5 ? 1 : -1);
-      rowParams.push(getBalancedPuzzleParams(r, rand));
+      rowEdges.push(Math.random() > 0.5 ? 1 : -1);
+      rowParams.push(getBalancedPuzzleParams());
     }
     hEdges.push(rowEdges);
     hEdgeParams.push(rowParams);
@@ -2886,7 +2749,7 @@ function generateEdges(cols, rows, rng, randomness) {
   return _puzzleEdgeCache;
 }
 
-function drawJigsawLine(ctx, x0, y0, x1, y1, tabDir, params, advanced) {
+function drawJigsawLine(ctx, x0, y0, x1, y1, tabDir, params) {
   if (tabDir === 0) {
     ctx.lineTo(x1, y1);
     return;
@@ -2899,91 +2762,28 @@ function drawJigsawLine(ctx, x0, y0, x1, y1, tabDir, params, advanced) {
   const px = -ny;
   const py = nx;
 
-  // Tab offset — shift the center position along the edge
-  const offsetRatio = (advanced && advanced.offsetRatio) || 0;
-  const cx = len / 2 + offsetRatio * len;
-
-  // Curve tension
-  const tension = (advanced && advanced.curveTension) != null ? advanced.curveTension : 1;
-
+  const cx = len / 2;
   const neck = len * (params ? params.neckRatio : 0.08);
   const head = len * (params ? params.headRatio : 0.16);
   const h = len * (params ? params.tabRatio : 0.22) * -tabDir;
   const bow = len * (params ? params.bowRatio : 0.03) * tabDir;
 
-  // Waviness — sine perturbation along the edge
-  const wav = (advanced && advanced.waviness) || null;
-
-  function wv(t, perp) {
-    if (!wav) return 0;
-    const phase = wav.phase != null ? wav.phase : 0;
-    const angle = t * len * wav.freq + phase;
-    return Math.sin(angle) * wav.amount * perp;
-  }
-
   function lb(lx, ly, lx2, ly2, lx3, ly3) {
-    const t1 = lx / len;
-    const t2 = lx2 / len;
-    const t3 = lx3 / len;
-    const w1 = wv(t1, ly);
-    const w2 = wv(t2, ly2);
-    const w3 = wv(t3, ly3);
     ctx.bezierCurveTo(
-      x0 + lx * nx + (ly + w1) * px,
-      y0 + lx * ny + (ly + w1) * py,
-      x0 + lx2 * nx + (ly2 + w2) * px,
-      y0 + lx2 * ny + (ly2 + w2) * py,
-      x0 + lx3 * nx + (ly3 + w3) * px,
-      y0 + lx3 * ny + (ly3 + w3) * py,
+      x0 + lx * nx + ly * px,
+      y0 + lx * ny + ly * py,
+      x0 + lx2 * nx + ly2 * px,
+      y0 + lx2 * ny + ly2 * py,
+      x0 + lx3 * nx + ly3 * px,
+      y0 + lx3 * ny + ly3 * py,
     );
   }
 
-  lb(0.15 * len * tension, bow, 0.35 * len * tension, bow, cx - neck, 0);
-  lb(cx - neck, h * 0.2 * tension, cx - head, h * 0.5 * tension, cx - head, h * 0.7);
+  lb(0.15 * len, bow, 0.35 * len, bow, cx - neck, 0);
+  lb(cx - neck, h * 0.2, cx - head, h * 0.5, cx - head, h * 0.7);
   lb(cx - head, h * 1.15, cx + head, h * 1.15, cx + head, h * 0.7);
-  lb(cx + head, h * 0.5 * tension, cx + neck, h * 0.2 * tension, cx + neck, 0);
-  lb(len - 0.15 * len * tension, bow, len - 0.35 * len * tension, bow, len, 0);
-}
-
-// Compute advanced jigsaw params (offset, waviness, curve tension) for a single edge
-function getEdgeAdvanced(rng, isHorizontal) {
-  const r = rng || Math.random;
-  const adv = {};
-
-  // Tab offset — max 40% of half-edge to keep pieces connectable
-  const offsetPct = state.puzzleTabOffset || 0;
-  const offsetHPct = state.puzzleTabOffsetH || 0;
-  const offsetVPct = state.puzzleTabOffsetV || 0;
-  const useOffset = isHorizontal
-    ? Math.max(offsetPct, offsetHPct)
-    : Math.max(offsetPct, offsetVPct);
-  if (useOffset > 0) {
-    const maxOffset = 0.4;
-    const effective = (useOffset / 100) * maxOffset;
-    adv.offsetRatio = (r() * 2 - 1) * effective;
-  }
-
-  // Waviness
-  const wavAmt = state.puzzleWavinessAmount || 0;
-  if (wavAmt > 0) {
-    const freq = Math.max(1, ((state.puzzleWavinessFrequency || 50) / 100) * 10 + 1);
-    const smoothness = (state.puzzleWavinessSmoothness || 50) / 100;
-    const randDir = (state.puzzleWavinessRandomness || 0) / 100;
-    const phase = r() * Math.PI * 2 * randDir;
-    const maxWave = 0.15 * (wavAmt / 100);
-    const waveScale = 0.3 + smoothness * 0.7;
-    adv.waviness = {
-      amount: maxWave * waveScale,
-      freq: freq * Math.PI * 2,
-      phase: phase,
-    };
-  }
-
-  // Curve tension (50 = current, lower = tighter, higher = looser)
-  const tension = state.puzzleCurveTension != null ? state.puzzleCurveTension : 50;
-  adv.curveTension = 0.6 + (tension / 100) * 0.8;
-
-  return adv;
+  lb(cx + head, h * 0.5, cx + neck, h * 0.2, cx + neck, 0);
+  lb(0.65 * len, bow, 0.85 * len, bow, len, 0);
 }
 
 function drawPuzzleCuts(
@@ -2994,8 +2794,7 @@ function drawPuzzleCuts(
   puzzleRows,
   cellSize,
 ) {
-  const rng = getPuzzleRng();
-  const edges = generateEdges(puzzleCols, puzzleRows, rng, state.puzzleRandomness);
+  const edges = generateEdges(puzzleCols, puzzleRows);
   const { vEdges, vEdgeParams, hEdges, hEdgeParams } = edges;
 
   const pieceW = (gridCols * cellSize) / puzzleCols;
@@ -3013,10 +2812,9 @@ function drawPuzzleCuts(
       const x0 = c * pieceW;
       const y0 = (r + 1) * pieceH;
       const x1 = (c + 1) * pieceW;
-      const adv = getEdgeAdvanced(rng, true);
       ctx.beginPath();
       ctx.moveTo(x0, y0);
-      drawJigsawLine(ctx, x0, y0, x1, y0, hEdges[r][c], hEdgeParams[r][c], adv);
+      drawJigsawLine(ctx, x0, y0, x1, y0, hEdges[r][c], hEdgeParams[r][c]);
       ctx.stroke();
     }
   }
@@ -3027,10 +2825,9 @@ function drawPuzzleCuts(
       const x0 = (c + 1) * pieceW;
       const y0 = r * pieceH;
       const y1 = (r + 1) * pieceH;
-      const adv = getEdgeAdvanced(rng, false);
       ctx.beginPath();
       ctx.moveTo(x0, y0);
-      drawJigsawLine(ctx, x0, y0, x0, y1, vEdges[r][c], vEdgeParams[r][c], adv);
+      drawJigsawLine(ctx, x0, y0, x0, y1, vEdges[r][c], vEdgeParams[r][c]);
       ctx.stroke();
     }
   }
@@ -3043,7 +2840,7 @@ function drawPuzzleCuts(
 }
 
 // Generate a 2D map of puzzle pieces, where each pixel corresponds to a piece ID (1 to N) or 0 (clearance gap)
-function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY, rng) {
+function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -3053,71 +2850,70 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY, rng) {
   ctx.fillStyle = "rgba(0,0,0,0)";
   ctx.fillRect(0, 0, W, H);
 
-  const r = rng || Math.random;
   const cellW = W / cols;
   const cellH = H / rows;
 
   const { vEdges, vEdgeParams, hEdges, hEdgeParams } = generateEdges(
     cols,
     rows,
-    rng,
-    state.puzzleRandomness,
   );
-
-  // Corner randomness — perturb interior grid intersections slightly
-  const cornerRand = (state.puzzleCornerRandomness || 0) / 100;
-  const maxCornerShift = cornerRand * Math.min(cellW, cellH) * 0.12;
-  const cornerGrid = [];
-  for (let r = 0; r <= rows; r++) {
-    const row = [];
-    for (let c = 0; c <= cols; c++) {
-      if (r === 0 || r === rows || c === 0 || c === cols) {
-        row.push({ x: c * cellW, y: r * cellH });
-      } else {
-        row.push({
-          x: c * cellW + (r() * 2 - 1) * maxCornerShift,
-          y: r * cellH + (r() * 2 - 1) * maxCornerShift,
-        });
-      }
-    }
-    cornerGrid.push(row);
-  }
 
   // Draw each puzzle piece
   let pieceId = 1;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      const p0 = cornerGrid[r][c];
-      const p1 = cornerGrid[r][c + 1];
-      const p2 = cornerGrid[r + 1][c + 1];
-      const p3 = cornerGrid[r + 1][c];
-
       ctx.beginPath();
-      ctx.moveTo(p0.x, p0.y);
+      const x0 = c * cellW;
+      const y0 = r * cellH;
+      const x1 = (c + 1) * cellW;
+      const y1 = (r + 1) * cellH;
+
+      ctx.moveTo(x0, y0);
 
       // Top edge
-      drawJigsawLine(ctx, p0.x, p0.y, p1.x, p1.y,
+      drawJigsawLine(
+        ctx,
+        x0,
+        y0,
+        x1,
+        y0,
         r === 0 ? 0 : -hEdges[r - 1][c],
         r === 0 ? null : hEdgeParams[r - 1][c],
-        getEdgeAdvanced(rng, true));
+      );
       // Right edge
-      drawJigsawLine(ctx, p1.x, p1.y, p2.x, p2.y,
+      drawJigsawLine(
+        ctx,
+        x1,
+        y0,
+        x1,
+        y1,
         c === cols - 1 ? 0 : vEdges[r][c],
         c === cols - 1 ? null : vEdgeParams[r][c],
-        getEdgeAdvanced(rng, false));
+      );
       // Bottom edge
-      drawJigsawLine(ctx, p2.x, p2.y, p3.x, p3.y,
+      drawJigsawLine(
+        ctx,
+        x1,
+        y1,
+        x0,
+        y1,
         r === rows - 1 ? 0 : hEdges[r][c],
         r === rows - 1 ? null : hEdgeParams[r][c],
-        getEdgeAdvanced(rng, true));
+      );
       // Left edge
-      drawJigsawLine(ctx, p3.x, p3.y, p0.x, p0.y,
+      drawJigsawLine(
+        ctx,
+        x0,
+        y1,
+        x0,
+        y0,
         c === 0 ? 0 : -vEdges[r][c - 1],
         c === 0 ? null : vEdgeParams[r][c - 1],
-        getEdgeAdvanced(rng, false));
+      );
 
       ctx.closePath();
 
+      // Fill with pieceId (using the red channel to store ID)
       ctx.fillStyle = `rgba(${pieceId}, 0, 0, 1)`;
       ctx.fill();
       pieceId++;
@@ -3135,29 +2931,49 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY, rng) {
     // Stroke all piece edges
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        const p0 = cornerGrid[r][c];
-        const p1 = cornerGrid[r][c + 1];
-        const p2 = cornerGrid[r + 1][c + 1];
-        const p3 = cornerGrid[r + 1][c];
+        const x0 = c * cellW;
+        const y0 = r * cellH;
+        const x1 = (c + 1) * cellW;
+        const y1 = (r + 1) * cellH;
 
         ctx.beginPath();
-        ctx.moveTo(p0.x, p0.y);
-        drawJigsawLine(ctx, p0.x, p0.y, p1.x, p1.y,
+        ctx.moveTo(x0, y0);
+        drawJigsawLine(
+          ctx,
+          x0,
+          y0,
+          x1,
+          y0,
           r === 0 ? 0 : -hEdges[r - 1][c],
           r === 0 ? null : hEdgeParams[r - 1][c],
-          getEdgeAdvanced(rng, true));
-        drawJigsawLine(ctx, p1.x, p1.y, p2.x, p2.y,
+        );
+        drawJigsawLine(
+          ctx,
+          x1,
+          y0,
+          x1,
+          y1,
           c === cols - 1 ? 0 : vEdges[r][c],
           c === cols - 1 ? null : vEdgeParams[r][c],
-          getEdgeAdvanced(rng, false));
-        drawJigsawLine(ctx, p2.x, p2.y, p3.x, p3.y,
+        );
+        drawJigsawLine(
+          ctx,
+          x1,
+          y1,
+          x0,
+          y1,
           r === rows - 1 ? 0 : hEdges[r][c],
           r === rows - 1 ? null : hEdgeParams[r][c],
-          getEdgeAdvanced(rng, true));
-        drawJigsawLine(ctx, p3.x, p3.y, p0.x, p0.y,
+        );
+        drawJigsawLine(
+          ctx,
+          x0,
+          y1,
+          x0,
+          y0,
           c === 0 ? 0 : -vEdges[r][c - 1],
           c === 0 ? null : vEdgeParams[r][c - 1],
-          getEdgeAdvanced(rng, false));
+        );
         ctx.stroke();
       }
     }
@@ -3167,6 +2983,7 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY, rng) {
   const imgData = ctx.getImageData(0, 0, W, H).data;
   const map = new Uint8Array(W * H);
   for (let i = 0; i < W * H; i++) {
+    // If alpha is 0 (due to destination-out), ID is 0
     map[i] = imgData[i * 4 + 3] === 0 ? 0 : imgData[i * 4];
   }
 
@@ -3437,7 +3254,6 @@ async function export3MF() {
         state.puzzleClearanceMm,
         scaleX,
         scaleY,
-        getPuzzleRng(),
       );
       numPieces = state.puzzleCols * state.puzzleRows;
     }
@@ -3567,7 +3383,6 @@ async function exportSTL() {
         state.puzzleClearanceMm,
         scaleX,
         scaleY,
-        getPuzzleRng(),
       );
       numPieces = state.puzzleCols * state.puzzleRows;
     }
