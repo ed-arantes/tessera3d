@@ -343,6 +343,157 @@
                   step="0.05"
                 />
               </div>
+
+              <!-- Advanced Cutting Settings -->
+              <details class="puzzle-advanced">
+                <summary class="puzzle-advanced-summary">
+                  <i class="fas fa-sliders"></i> Advanced Cutting Settings
+                </summary>
+                <div class="puzzle-advanced-body">
+
+                  <!-- Randomization -->
+                  <div class="puzzle-adv-group">
+                    <div class="puzzle-adv-title">Randomization</div>
+                    <div class="input-group mb-12">
+                      <div class="slider-row">
+                        <span class="slider-title">Piece Randomness</span>
+                        <span class="slider-val-badge" id="label-puzzle-randomness">0%</span>
+                      </div>
+                      <input type="range" id="input-puzzle-randomness" min="0" max="100" value="0" />
+                      <div class="puzzle-adv-hint">Higher values increase variation between pieces. 0% = current behavior.</div>
+                    </div>
+                  </div>
+
+                  <!-- Seed Control -->
+                  <div class="puzzle-adv-group">
+                    <div class="puzzle-adv-title">Seed Control</div>
+                    <div class="puzzle-adv-row">
+                      <div class="input-group" style="flex:1">
+                        <label for="input-puzzle-seed">Random Seed</label>
+                        <div class="input-wrapper">
+                          <input type="number" id="input-puzzle-seed" min="0" max="999999" />
+                          <span class="input-unit">0=random</span>
+                        </div>
+                      </div>
+                      <button type="button" class="btn-secondary" id="btn-puzzle-new-layout" style="margin-top:20px;flex-shrink:0">
+                        <i class="fas fa-dice"></i> New Layout
+                      </button>
+                    </div>
+                    <div class="puzzle-adv-hint">Same seed + settings = identical cut pattern. Enter 0 for random seed each time.</div>
+                  </div>
+
+                  <!-- Tab/Piece Shape -->
+                  <div class="puzzle-adv-group">
+                    <div class="puzzle-adv-title">Tab / Pin Position</div>
+                    <div class="input-group mb-12">
+                      <div class="slider-row">
+                        <span class="slider-title">Tab Offset</span>
+                        <span class="slider-val-badge" id="label-puzzle-tab-offset">0%</span>
+                      </div>
+                      <input type="range" id="input-puzzle-tab-offset" min="0" max="100" value="0" />
+                      <div class="puzzle-adv-hint">How far tabs can shift from center. 0% = centered (current). 100% = up to 40% offset.</div>
+                    </div>
+                    <div class="puzzle-adv-row">
+                      <div class="input-group" style="flex:1">
+                        <label for="input-puzzle-tab-offset-h">Horizontal Offset</label>
+                        <input type="range" id="input-puzzle-tab-offset-h" min="0" max="100" value="0" />
+                      </div>
+                      <div class="input-group" style="flex:1">
+                        <label for="input-puzzle-tab-offset-v">Vertical Offset</label>
+                        <input type="range" id="input-puzzle-tab-offset-v" min="0" max="100" value="0" />
+                      </div>
+                    </div>
+                    <label class="switch-container" style="justify-content:flex-start;gap:10px;padding:4px 0">
+                      <input type="checkbox" id="input-puzzle-tab-individual" />
+                      <span class="slider-switch"></span>
+                      <span class="slider-title" style="font-size:var(--text-xs)">Individual per edge</span>
+                    </label>
+                  </div>
+
+                  <!-- Edge Waviness -->
+                  <div class="puzzle-adv-group">
+                    <div class="puzzle-adv-title">Edge Waviness</div>
+                    <div class="input-group mb-12">
+                      <div class="slider-row">
+                        <span class="slider-title">Amount</span>
+                        <span class="slider-val-badge" id="label-puzzle-waviness-amount">0%</span>
+                      </div>
+                      <input type="range" id="input-puzzle-waviness-amount" min="0" max="100" value="0" />
+                      <div class="puzzle-adv-hint">Adds organic sine-wave wobble to cut lines. 0% = perfectly geometric (current).</div>
+                    </div>
+                    <div class="puzzle-adv-row">
+                      <div class="input-group" style="flex:1">
+                        <div class="slider-row">
+                          <span class="slider-title" style="font-size:var(--text-xs)">Frequency</span>
+                          <span class="slider-val-badge" style="font-size:10px;padding:2px 6px;min-width:auto" id="label-puzzle-waviness-freq">50%</span>
+                        </div>
+                        <input type="range" id="input-puzzle-waviness-frequency" min="0" max="100" value="50" />
+                      </div>
+                      <div class="input-group" style="flex:1">
+                        <div class="slider-row">
+                          <span class="slider-title" style="font-size:var(--text-xs)">Smoothness</span>
+                          <span class="slider-val-badge" style="font-size:10px;padding:2px 6px;min-width:auto" id="label-puzzle-waviness-smooth">50%</span>
+                        </div>
+                        <input type="range" id="input-puzzle-waviness-smoothness" min="0" max="100" value="50" />
+                      </div>
+                    </div>
+                    <div class="input-group mb-12">
+                      <div class="slider-row">
+                        <span class="slider-title">Direction Randomness</span>
+                        <span class="slider-val-badge" id="label-puzzle-waviness-random">0%</span>
+                      </div>
+                      <input type="range" id="input-puzzle-waviness-randomness" min="0" max="100" value="0" />
+                      <div class="puzzle-adv-hint">Randomizes wave phase per edge for more organic variation.</div>
+                    </div>
+                  </div>
+
+                  <!-- Advanced Geometry -->
+                  <div class="puzzle-adv-group">
+                    <div class="puzzle-adv-title">Advanced Geometry</div>
+                    <div class="puzzle-adv-row">
+                      <div class="input-group" style="flex:1">
+                        <div class="slider-row">
+                          <span class="slider-title" style="font-size:var(--text-xs)">Tab Size Var.</span>
+                          <span class="slider-val-badge" style="font-size:10px;padding:2px 6px;min-width:auto" id="label-puzzle-tab-size-var">0%</span>
+                        </div>
+                        <input type="range" id="input-puzzle-tab-size-var" min="0" max="100" value="0" />
+                      </div>
+                      <div class="input-group" style="flex:1">
+                        <div class="slider-row">
+                          <span class="slider-title" style="font-size:var(--text-xs)">Tab Width Var.</span>
+                          <span class="slider-val-badge" style="font-size:10px;padding:2px 6px;min-width:auto" id="label-puzzle-tab-width-var">0%</span>
+                        </div>
+                        <input type="range" id="input-puzzle-tab-width-var" min="0" max="100" value="0" />
+                      </div>
+                    </div>
+                    <div class="puzzle-adv-row">
+                      <div class="input-group" style="flex:1">
+                        <div class="slider-row">
+                          <span class="slider-title" style="font-size:var(--text-xs)">Neck Width Var.</span>
+                          <span class="slider-val-badge" style="font-size:10px;padding:2px 6px;min-width:auto" id="label-puzzle-neck-width-var">0%</span>
+                        </div>
+                        <input type="range" id="input-puzzle-neck-width-var" min="0" max="100" value="0" />
+                      </div>
+                      <div class="input-group" style="flex:1">
+                        <div class="slider-row">
+                          <span class="slider-title" style="font-size:var(--text-xs)">Curve Tension</span>
+                          <span class="slider-val-badge" style="font-size:10px;padding:2px 6px;min-width:auto" id="label-puzzle-curve-tension">50%</span>
+                        </div>
+                        <input type="range" id="input-puzzle-curve-tension" min="0" max="100" value="50" />
+                      </div>
+                    </div>
+                    <div class="input-group mb-12">
+                      <div class="slider-row">
+                        <span class="slider-title">Corner Randomness</span>
+                        <span class="slider-val-badge" id="label-puzzle-corner-random">0%</span>
+                      </div>
+                      <input type="range" id="input-puzzle-corner-randomness" min="0" max="100" value="0" />
+                      <div class="puzzle-adv-hint">Shifts intersection points for irregular piece shapes. 0% = perfect grid corners.</div>
+                    </div>
+                  </div>
+
+                </div>
+              </details>
             </div>
           </div>
 
