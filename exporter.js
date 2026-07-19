@@ -184,7 +184,7 @@ const Exporter = {
       onProgress(100, "Starting download...");
     }
     try {
-      this._downloadBinary(buffer, "model.stl", "application/octet-stream");
+      this._download(buffer, "model.stl", "application/octet-stream");
     } catch (e) {
       console.error("STL Download failed:", e);
       if (typeof onProgress === "function") {
@@ -219,11 +219,11 @@ const Exporter = {
   },
 
   /**
-   * Downloads text content (OBJ).
+   * Downloads content as a file via a temporary anchor element.
    */
-  _download(text, filename, mime) {
+  _download(blobSource, filename, mime) {
     try {
-      const blob = new Blob([text], { type: mime });
+      const blob = new Blob([blobSource], { type: mime });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -233,27 +233,7 @@ const Exporter = {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
-      console.error("Error during text download:", e);
-      throw new Error("Failed to initiate file download.", { cause: e });
-    }
-  },
-
-  /**
-   * Downloads binary content (STL).
-   */
-  _downloadBinary(buffer, filename, mime) {
-    try {
-      const blob = new Blob([buffer], { type: mime });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error("Error during binary download:", e);
+      console.error("Download failed:", e);
       throw new Error("Failed to initiate file download.", { cause: e });
     }
   },

@@ -244,7 +244,7 @@
                   <span class="slider-val-badge" id="label-colors-count"></span>
                 </div>
                 <div class="slider-row align-center">
-                  <button class="btn-step" id="colors-count-down">
+                  <button type="button" class="btn-step" id="colors-count-down">
                     <i class="fas fa-minus"></i>
                   </button>
                   <input
@@ -253,7 +253,7 @@
                     min="1"
                     max="16"
                   />
-                  <button class="btn-step" id="colors-count-up">
+                  <button type="button" class="btn-step" id="colors-count-up">
                     <i class="fas fa-plus"></i>
                   </button>
                 </div>
@@ -261,6 +261,7 @@
 
               <div class="btn-row">
                 <button
+                  type="button"
                   class="btn-secondary"
                   id="btn-match-colors"
                   title="Extract colors from image"
@@ -268,6 +269,7 @@
                   <i class="fas fa-image"></i> Match
                 </button>
                 <button
+                  type="button"
                   class="btn-secondary"
                   id="btn-auto-distribute"
                   title="Distribute start heights evenly"
@@ -346,13 +348,14 @@
 
           <div class="glass-panel panel-footer">
             <div class="export-card">
-              <button class="btn-primary-glow btn-save" id="btn-save">
+              <button type="button" class="btn-primary-glow btn-save" id="btn-save">
                 <i class="fas fa-floppy-disk"></i> Save Project
               </button>
-              <button class="btn-primary-glow btn-export-obj" id="btn-export">
+              <button type="button" class="btn-primary-glow btn-export-obj" id="btn-export">
                 <i class="fas fa-download"></i> Export OBJ for BambuStudio
               </button>
               <button
+                type="button"
                 class="btn-primary-glow btn-export-stl"
                 id="btn-export-stl"
                 onclick="exportSTL()"
@@ -395,13 +398,14 @@
             <div class="panel-toolbar">
               <h2><i class="fas fa-eye"></i> Live Simulation Previews</h2>
               <div class="viewport-tabs">
-                <button class="tab-btn active" onclick="switchTab('2d')">
+                <button type="button" class="tab-btn active" onclick="switchTab('2d')">
                   <i class="fas fa-layer-group"></i> 2D Stack
                 </button>
-                <button class="tab-btn" id="tab-3d" onclick="switchTab('3d')">
+                <button type="button" class="tab-btn" id="tab-3d" onclick="switchTab('3d')">
                   <i class="fas fa-cube"></i> 3D Render
                 </button>
                 <button
+                  type="button"
                   class="tab-btn"
                   id="tab-filament"
                   onclick="switchTab('filament')"
@@ -418,6 +422,7 @@
                   <div class="layer-nav hidden" id="layer-nav">
                     <button
                       class="layer-nav-btn"
+                      type="button"
                       onclick="prev2DLayer()"
                       id="btn-prev-layer"
                     >
@@ -425,6 +430,7 @@
                     </button>
                     <button
                       class="layer-nav-btn"
+                      type="button"
                       onclick="next2DLayer()"
                       id="btn-next-layer"
                     >
@@ -435,6 +441,7 @@
                   <div class="ff-toolbar hidden" id="ff-toolbar">
                     <div class="ff-toolbar-row">
                       <button
+                        type="button"
                         class="ff-btn"
                         id="ff-toggle-btn"
                         onclick="toggleFloodFillMode()"
@@ -443,6 +450,7 @@
                         <i class="fas fa-paintbrush"></i> Fill Select
                       </button>
                       <button
+                        type="button"
                         class="ff-btn hidden"
                         id="ff-clear-btn"
                         onclick="clearAllRegions()"
@@ -467,6 +475,7 @@
                           title="Override color"
                         />
                         <button
+                          type="button"
                           class="ff-apply-btn"
                           id="ff-apply-btn"
                           onclick="applyRegionColor()"
@@ -483,6 +492,7 @@
                 <div id="container-3d"></div>
                 <div class="plate-selector" id="plate-selector">
                   <button
+                    type="button"
                     class="plate-btn active"
                     data-plate="0"
                     title="185 × 185 mm"
@@ -587,46 +597,48 @@
 
     <div class="modal-overlay hidden" id="auth-modal-overlay">
       <div class="modal-box pos-relative">
-        <div class="modal-header">
-          <h2 id="auth-modal-title">Sign In</h2>
-          <button class="modal-close" onclick="closeAuthModal()">
-            <i class="fas fa-xmark"></i>
+        <form id="auth-form" novalidate>
+          <div class="modal-header">
+            <h2 id="auth-modal-title">Sign In</h2>
+            <button type="button" class="modal-close" onclick="closeAuthModal()">
+              <i class="fas fa-xmark"></i>
+            </button>
+          </div>
+          <div class="input-group">
+            <label for="auth-input-username">Username</label>
+            <div class="input-wrapper">
+              <input
+                type="text"
+                id="auth-input-username"
+                autocomplete="username"
+                placeholder="Enter your username"
+              />
+            </div>
+          </div>
+          <div class="input-group">
+            <label for="auth-input-password">Password</label>
+            <div class="input-wrapper">
+              <input
+                type="password"
+                id="auth-input-password"
+                autocomplete="current-password"
+                placeholder="Enter your password"
+              />
+            </div>
+          </div>
+          <div class="modal-error" id="auth-modal-error"></div>
+          <button
+            type="submit"
+            class="btn-primary-glow"
+            id="auth-modal-submit"
+          >
+            Sign In
           </button>
-        </div>
-        <div class="input-group">
-          <label for="auth-input-username">Username</label>
-          <div class="input-wrapper">
-            <input
-              type="text"
-              id="auth-input-username"
-              autocomplete="username"
-              placeholder="Enter your username"
-            />
+          <div class="modal-toggle">
+            <span id="auth-modal-toggle-text">Don't have an account? </span>
+            <a id="auth-modal-toggle-link">Sign Up</a>
           </div>
-        </div>
-        <div class="input-group">
-          <label for="auth-input-password">Password</label>
-          <div class="input-wrapper">
-            <input
-              type="password"
-              id="auth-input-password"
-              autocomplete="current-password"
-              placeholder="Enter your password"
-            />
-          </div>
-        </div>
-        <div class="modal-error" id="auth-modal-error"></div>
-        <button
-          class="btn-primary-glow"
-          id="auth-modal-submit"
-          onclick="submitAuthForm()"
-        >
-          Sign In
-        </button>
-        <div class="modal-toggle">
-          <span id="auth-modal-toggle-text">Don't have an account? </span>
-          <a id="auth-modal-toggle-link">Sign Up</a>
-        </div>
+        </form>
       </div>
     </div>
 

@@ -8,7 +8,6 @@
   /* Widget heights */
   --h-sm: 28px;
   --h-md: 36px;
-  --h-lg: 44px;
 
   /* Radii */
   --radius-sm: 8px;
@@ -27,9 +26,7 @@
   --text-disabled: rgba(17, 24, 39, 0.38);
   --text-inverse: #ffffff;
   --text-sub: rgba(17, 24, 39, 0.45);
-  --shadow-lg: 0 8px 32px rgba(15, 23, 42, 0.06);
   --shadow-soft: 0 4px 16px rgba(15, 23, 42, 0.1);
-  --shadow-firm: 0 8px 32px rgba(15, 23, 42, 0.18);
 
   /* Fonts */
   --font-body: "Poppins", sans-serif;
@@ -204,12 +201,6 @@ body {
   box-shadow: none;
 }
 
-.logo-icon svg {
-  width: 24px;
-  height: 24px;
-  stroke: #fff;
-}
-
 .logo-img {
   width: 100%;
   height: 100%;
@@ -263,10 +254,6 @@ h1 {
   flex: 1;
   min-height: 0;
   height: 0;
-}
-
-.preview-column > .preview-card > .panel-header {
-  flex-shrink: 0;
 }
 
 .preview-column > .preview-card .view-content-wrapper {
@@ -501,16 +488,6 @@ h1 {
   transition: all 0.2s;
 }
 
-.btn-sm {
-  padding: 4px 12px;
-  font-size: var(--text-xs);
-}
-
-.btn-primary {
-  background: var(--accent);
-  color: white;
-  border: none;
-}
 
 h2 {
   font-family: var(--font-header);
@@ -767,12 +744,6 @@ input:checked + .slider-switch:before {
 }
 
 /* Filament list and columns */
-.color-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
 .btn-secondary {
   background: #ffffff;
   border: 1px solid var(--border);
@@ -1749,13 +1720,6 @@ tr:last-child td {
   display: none;
 }
 
-.preview-empty .empty-icon {
-  width: 48px;
-  height: 48px;
-  color: var(--border);
-  margin-bottom: 4px;
-}
-
 .preview-empty .empty-text {
   font-size: var(--text-sm);
   font-weight: 600;
@@ -2262,17 +2226,6 @@ tr:last-child td {
   flex: none;
 }
 
-.dash-toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-}
-
-.dash-toggle-label {
-  font-size: var(--text-sm);
-  color: var(--text-main);
-}
 
 .dash-select {
   padding: 0 10px;
@@ -2326,9 +2279,6 @@ tr:last-child td {
 }
 
 /* Utility classes */
-.mb-8 {
-  margin-bottom: 8px;
-}
 .mb-16 {
   margin-bottom: 16px;
 }
@@ -2337,9 +2287,6 @@ tr:last-child td {
 }
 .mt-16 {
   margin-top: 16px;
-}
-.mt-auto {
-  margin-top: auto;
 }
 .panel-footer {
   padding: 16px;
@@ -2362,9 +2309,6 @@ tr:last-child td {
 .flex-1 {
   flex: 1;
   min-height: 0;
-}
-.w-40 {
-  width: 40px;
 }
 .w-70 {
   width: 70px;

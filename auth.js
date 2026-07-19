@@ -293,20 +293,17 @@ async function submitAuthForm() {
 
 function initAuth() {
   const overlay = document.getElementById("auth-modal-overlay");
+  const authForm = document.getElementById("auth-form");
+  if (authForm) {
+    authForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      submitAuthForm();
+    });
+  }
   if (overlay) {
     overlay.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         closeAuthModal();
-      }
-    });
-    ["auth-input-username", "auth-input-password"].forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.addEventListener("keydown", (e) => {
-          if (e.key === "Enter") {
-            submitAuthForm();
-          }
-        });
       }
     });
   }

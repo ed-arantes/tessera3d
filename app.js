@@ -47,23 +47,28 @@ const state = {
 
 // Preset palette colors for adding new layers
 const PRESET_COLORS = [
-  "#0a0a0a", // Dark Gray/Black
-  "#3b82f6", // Blue
-  "#ef4444", // Red
-  "#ffffff", // White
-  "#10b981", // Green
-  "#f59e0b", // Yellow
-  "#8b5cf6", // Purple
-  "#ec4899", // Pink
-  "#f97316", // Orange
-  "#06b6d4", // Cyan
-  "#6b7280", // Gray
-  "#78350f", // Brown
-  "#a855f7", // Light Purple
-  "#fb7185", // Rose
-  "#84cc16", // Lime
-  "#eab308", // Gold
+  "#0a0a0a",
+  "#3b82f6",
+  "#ef4444",
+  "#ffffff",
+  "#10b981",
+  "#f59e0b",
+  "#8b5cf6",
+  "#ec4899",
+  "#f97316",
+  "#06b6d4",
+  "#6b7280",
+  "#78350f",
+  "#a855f7",
+  "#fb7185",
+  "#84cc16",
+  "#eab308",
 ];
+
+const TRANSMISSION_BASE = 0.05;
+const DEFAULT_TD = 2.0;
+const ALPHA_THRESHOLD = 128;
+const COLOR_BIN_SIZE = 24;
 
 // Three.js variables
 let scene, camera, renderer, controls;
@@ -152,6 +157,8 @@ let exportProgressContainer,
   exportProgressStatus,
   exportProgressFill,
   exportProgressMeta;
+let pane3D, previewSpinner, previewEmpty, layerNav, ffToolbar;
+let pane2d, paneFilament;
 
 // View Cube
 let vcRenderer, vcScene, vcCamera, vcCube;
@@ -198,12 +205,11 @@ async function loadFilaments() {
 }
 
 function showEmptyState() {
-  document.getElementById("preview-spinner").classList.add("hidden");
-  document.getElementById("preview-empty").classList.remove("hidden");
-  document.getElementById("layer-nav").classList.add("hidden");
-  const ffTb = document.getElementById("ff-toolbar");
-  if (ffTb) {
-    ffTb.classList.add("hidden");
+  previewSpinner.classList.add("hidden");
+  previewEmpty.classList.remove("hidden");
+  layerNav.classList.add("hidden");
+  if (ffToolbar) {
+    ffToolbar.classList.add("hidden");
   }
   updateTabsForImage();
 }
@@ -242,6 +248,13 @@ function initDOM() {
   exportProgressStatus = document.getElementById("export-progress-status");
   exportProgressFill = document.getElementById("export-progress-fill");
   exportProgressMeta = document.getElementById("export-progress-meta");
+  pane3D = document.getElementById("pane-3d");
+  previewSpinner = document.getElementById("preview-spinner");
+  previewEmpty = document.getElementById("preview-empty");
+  layerNav = document.getElementById("layer-nav");
+  ffToolbar = document.getElementById("ff-toolbar");
+  pane2d = document.getElementById("pane-2d");
+  paneFilament = document.getElementById("pane-filament");
 }
 
 // Initialize Three.js Viewport
@@ -274,7 +287,6 @@ function initThreeJS() {
 
   const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
   dirLight1.position.set(100, -100, 150);
-  // dirLight1.castShadow = true;
   scene.add(dirLight1);
 
   const dirLight2 = new THREE.DirectionalLight(0xfef3c7, 0.2);
@@ -1200,7 +1212,7 @@ function getAdaptiveLayerCount() {
 
   const pixelCount = state.colorSampleWidth * state.colorSampleHeight;
   const bins = new Map();
-  const binSize = 24;
+  const binSize = COLOR_BIN_SIZE;
 
   for (let i = 0; i < pixelCount; i++) {
     const r = state.colorSampleRGB[i * 3];
@@ -1451,8 +1463,7 @@ function renderLayersList() {
     row.className = "layer-row";
 
     const isBase = idx === 0;
-    const layerNum =
-      layer.startHeight === 0 ? 1 : Math.round(layer.startHeight / lh);
+    const layerNum = layer.startHeight === 0 ? 1 : Math.round(layer.startHeight / lh);
 
     row.draggable = !isBase;
     row.setAttribute("data-layer-index", idx);
@@ -1460,19 +1471,19 @@ function renderLayersList() {
       <div class="layer-info">
         <span class="layer-title">Color ${idx + 1}</span>
         <div class="spacer"></div>
-        <button class="layer-swatch" id="layer-swatch-${idx}" style="background:${layer.hex}" title="Pick filament"></button>
+        <button type="button" class="layer-swatch" id="layer-swatch-${idx}" style="background:${layer.hex}" title="Pick filament"></button>
         <div class="td-input-container">
           <span class="td-label">TD</span>
           <input type="number" class="td-input" value="${layer.td !== undefined ? layer.td : 2.0}" min="0.1" step="0.1" id="layer-td-${idx}">
         </div>
       </div>
       <div class="layer-controls">
-        <button class="btn-step" id="layer-step-down-${idx}" ${isBase ? "disabled" : ""}><i class="fas fa-minus"></i></button>
+        <button type="button" class="btn-step" id="layer-step-down-${idx}" ${isBase ? "disabled" : ""}><i class="fas fa-minus"></i></button>
         <input type="range" class="height-slider" min="0" max="${state.maxHeight}" step="${state.layerHeight}" 
                value="${layer.startHeight}" ${isBase ? "disabled" : ""} id="layer-slider-${idx}">
-        <button class="btn-step" id="layer-step-up-${idx}" ${isBase ? "disabled" : ""}><i class="fas fa-plus"></i></button>
+        <button type="button" class="btn-step" id="layer-step-up-${idx}" ${isBase ? "disabled" : ""}><i class="fas fa-plus"></i></button>
         <span class="slider-value" id="layer-val-${idx}">L${layerNum} (${(layer.startHeight + lh).toFixed(2)} mm)</span>
-        <button class="btn-step btn-remove-layer" id="layer-remove-${idx}" ${isBase ? "disabled" : ""} title="Remove this layer"><i class="fas fa-xmark"></i></button>
+        <button type="button" class="btn-step btn-remove-layer" id="layer-remove-${idx}" ${isBase ? "disabled" : ""} title="Remove this layer"><i class="fas fa-xmark"></i></button>
       </div>
     `;
 
@@ -1687,7 +1698,6 @@ async function updateMeshColorsOnly() {
     const colorData = mesh.geometry.attributes.color.array;
 
     if (state.simulateTransmission && state.layers.length > 0) {
-      // TD mode: color varies per vertex based on height → full per-vertex loop
       const posData = mesh.geometry.attributes.position.array;
       const scaleX = state.widthMm;
       const scaleY = state.heightMm;
@@ -1696,40 +1706,17 @@ async function updateMeshColorsOnly() {
         const py = posData[i + 1];
         const x = Math.round((px / scaleX + 0.5) * (cols - 1));
         const y = Math.round((-py / scaleY + 0.5) * (rows - 1));
-        let currentR = 0,
-          currentG = 0,
-          currentB = 0;
         if (x >= 0 && x < cols && y >= 0 && y < rows) {
           const h = heights[y * cols + x];
-          for (let j = 0; j <= layerIndex; j++) {
-            const lStart = state.layers[j].startHeight;
-            const lEnd =
-              j + 1 < state.layers.length
-                ? state.layers[j + 1].startHeight
-                : state.maxHeight;
-            if (h > lStart) {
-              const thickness = Math.min(h, lEnd) - lStart;
-              if (thickness > 0) {
-                const layerTD =
-                  state.layers[j].td !== undefined ? state.layers[j].td : 2.0;
-                const opacity = 1.0 - Math.pow(0.05, thickness / layerTD);
-                const rgb = hexToRgb(state.layers[j].hex);
-                if (j === 0) {
-                  currentR = rgb.r;
-                  currentG = rgb.g;
-                  currentB = rgb.b;
-                } else {
-                  currentR = currentR * (1 - opacity) + rgb.r * opacity;
-                  currentG = currentG * (1 - opacity) + rgb.g * opacity;
-                  currentB = currentB * (1 - opacity) + rgb.b * opacity;
-                }
-              }
-            }
-          }
+          const c = computeTransmissionColor(h, layerIndex);
+          colorData[i] = c.r / 255;
+          colorData[i + 1] = c.g / 255;
+          colorData[i + 2] = c.b / 255;
+        } else {
+          colorData[i] = 0;
+          colorData[i + 1] = 0;
+          colorData[i + 2] = 0;
         }
-        colorData[i] = currentR / 255;
-        colorData[i + 1] = currentG / 255;
-        colorData[i + 2] = currentB / 255;
       }
     } else {
       // Non-TD mode: entire mesh is a single flat color → bulk fill
@@ -1759,9 +1746,7 @@ function debounceUpdate() {
     clearTimeout(renderDebounceTimer);
   }
 
-  const is3DActive = document
-    .getElementById("pane-3d")
-    ?.classList.contains("active");
+  const is3DActive = pane3D?.classList.contains("active");
 
   if (is3DActive) {
     showPreviewSpinner("Rendering...");
@@ -1784,7 +1769,7 @@ function debounceUpdate() {
     renderDebounceTimer = null;
 
     // If 3D tab is no longer active, skip the heavy work
-    if (!document.getElementById("pane-3d")?.classList.contains("active")) {
+    if (!pane3D?.classList.contains("active")) {
       updateTransitionTable();
       hidePreviewSpinner();
       return;
@@ -1876,11 +1861,10 @@ function yieldToUI() {
 }
 
 function showPreviewSpinner(text) {
-  document.getElementById("preview-empty").classList.add("hidden");
-  const spinner = document.getElementById("preview-spinner");
+  previewEmpty.classList.add("hidden");
   const textEl = document.getElementById("preview-spinner-text");
-  if (spinner) {
-    spinner.classList.remove("hidden");
+  if (previewSpinner) {
+    previewSpinner.classList.remove("hidden");
   }
   if (textEl && text) {
     textEl.textContent = text;
@@ -1888,19 +1872,17 @@ function showPreviewSpinner(text) {
 }
 
 function hidePreviewSpinner() {
-  document.getElementById("preview-spinner").classList.add("hidden");
+  previewSpinner.classList.add("hidden");
   if (!state.rawLuminance) {
-    document.getElementById("preview-empty").classList.remove("hidden");
-    document.getElementById("layer-nav").classList.add("hidden");
-    const ffTb = document.getElementById("ff-toolbar");
-    if (ffTb) {
-      ffTb.classList.add("hidden");
+    previewEmpty.classList.remove("hidden");
+    layerNav.classList.add("hidden");
+    if (ffToolbar) {
+      ffToolbar.classList.add("hidden");
     }
   } else {
-    document.getElementById("layer-nav").classList.remove("hidden");
-    const ffTb = document.getElementById("ff-toolbar");
-    if (ffTb) {
-      ffTb.classList.remove("hidden");
+    layerNav.classList.remove("hidden");
+    if (ffToolbar) {
+      ffToolbar.classList.remove("hidden");
     }
   }
 }
@@ -1913,6 +1895,38 @@ function hexToRgb(hex) {
     g: parseInt(hex.slice(3, 5), 16),
     b: parseInt(hex.slice(5, 7), 16),
   };
+}
+
+function computeTransmissionColor(h, layerIndex) {
+  let r = 0,
+    g = 0,
+    b = 0;
+  for (let j = 0; j <= layerIndex; j++) {
+    const lStart = state.layers[j].startHeight;
+    const lEnd =
+      j + 1 < state.layers.length
+        ? state.layers[j + 1].startHeight
+        : state.maxHeight;
+    if (h > lStart) {
+      const thickness = Math.min(h, lEnd) - lStart;
+      if (thickness > 0) {
+        const layerTD =
+          state.layers[j].td !== undefined ? state.layers[j].td : DEFAULT_TD;
+        const opacity = 1.0 - Math.pow(TRANSMISSION_BASE, thickness / layerTD);
+        const rgb = hexToRgb(state.layers[j].hex);
+        if (j === 0) {
+          r = rgb.r;
+          g = rgb.g;
+          b = rgb.b;
+        } else {
+          r = r * (1 - opacity) + rgb.r * opacity;
+          g = g * (1 - opacity) + rgb.g * opacity;
+          b = b * (1 - opacity) + rgb.b * opacity;
+        }
+      }
+    }
+  }
+  return { r, g, b };
 }
 
 // ── 2D Rendering ─────────────────────────────────────────────────────────────
@@ -1971,7 +1985,7 @@ function draw2DSimulation() {
         }
       }
 
-      if (state.rawAlpha && state.rawAlpha[i] < 128) {
+      if (state.rawAlpha && state.rawAlpha[i] < ALPHA_THRESHOLD) {
         data[i * 4] = 0;
         data[i * 4 + 1] = 0;
         data[i * 4 + 2] = 0;
@@ -1980,37 +1994,10 @@ function draw2DSimulation() {
       }
 
       if (state.simulateTransmission && state.layers.length > 0) {
-        let cr = 0,
-          cg = 0,
-          cb = 0;
-        for (let j = 0; j <= idx; j++) {
-          const ls = state.layers[j].startHeight;
-          const le =
-            j + 1 < state.layers.length
-              ? state.layers[j + 1].startHeight
-              : state.maxHeight;
-          if (h > ls) {
-            const t = Math.min(h, le) - ls;
-            if (t > 0) {
-              const td =
-                state.layers[j].td !== undefined ? state.layers[j].td : 2.0;
-              const op = 1.0 - Math.pow(0.05, t / td);
-              const rgb = hexToRgb(state.layers[j].hex);
-              if (j === 0) {
-                cr = rgb.r;
-                cg = rgb.g;
-                cb = rgb.b;
-              } else {
-                cr = cr * (1 - op) + rgb.r * op;
-                cg = cg * (1 - op) + rgb.g * op;
-                cb = cb * (1 - op) + rgb.b * op;
-              }
-            }
-          }
-        }
-        r = cr;
-        g = cg;
-        b = cb;
+        const c = computeTransmissionColor(h, idx);
+        r = c.r;
+        g = c.g;
+        b = c.b;
       } else {
         let li = 0;
         for (let j = 1; j <= idx; j++) {
@@ -2436,7 +2423,7 @@ function updateRegionPanel() {
       return `<div class="ff-region-item${isSelected ? " selected" : ""}" onclick="selectRegionFromPanel(${rid})">
       <div class="ff-region-swatch" style="background:${hex}"></div>
       <span class="ff-region-label">Region ${parseInt(rid) + 1}</span>
-      <button class="ff-region-del" onclick="event.stopPropagation();deleteRegion(${rid})" title="Remove region"><i class="fas fa-xmark"></i></button>
+      <button type="button" class="ff-region-del" onclick="event.stopPropagation();deleteRegion(${rid})" title="Remove region"><i class="fas fa-xmark"></i></button>
     </div>`;
     })
     .join("");
@@ -2525,7 +2512,6 @@ async function update3DPreview() {
     return;
   }
 
-  const pane3D = document.getElementById("pane-3d");
   if (pane3D && !pane3D.classList.contains("active")) {
     return;
   }
@@ -3149,37 +3135,10 @@ function buildLayerGeometry(
         // Calculate Vertex Color (Simulate Transmission)
         let r, g, b;
         if (state.simulateTransmission && state.layers.length > 0) {
-          let currentR = 0,
-            currentG = 0,
-            currentB = 0;
-          for (let j = 0; j <= layerIndex; j++) {
-            const lStart = state.layers[j].startHeight;
-            const lEnd =
-              j + 1 < state.layers.length
-                ? state.layers[j + 1].startHeight
-                : state.maxHeight;
-            if (h > lStart) {
-              const thickness = Math.min(h, lEnd) - lStart;
-              if (thickness > 0) {
-                const layerTD =
-                  state.layers[j].td !== undefined ? state.layers[j].td : 2.0;
-                const opacity = 1.0 - Math.pow(0.05, thickness / layerTD);
-                const rgb = hexToRgb(state.layers[j].hex);
-                if (j === 0) {
-                  currentR = rgb.r;
-                  currentG = rgb.g;
-                  currentB = rgb.b;
-                } else {
-                  currentR = currentR * (1 - opacity) + rgb.r * opacity;
-                  currentG = currentG * (1 - opacity) + rgb.g * opacity;
-                  currentB = currentB * (1 - opacity) + rgb.b * opacity;
-                }
-              }
-            }
-          }
-          r = currentR / 255;
-          g = currentG / 255;
-          b = currentB / 255;
+          const c = computeTransmissionColor(h, layerIndex);
+          r = c.r / 255;
+          g = c.g / 255;
+          b = c.b / 255;
         } else {
           const baseC = hexToRgb(state.layers[layerIndex].hex);
           r = baseC.r / 255;
@@ -4025,11 +3984,11 @@ function switchTab(tab) {
 
   if (tab === "2d") {
     document.querySelector(".tab-btn:nth-child(1)").classList.add("active");
-    document.getElementById("pane-2d").classList.add("active");
+    pane2d.classList.add("active");
     draw2DSimulation();
   } else if (tab === "3d") {
     document.querySelector(".tab-btn:nth-child(2)").classList.add("active");
-    document.getElementById("pane-3d").classList.add("active");
+    pane3D.classList.add("active");
     showPreviewSpinner("Rendering...");
     new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
       .then(() => update3DPreview())
@@ -4037,7 +3996,7 @@ function switchTab(tab) {
     window.dispatchEvent(new Event("resize"));
   } else if (tab === "filament") {
     document.querySelector(".tab-btn:nth-child(3)").classList.add("active");
-    document.getElementById("pane-filament").classList.add("active");
+    paneFilament.classList.add("active");
     updateTransitionTable();
   }
 }
@@ -4049,20 +4008,17 @@ function togglePanel(header) {
 
   if (
     isCollapsed &&
-    (header.id === "header-color-layers" || header.id === "header-puzzle")
+    (header.id === "header-color-layers" || header.id === "header-puzzle") &&
+    !state.image
   ) {
-    if (!state.image) {
-      return;
-    }
+    return;
   }
 
   const parent = panel.parentElement;
   parent
     .querySelectorAll(".collapsible")
     .forEach((p) => p.classList.add("collapsed"));
-  if (isCollapsed) {
-    panel.classList.remove("collapsed");
-  }
+  panel.classList.toggle("collapsed", !isCollapsed);
 
   const allCollapsed = [...parent.querySelectorAll(".collapsible")].every((p) =>
     p.classList.contains("collapsed"),
