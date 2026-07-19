@@ -30,8 +30,11 @@ const state = {
   // Puzzle Settings
   puzzleEnabled: false,
   puzzleCols: 3,
-  puzzleRows: 3,
-  puzzleClearanceMm: 0.15,
+  puzzleRows: 5,
+  puzzleClearanceMm: 0.1,
+  puzzleRandomness: 1.5,
+  puzzleWave: 0.15,
+  puzzleMaxOffset: 0.1,
 
   // Color Layers
   layers: [
@@ -115,7 +118,7 @@ function get2DRenderCacheKey() {
   const layerState = state.layers
     .map((l) => `${l.hex}:${l.startHeight}:${l.td ?? 2}`)
     .join("|");
-  return `${_cachedHeightsKey}|${current2DLayerIndex}|${state.simulateTransmission}|${state.posterize}|${layerState}|${state.puzzleEnabled}`;
+  return `${_cachedHeightsKey}|${current2DLayerIndex}|${state.simulateTransmission}|${state.posterize}|${layerState}|${state.puzzleEnabled}|${state.puzzleWave}|${state.puzzleRandomness}|${state.puzzleMaxOffset}`;
 }
 
 function ensure2DBaseCache(cols, rows) {
@@ -888,6 +891,39 @@ function setupEventListeners() {
     puzClearanceLabel.textContent = state.puzzleClearanceMm.toFixed(2) + " mm";
     debounceUpdate();
   });
+
+  const puzRandomness = document.getElementById("input-puzzle-randomness");
+  const puzRandomnessLabel = document.getElementById("label-randomness-val");
+  puzRandomness.addEventListener("input", (e) => {
+    state.puzzleRandomness = Math.min(
+      3,
+      Math.max(0, parseFloat(e.target.value) || 0),
+    );
+    puzRandomnessLabel.textContent = state.puzzleRandomness.toFixed(1);
+    debounceUpdate();
+  });
+
+  const puzWave = document.getElementById("input-puzzle-wave");
+  const puzWaveLabel = document.getElementById("label-wave-val");
+  puzWave.addEventListener("input", (e) => {
+    state.puzzleWave = Math.min(
+      0.3,
+      Math.max(0, parseFloat(e.target.value) || 0),
+    );
+    puzWaveLabel.textContent = state.puzzleWave.toFixed(2);
+    debounceUpdate();
+  });
+
+  const puzOffset = document.getElementById("input-puzzle-offset");
+  const puzOffsetLabel = document.getElementById("label-offset-val");
+  puzOffset.addEventListener("input", (e) => {
+    state.puzzleMaxOffset = Math.min(
+      0.3,
+      Math.max(0, parseFloat(e.target.value) || 0),
+    );
+    puzOffsetLabel.textContent = state.puzzleMaxOffset.toFixed(2);
+    debounceUpdate();
+  });
   // Auto-distribute button
   btnAutoDistribute.addEventListener("click", () => {
     const targetCount = Math.max(1, state.layers.length);
@@ -1632,6 +1668,20 @@ function updateUIFromState() {
   document.getElementById("label-clearance-val").textContent =
     state.puzzleClearanceMm.toFixed(2) + " mm";
 
+  document.getElementById("input-puzzle-randomness").value =
+    state.puzzleRandomness;
+  document.getElementById("label-randomness-val").textContent =
+    state.puzzleRandomness.toFixed(1);
+
+  document.getElementById("input-puzzle-wave").value = state.puzzleWave;
+  document.getElementById("label-wave-val").textContent =
+    state.puzzleWave.toFixed(2);
+
+  document.getElementById("input-puzzle-offset").value =
+    state.puzzleMaxOffset;
+  document.getElementById("label-offset-val").textContent =
+    state.puzzleMaxOffset.toFixed(2);
+
   document.getElementById("input-colors-count").value = state.layersCount;
   document.getElementById("label-colors-count").textContent = state.layersCount;
 
@@ -2115,6 +2165,7 @@ function draw2DSimulation() {
       state.puzzleCols,
       state.puzzleRows,
       cellSize,
+      state.puzzleWave,
     );
   } else {
     ctx.strokeStyle = "rgba(0,0,0,0.06)";
@@ -2557,6 +2608,7 @@ async function update3DPreview() {
       state.puzzleClearanceMm,
       scaleX,
       scaleY,
+      state.puzzleWave,
     );
     numPieces = state.puzzleCols * state.puzzleRows;
   }
@@ -2698,22 +2750,23 @@ function updateTransitionTable() {
 let _puzzleEdgeCache = null;
 let _puzzleEdgeCacheKey = "";
 
-function getBalancedPuzzleParams() {
-  const tabRatio = 0.18 + (Math.random() - 0.5) * 0.04;
-  const neckRatio = 0.06 + (Math.random() - 0.5) * 0.015;
-  const headRatio = 0.13 + (Math.random() - 0.5) * 0.02;
-  const bowRatio = 0.012 + (Math.random() - 0.5) * 0.012;
+function getBalancedPuzzleParams(randomness, maxOffset) {
+  const tabRatio = 0.18 + (Math.random() - 0.5) * 0.04 * randomness;
+  const neckRatio = 0.06 + (Math.random() - 0.5) * 0.015 * randomness;
+  const headRatio = 0.13 + (Math.random() - 0.5) * 0.02 * randomness;
+  
+  const pinOffset = (Math.random() - 0.5) * maxOffset * 2;
 
   return {
     tabRatio: Math.max(0.13, Math.min(0.24, tabRatio)),
     neckRatio: Math.max(0.04, Math.min(0.09, neckRatio)),
     headRatio: Math.max(0.1, Math.min(0.17, headRatio)),
-    bowRatio: Math.max(0.002, Math.min(0.03, bowRatio)),
+    pinOffset: pinOffset
   };
 }
 
-function generateEdges(cols, rows) {
-  const key = cols + "x" + rows;
+function generateEdges(cols, rows, randomness, maxOffset) {
+  const key = cols + "x" + rows + "|r" + randomness + "|o" + maxOffset;
   if (_puzzleEdgeCache && _puzzleEdgeCacheKey === key) {
     return _puzzleEdgeCache;
   }
@@ -2725,7 +2778,7 @@ function generateEdges(cols, rows) {
     const rowParams = [];
     for (let c = 0; c < cols - 1; c++) {
       rowEdges.push(Math.random() > 0.5 ? 1 : -1);
-      rowParams.push(getBalancedPuzzleParams());
+      rowParams.push(getBalancedPuzzleParams(randomness, maxOffset));
     }
     vEdges.push(rowEdges);
     vEdgeParams.push(rowParams);
@@ -2738,7 +2791,7 @@ function generateEdges(cols, rows) {
     const rowParams = [];
     for (let c = 0; c < cols; c++) {
       rowEdges.push(Math.random() > 0.5 ? 1 : -1);
-      rowParams.push(getBalancedPuzzleParams());
+      rowParams.push(getBalancedPuzzleParams(randomness, maxOffset));
     }
     hEdges.push(rowEdges);
     hEdgeParams.push(rowParams);
@@ -2749,41 +2802,63 @@ function generateEdges(cols, rows) {
   return _puzzleEdgeCache;
 }
 
-function drawJigsawLine(ctx, x0, y0, x1, y1, tabDir, params) {
+function drawJigsawLine(ctx, x0, y0, x1, y1, tabDir, params, waviness, reversed = false) {
   if (tabDir === 0) {
     ctx.lineTo(x1, y1);
     return;
   }
-  const dx = x1 - x0;
-  const dy = y1 - y0;
+  
+  const A_x = reversed ? x1 : x0;
+  const A_y = reversed ? y1 : y0;
+  const B_x = reversed ? x0 : x1;
+  const B_y = reversed ? y0 : y1;
+
+  const dx = B_x - A_x;
+  const dy = B_y - A_y;
   const len = Math.sqrt(dx * dx + dy * dy);
   const nx = dx / len;
   const ny = dy / len;
   const px = -ny;
   const py = nx;
 
-  const cx = len / 2;
+  const offsetAmt = params ? params.pinOffset : 0;
+  const cx = len * (0.5 + offsetAmt);
+
   const neck = len * (params ? params.neckRatio : 0.08);
   const head = len * (params ? params.headRatio : 0.16);
   const h = len * (params ? params.tabRatio : 0.22) * -tabDir;
-  const bow = len * (params ? params.bowRatio : 0.03) * tabDir;
 
-  function lb(lx, ly, lx2, ly2, lx3, ly3) {
-    ctx.bezierCurveTo(
-      x0 + lx * nx + ly * px,
-      y0 + lx * ny + ly * py,
-      x0 + lx2 * nx + ly2 * px,
-      y0 + lx2 * ny + ly2 * py,
-      x0 + lx3 * nx + ly3 * px,
-      y0 + lx3 * ny + ly3 * py,
-    );
+  const wave = len * waviness * tabDir;
+
+  const curves = [];
+  function addCurve(lx, ly, lx2, ly2, lx3, ly3) {
+    curves.push([
+      A_x + lx * nx + ly * px, A_y + lx * ny + ly * py,
+      A_x + lx2 * nx + ly2 * px, A_y + lx2 * ny + ly2 * py,
+      A_x + lx3 * nx + ly3 * px, A_y + lx3 * ny + ly3 * py,
+    ]);
   }
 
-  lb(0.15 * len, bow, 0.35 * len, bow, cx - neck, 0);
-  lb(cx - neck, h * 0.2, cx - head, h * 0.5, cx - head, h * 0.7);
-  lb(cx - head, h * 1.15, cx + head, h * 1.15, cx + head, h * 0.7);
-  lb(cx + head, h * 0.5, cx + neck, h * 0.2, cx + neck, 0);
-  lb(0.65 * len, bow, 0.85 * len, bow, len, 0);
+  addCurve(cx * 0.3, wave, cx * 0.7, wave, cx - neck, 0);
+  addCurve(cx - neck, h * 0.2, cx - head, h * 0.5, cx - head, h * 0.7);
+  addCurve(cx - head, h * 1.15, cx + head, h * 1.15, cx + head, h * 0.7);
+  addCurve(cx + head, h * 0.5, cx + neck, h * 0.2, cx + neck, 0);
+
+  const remain = len - cx;
+  addCurve(cx + remain * 0.3, -wave, cx + remain * 0.7, -wave, len, 0);
+
+  if (!reversed) {
+    for (const c of curves) {
+      ctx.bezierCurveTo(c[0], c[1], c[2], c[3], c[4], c[5]);
+    }
+  } else {
+    for (let i = curves.length - 1; i >= 0; i--) {
+      const c = curves[i];
+      const prevX = i === 0 ? A_x : curves[i - 1][4];
+      const prevY = i === 0 ? A_y : curves[i - 1][5];
+      ctx.bezierCurveTo(c[2], c[3], c[0], c[1], prevX, prevY);
+    }
+  }
 }
 
 function drawPuzzleCuts(
@@ -2793,8 +2868,9 @@ function drawPuzzleCuts(
   puzzleCols,
   puzzleRows,
   cellSize,
+  waviness,
 ) {
-  const edges = generateEdges(puzzleCols, puzzleRows);
+  const edges = generateEdges(puzzleCols, puzzleRows, state.puzzleRandomness, state.puzzleMaxOffset);
   const { vEdges, vEdgeParams, hEdges, hEdgeParams } = edges;
 
   const pieceW = (gridCols * cellSize) / puzzleCols;
@@ -2814,7 +2890,7 @@ function drawPuzzleCuts(
       const x1 = (c + 1) * pieceW;
       ctx.beginPath();
       ctx.moveTo(x0, y0);
-      drawJigsawLine(ctx, x0, y0, x1, y0, hEdges[r][c], hEdgeParams[r][c]);
+      drawJigsawLine(ctx, x0, y0, x1, y0, hEdges[r][c], hEdgeParams[r][c], waviness, false);
       ctx.stroke();
     }
   }
@@ -2827,7 +2903,7 @@ function drawPuzzleCuts(
       const y1 = (r + 1) * pieceH;
       ctx.beginPath();
       ctx.moveTo(x0, y0);
-      drawJigsawLine(ctx, x0, y0, x0, y1, vEdges[r][c], vEdgeParams[r][c]);
+      drawJigsawLine(ctx, x0, y0, x0, y1, vEdges[r][c], vEdgeParams[r][c], waviness, false);
       ctx.stroke();
     }
   }
@@ -2840,7 +2916,7 @@ function drawPuzzleCuts(
 }
 
 // Generate a 2D map of puzzle pieces, where each pixel corresponds to a piece ID (1 to N) or 0 (clearance gap)
-function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
+function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY, waviness) {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -2856,6 +2932,8 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
   const { vEdges, vEdgeParams, hEdges, hEdgeParams } = generateEdges(
     cols,
     rows,
+    state.puzzleRandomness,
+    state.puzzleMaxOffset,
   );
 
   // Draw each puzzle piece
@@ -2877,8 +2955,10 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
         y0,
         x1,
         y0,
-        r === 0 ? 0 : -hEdges[r - 1][c],
+        r === 0 ? 0 : hEdges[r - 1][c],
         r === 0 ? null : hEdgeParams[r - 1][c],
+        waviness,
+        false
       );
       // Right edge
       drawJigsawLine(
@@ -2889,6 +2969,8 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
         y1,
         c === cols - 1 ? 0 : vEdges[r][c],
         c === cols - 1 ? null : vEdgeParams[r][c],
+        waviness,
+        false
       );
       // Bottom edge
       drawJigsawLine(
@@ -2899,6 +2981,8 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
         y1,
         r === rows - 1 ? 0 : hEdges[r][c],
         r === rows - 1 ? null : hEdgeParams[r][c],
+        waviness,
+        true
       );
       // Left edge
       drawJigsawLine(
@@ -2907,8 +2991,10 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
         y1,
         x0,
         y0,
-        c === 0 ? 0 : -vEdges[r][c - 1],
+        c === 0 ? 0 : vEdges[r][c - 1],
         c === 0 ? null : vEdgeParams[r][c - 1],
+        waviness,
+        true
       );
 
       ctx.closePath();
@@ -2944,8 +3030,10 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
           y0,
           x1,
           y0,
-          r === 0 ? 0 : -hEdges[r - 1][c],
+          r === 0 ? 0 : hEdges[r - 1][c],
           r === 0 ? null : hEdgeParams[r - 1][c],
+          waviness,
+          false
         );
         drawJigsawLine(
           ctx,
@@ -2955,6 +3043,8 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
           y1,
           c === cols - 1 ? 0 : vEdges[r][c],
           c === cols - 1 ? null : vEdgeParams[r][c],
+          waviness,
+          false
         );
         drawJigsawLine(
           ctx,
@@ -2964,6 +3054,8 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
           y1,
           r === rows - 1 ? 0 : hEdges[r][c],
           r === rows - 1 ? null : hEdgeParams[r][c],
+          waviness,
+          true
         );
         drawJigsawLine(
           ctx,
@@ -2971,8 +3063,10 @@ function generatePuzzleMap(W, H, cols, rows, clearanceMm, scaleX, scaleY) {
           y1,
           x0,
           y0,
-          c === 0 ? 0 : -vEdges[r][c - 1],
+          c === 0 ? 0 : vEdges[r][c - 1],
           c === 0 ? null : vEdgeParams[r][c - 1],
+          waviness,
+          true
         );
         ctx.stroke();
       }
@@ -3254,6 +3348,7 @@ async function export3MF() {
         state.puzzleClearanceMm,
         scaleX,
         scaleY,
+        state.puzzleWave,
       );
       numPieces = state.puzzleCols * state.puzzleRows;
     }
@@ -3383,6 +3478,7 @@ async function exportSTL() {
         state.puzzleClearanceMm,
         scaleX,
         scaleY,
+        state.puzzleWave,
       );
       numPieces = state.puzzleCols * state.puzzleRows;
     }
