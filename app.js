@@ -120,7 +120,7 @@ function get2DRenderCacheKey() {
   const layerState = state.layers
     .map((l) => `${l.hex}:${l.startHeight}:${l.td ?? 2}`)
     .join("|");
-  return `${_cachedHeightsKey}|${current2DLayerIndex}|${state.simulateTransmission}|${state.posterize}|${layerState}|${state.puzzleEnabled}|${state.puzzleWave}|${state.puzzleRandomness}|${state.puzzleMaxOffset}`;
+  return `${_cachedHeightsKey}|${current2DLayerIndex}|${state.simulateTransmission}|${state.posterize}|${layerState}|${state.puzzleEnabled}|${state.puzzleCols}|${state.puzzleRows}|${state.puzzleClearanceMm}|${state.puzzleWave}|${state.puzzleRandomness}|${state.puzzleMaxOffset}|${state.widthMm}|${state.heightMm}`;
 }
 
 function ensure2DBaseCache(cols, rows) {
