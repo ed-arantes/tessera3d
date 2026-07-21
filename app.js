@@ -173,9 +173,25 @@ let vcDragging = false,
 let vcDragMoved = false;
 const vcRaycaster = new THREE.Raycaster();
 const vcMouse = new THREE.Vector2();
-const DEFAULT_CAM_POS = new THREE.Vector3(120, -120, 200);
 const DEFAULT_CAM_TARGET = new THREE.Vector3(0, 0, 0);
 let exportProgressResetTimer = null;
+
+function getHomeCameraPos() {
+  const activeBtn = document.querySelector(".plate-btn.active");
+  const idx = activeBtn ? parseInt(activeBtn.dataset.plate) : 0;
+  const plate = PLATE_DEFS[idx];
+  const maxDim = Math.max(plate.w, plate.h) * 1.4;
+  const fovRad = 45 * Math.PI / 180;
+  const dist = (maxDim / 2) / Math.tan(fovRad / 2);
+  const angle = Math.atan(150 / 180);
+  return new THREE.Vector3(0, -dist * Math.cos(angle), dist * Math.sin(angle));
+}
+const PLATE_DEFS = [
+  { file: "a1m.jpg", w: 185, h: 185 },
+  { file: "a1-x1x2-p1p2.jpg", w: 265, h: 265 },
+  { file: "h2s-h2d.jpg", w: 355, h: 346 },
+  { file: "h2c-a2l.jpg", w: 335, h: 346 },
+];
 let activeExportBtn = null;
 
 // ── Initialization ────────────────────────────────────────────────────────────
@@ -302,15 +318,9 @@ function initThreeJS() {
   scene.add(dirLight2);
 
   // ── Build Plates ──────────────────────────────────────────────
-  const plateDefs = [
-    { file: "a1m.jpg", w: 185, h: 185 },
-    { file: "a1-x1x2-p1p2.jpg", w: 265, h: 265 },
-    { file: "h2s-h2d.jpg", w: 355, h: 346 },
-    { file: "h2c-a2l.jpg", w: 335, h: 346 },
-  ];
   const plateMeshes = [];
 
-  plateDefs.forEach((def, i) => {
+  PLATE_DEFS.forEach((def, i) => {
     const geo = new THREE.PlaneGeometry(def.w, def.h);
     const mat = new THREE.MeshBasicMaterial({ color: 0xe5e7eb });
     const mesh = new THREE.Mesh(geo, mat);
@@ -349,6 +359,7 @@ function initThreeJS() {
         m.visible = i === idx;
       });
       sceneNeedsRender = true;
+      animateCameraTo(getHomeCameraPos(), DEFAULT_CAM_TARGET);
     });
   });
 
@@ -497,7 +508,7 @@ function initViewCube() {
   if (homeBtn) {
     homeBtn.addEventListener("click", (e) => {
       e.stopPropagation();
-      animateCameraTo(DEFAULT_CAM_POS, DEFAULT_CAM_TARGET);
+      animateCameraTo(getHomeCameraPos(), DEFAULT_CAM_TARGET);
     });
   }
 }
@@ -2753,6 +2764,18 @@ function updateModelInfoCard() {
   gridEl.textContent = `${state.gridCols} × ${state.gridRows}`;
   vertsEl.textContent = _modelVertexCount.toLocaleString();
   trisEl.textContent = _modelTriangleCount.toLocaleString();
+
+  const stlBytes = 84 + _modelTriangleCount * 50;
+  const sizeEl2 = document.getElementById("info-filesize");
+  if (sizeEl2) {
+    if (stlBytes < 1024) {
+      sizeEl2.textContent = stlBytes + " B";
+    } else if (stlBytes < 1024 * 1024) {
+      sizeEl2.textContent = (stlBytes / 1024).toFixed(1) + " KB";
+    } else {
+      sizeEl2.textContent = (stlBytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
+  }
 }
 
 // Updates filament transition instructions text/table
