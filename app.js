@@ -29,11 +29,11 @@ const state = {
 
   // Puzzle Settings
   puzzleEnabled: false,
-  puzzleCols: 3,
+  puzzleCols: 5,
   puzzleRows: 5,
   puzzleClearanceMm: 0.1,
-  puzzleRandomness: 1.5,
-  puzzleWave: 0.15,
+  puzzleRandomness: 0.5,
+  puzzleWave: 0.01,
   puzzleMaxOffset: 0.1,
 
   // Color Layers
