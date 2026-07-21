@@ -32,6 +32,7 @@ const state = {
   puzzleCols: 5,
   puzzleRows: 5,
   puzzleClearanceMm: 0.1,
+  puzzleRatioLocked: true,
   puzzleRandomness: 0.5,
   puzzleWave: 0.01,
   puzzleMaxOffset: 0.1,
@@ -227,6 +228,10 @@ function updateTabsForImage() {
   if (tabFil) {
     tabFil.disabled = !hasImage;
   }
+  const colorHeader = document.getElementById("header-color-layers");
+  const puzzleHeader = document.getElementById("header-puzzle");
+  if (colorHeader) colorHeader.classList.toggle("disabled", !hasImage);
+  if (puzzleHeader) puzzleHeader.classList.toggle("disabled", !hasImage);
 }
 
 if (document.readyState === "loading") {
@@ -718,13 +723,13 @@ function setupEventListeners() {
     "input-width",
     "widthMm",
     (v) => Math.min(500, Math.max(10, parseFloat(v))),
-    debounceUpdate,
+    () => { debounceUpdate(); updatePuzzleInfo(); },
   );
   setupInputListener(
     "input-height",
     "heightMm",
     (v) => Math.min(500, Math.max(10, parseFloat(v))),
-    debounceUpdate,
+    () => { debounceUpdate(); updatePuzzleInfo(); },
   );
   setupInputListener(
     "input-max-height",
@@ -870,17 +875,51 @@ function setupEventListeners() {
 
   puzEnable.addEventListener("change", (e) => {
     state.puzzleEnabled = e.target.checked;
+    updatePuzzleInfo();
     debounceUpdate();
   });
 
   puzCols.addEventListener("input", (e) => {
-    state.puzzleCols = Math.min(20, Math.max(1, parseInt(e.target.value) || 1));
+    const val = Math.min(20, Math.max(1, parseInt(e.target.value) || 1));
+    if (state.puzzleRatioLocked && state.puzzleCols > 0) {
+      const ratio = val / state.puzzleCols;
+      state.puzzleCols = val;
+      const newRows = Math.min(20, Math.max(1, Math.round(state.puzzleRows * ratio)));
+      state.puzzleRows = newRows;
+      puzRows.value = newRows;
+    } else {
+      state.puzzleCols = val;
+    }
+    updatePuzzleInfo();
     debounceUpdate();
   });
 
   puzRows.addEventListener("input", (e) => {
-    state.puzzleRows = Math.min(20, Math.max(1, parseInt(e.target.value) || 1));
+    const val = Math.min(20, Math.max(1, parseInt(e.target.value) || 1));
+    if (state.puzzleRatioLocked && state.puzzleRows > 0) {
+      const ratio = val / state.puzzleRows;
+      state.puzzleRows = val;
+      const newCols = Math.min(20, Math.max(1, Math.round(state.puzzleCols * ratio)));
+      state.puzzleCols = newCols;
+      puzCols.value = newCols;
+    } else {
+      state.puzzleRows = val;
+    }
+    updatePuzzleInfo();
     debounceUpdate();
+  });
+
+  const puzRatioLock = document.getElementById("input-puzzle-ratio-lock");
+  puzRatioLock.addEventListener("click", () => {
+    state.puzzleRatioLocked = !state.puzzleRatioLocked;
+    const icon = puzRatioLock.querySelector("i");
+    if (state.puzzleRatioLocked) {
+      icon.className = "fas fa-lock";
+      puzRatioLock.classList.add("locked");
+    } else {
+      icon.className = "fas fa-lock-open";
+      puzRatioLock.classList.remove("locked");
+    }
   });
 
   puzClearance.addEventListener("input", (e) => {
@@ -1663,6 +1702,15 @@ function updateUIFromState() {
   document.getElementById("input-puzzle-enable").checked = state.puzzleEnabled;
   document.getElementById("input-puzzle-cols").value = state.puzzleCols;
   document.getElementById("input-puzzle-rows").value = state.puzzleRows;
+  const ratioLockBtn = document.getElementById("input-puzzle-ratio-lock");
+  const ratioLockIcon = ratioLockBtn.querySelector("i");
+  if (state.puzzleRatioLocked) {
+    ratioLockIcon.className = "fas fa-lock";
+    ratioLockBtn.classList.add("locked");
+  } else {
+    ratioLockIcon.className = "fas fa-lock-open";
+    ratioLockBtn.classList.remove("locked");
+  }
   document.getElementById("input-puzzle-clearance").value =
     state.puzzleClearanceMm;
   document.getElementById("label-clearance-val").textContent =
@@ -1686,6 +1734,7 @@ function updateUIFromState() {
   document.getElementById("label-colors-count").textContent = state.layersCount;
 
   renderLayersList();
+  updatePuzzleInfo();
 }
 
 // Get a signature representing the current color state
@@ -2859,6 +2908,16 @@ function drawJigsawLine(ctx, x0, y0, x1, y1, tabDir, params, waviness, reversed 
       ctx.bezierCurveTo(c[2], c[3], c[0], c[1], prevX, prevY);
     }
   }
+}
+
+function updatePuzzleInfo() {
+  const bar = document.getElementById("puzzle-info-bar");
+  if (!bar) return;
+  if (!state.puzzleEnabled) { bar.textContent = ""; return; }
+  const pieces = state.puzzleCols * state.puzzleRows;
+  const pieceW = Math.round(state.widthMm / state.puzzleCols);
+  const pieceH = Math.round(state.heightMm / state.puzzleRows);
+  bar.textContent = `${pieces} pcs  ·  ${pieceW}×${pieceH} mm`;
 }
 
 function drawPuzzleCuts(

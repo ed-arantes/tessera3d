@@ -442,6 +442,11 @@ h1 {
   padding-bottom: 10px;
 }
 
+.panel-header.disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
 .panel-header h2 {
   flex: 1;
   border: none;
@@ -557,6 +562,48 @@ h2 i {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
+}
+
+#panel-puzzle .input-row-double {
+  grid-template-columns: 1fr auto 1fr;
+  gap: 8px;
+  align-items: end;
+}
+
+.puzzle-ratio-lock {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  width: 40px;
+  min-width: 40px;
+  box-sizing: border-box;
+  height: var(--h-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.puzzle-ratio-lock:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.puzzle-ratio-lock.locked {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.puzzle-info-bar {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: center;
+  padding: 8px 0 0;
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
 }
 
 label {
