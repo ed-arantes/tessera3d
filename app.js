@@ -88,6 +88,7 @@ let _modelTriangleCount = 0;
 
 // Track color state for color-only fast path optimization
 let _lastColorStateSignature = null;
+let _lastPuzzleSignature = "";
 
 // 2D layer viewer state
 let current2DLayerIndex = 0;
@@ -1097,6 +1098,7 @@ function handleImageFile(file) {
 
       // Reset color state signature since new geometry is being generated
       _lastColorStateSignature = null;
+      _lastPuzzleSignature = "";
 
       processImage();
       matchImageColors();
@@ -2630,11 +2632,14 @@ async function update3DPreview() {
   // Skip full rebuild if model already rendered and nothing changed
   if (modelGroup.children.length > 0) {
     const colorChanged = getColorStateSignature() !== _lastColorStateSignature;
-    if (!colorChanged && !hasGeometryChanged()) {
+    const puzzleSig = `${state.puzzleEnabled}|${state.puzzleCols}|${state.puzzleRows}|${state.puzzleClearanceMm}|${state.puzzleRandomness}|${state.puzzleWave}|${state.puzzleMaxOffset}`;
+    const puzzleChanged = puzzleSig !== _lastPuzzleSignature;
+    if (!colorChanged && !hasGeometryChanged() && !puzzleChanged) {
       sceneNeedsRender = true;
       return;
     }
   }
+  _lastPuzzleSignature = `${state.puzzleEnabled}|${state.puzzleCols}|${state.puzzleRows}|${state.puzzleClearanceMm}|${state.puzzleRandomness}|${state.puzzleWave}|${state.puzzleMaxOffset}`;
 
   while (modelGroup.children.length > 0) {
     const obj = modelGroup.children[0];
@@ -2960,7 +2965,9 @@ function drawPuzzleCuts(
 
   ctx.save();
   ctx.strokeStyle = "rgba(0,0,0,0.35)";
-  ctx.lineWidth = Math.max(1, Math.min(pieceW, pieceH) * 0.08);
+  const gridW = gridCols * cellSize;
+  const pixelsPerMm = gridW / state.widthMm;
+  ctx.lineWidth = Math.max(1, Math.min(8, state.puzzleClearanceMm * pixelsPerMm * 1.5));
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
 
@@ -2992,7 +2999,7 @@ function drawPuzzleCuts(
 
   // Outer boundary
   ctx.strokeStyle = "rgba(0,0,0,0.25)";
-  ctx.lineWidth = Math.max(1.5, Math.min(pieceW, pieceH) * 0.1);
+  ctx.lineWidth = Math.max(1.5, Math.min(8, state.puzzleClearanceMm * pixelsPerMm * 1.8));
   ctx.strokeRect(0, 0, gridCols * cellSize, gridRows * cellSize);
   ctx.restore();
 }
