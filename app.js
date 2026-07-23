@@ -47,7 +47,19 @@ const state = {
 
   // Filament library from D1
   filaments: [],
+
+  // Color matching settings (auto-match tuning)
+  colorMatch: {
+    paletteSize: null, // null = auto (use recommended unique-color count); else 1-16 user override
+    huePriority: 0.6, // 0..1, how strongly hue/chroma is weighted vs lightness when clustering
+    minorityProtection: 0.5, // 0..1, how hard small-but-coherent color patches are protected from being averaged away
+    allowReuse: true, // allow the same palette color to be reused across multiple height layers
+    matchToFilaments: false, // snap matched colors to nearest filament in the library
+  },
 };
+
+// Cached result of the last color-complexity analysis, shown as a UI hint
+let _lastColorRecommendation = null;
 
 // Preset palette colors for adding new layers
 const PRESET_COLORS = [
@@ -997,6 +1009,87 @@ function setupEventListeners() {
     });
   }
 
+  // ── Color matching settings panel ──
+  const btnToggleMatchSettings = document.getElementById(
+    "btn-toggle-match-settings",
+  );
+  const matchSettingsPanel = document.getElementById("match-settings-panel");
+  if (btnToggleMatchSettings && matchSettingsPanel) {
+    btnToggleMatchSettings.addEventListener("click", () => {
+      matchSettingsPanel.classList.toggle("hidden");
+      btnToggleMatchSettings.classList.toggle(
+        "active",
+        !matchSettingsPanel.classList.contains("hidden"),
+      );
+    });
+  }
+
+  const paletteSizeInput = document.getElementById("input-palette-size");
+  const paletteSizeLabel = document.getElementById("label-palette-size");
+  if (paletteSizeInput) {
+    paletteSizeInput.addEventListener("input", () => {
+      const val = parseInt(paletteSizeInput.value, 10);
+      state.colorMatch.paletteSize = val;
+      if (paletteSizeLabel) {
+        paletteSizeLabel.textContent = val;
+      }
+    });
+    // Double-click / long-press style reset to Auto via the label badge
+    if (paletteSizeLabel) {
+      paletteSizeLabel.style.cursor = "pointer";
+      paletteSizeLabel.title = "Click to reset to Auto";
+      paletteSizeLabel.addEventListener("click", () => {
+        state.colorMatch.paletteSize = null;
+        const rec = _lastColorRecommendation?.recommended || 6;
+        paletteSizeInput.value = rec;
+        paletteSizeLabel.textContent = `Auto (${rec})`;
+      });
+    }
+  }
+
+  const allowReuseInput = document.getElementById("input-allow-reuse");
+  if (allowReuseInput) {
+    allowReuseInput.addEventListener("change", () => {
+      state.colorMatch.allowReuse = allowReuseInput.checked;
+    });
+  }
+
+  const huePriorityInput = document.getElementById("input-hue-priority");
+  const huePriorityLabel = document.getElementById("label-hue-priority");
+  if (huePriorityInput) {
+    huePriorityInput.addEventListener("input", () => {
+      const val = parseFloat(huePriorityInput.value);
+      state.colorMatch.huePriority = val;
+      if (huePriorityLabel) {
+        huePriorityLabel.textContent = Math.round(val * 100) + "%";
+      }
+    });
+  }
+
+  const minorityInput = document.getElementById("input-minority-protection");
+  const minorityLabel = document.getElementById("label-minority-protection");
+  if (minorityInput) {
+    minorityInput.addEventListener("input", () => {
+      const val = parseFloat(minorityInput.value);
+      state.colorMatch.minorityProtection = val;
+      if (minorityLabel) {
+        minorityLabel.textContent = Math.round(val * 100) + "%";
+      }
+    });
+  }
+
+  const matchFilamentsInput = document.getElementById("input-match-filaments");
+  if (matchFilamentsInput) {
+    matchFilamentsInput.addEventListener("change", () => {
+      state.colorMatch.matchToFilaments = matchFilamentsInput.checked;
+      if (matchFilamentsInput.checked && state.filaments.length === 0) {
+        alert(
+          "No filaments loaded from the library yet — matching will fall back to computed colors.",
+        );
+      }
+    });
+  }
+
   // Export 3MF button
   btnExport.addEventListener("click", export3MF);
 
@@ -1273,6 +1366,9 @@ function processImage() {
   _cachedHeightsKey = null;
   invalidate2DCache();
 
+  _lastColorRecommendation = estimateColorComplexity();
+  updateColorRecommendationHint();
+
   debounceUpdate();
   updateTabsForImage();
 }
@@ -1288,34 +1384,201 @@ function syncColorCountUI() {
   }
 }
 
-function getAdaptiveLayerCount() {
-  const requested = Math.max(1, state.layers.length);
+// Update the "Recommended: N colors" hint shown near the matching controls.
+function updateColorRecommendationHint() {
+  const hint = document.getElementById("color-recommendation-hint");
+  if (!hint) {
+    return;
+  }
+  if (!state.image || !_lastColorRecommendation) {
+    hint.textContent = "";
+    hint.classList.add("hidden");
+    return;
+  }
+  const { recommended, uniqueColors } = _lastColorRecommendation;
+  hint.classList.remove("hidden");
+  hint.textContent = `Recommended: ~${recommended} colors for a good match (image has ~${uniqueColors} visually distinct colors).`;
 
+  const paletteInput = document.getElementById("input-palette-size");
+  const paletteLabel = document.getElementById("label-palette-size");
+  if (paletteInput && !state.colorMatch.paletteSize) {
+    paletteInput.value = recommended;
+    if (paletteLabel) {
+      paletteLabel.textContent = `Auto (${recommended})`;
+    }
+  }
+}
+
+// ── Perceptual color-complexity analysis ────────────────────────────────────
+// Builds a weighted set of representative image colors (in OKLab), runs a
+// lightweight weighted k-means for increasing k, and finds the "elbow" where
+// adding another color stops meaningfully reducing perceptual error. This
+// replaces the old log2(distinct RGB bins) guess with an actual measurement
+// of how many colors are needed to represent the image well.
+function getImageColorBins(binSize) {
+  const pixels = state.colorSampleRGB;
+  const pixelCount = state.colorSampleWidth * state.colorSampleHeight;
+  const bins = new Map();
+  if (!pixels || pixelCount === 0) {
+    return bins;
+  }
+  for (let i = 0; i < pixelCount; i++) {
+    const r = pixels[i * 3];
+    const g = pixels[i * 3 + 1];
+    const b = pixels[i * 3 + 2];
+    const key =
+      (Math.floor(r / binSize) << 20) |
+      (Math.floor(g / binSize) << 10) |
+      Math.floor(b / binSize);
+    let bin = bins.get(key);
+    if (!bin) {
+      bin = { r: 0, g: 0, b: 0, count: 0 };
+      bins.set(key, bin);
+    }
+    bin.r += r;
+    bin.g += g;
+    bin.b += b;
+    bin.count++;
+  }
+  return bins;
+}
+
+function estimateColorComplexity() {
   if (
     !state.colorSampleRGB ||
     state.colorSampleWidth * state.colorSampleHeight === 0
   ) {
-    return Math.max(requested, 4);
+    return { recommended: 4, uniqueColors: 4 };
   }
 
-  const pixelCount = state.colorSampleWidth * state.colorSampleHeight;
-  const bins = new Map();
-  const binSize = COLOR_BIN_SIZE;
+  const bins = getImageColorBins(COLOR_BIN_SIZE);
+  const totalPixels = state.colorSampleWidth * state.colorSampleHeight;
 
-  for (let i = 0; i < pixelCount; i++) {
-    const r = state.colorSampleRGB[i * 3];
-    const g = state.colorSampleRGB[i * 3 + 1];
-    const b = state.colorSampleRGB[i * 3 + 2];
-    const key = `${Math.floor(r / binSize) * binSize},${Math.floor(g / binSize) * binSize},${Math.floor(b / binSize) * binSize}`;
-    bins.set(key, (bins.get(key) || 0) + 1);
+  // Representative points for the elbow search: one per bin, weighted by
+  // population and converted to OKLab for perceptual distance.
+  const points = [];
+  let totalWeight = 0;
+  for (const bin of bins.values()) {
+    const rgb = [bin.r / bin.count, bin.g / bin.count, bin.b / bin.count];
+    const lab = rgbToOklab(rgb[0], rgb[1], rgb[2]);
+    const weight = bin.count;
+    points.push({ lab, weight });
+    totalWeight += weight;
   }
 
-  const distinctBins = bins.size;
-  const estimated = Math.max(
-    4,
-    Math.min(8, Math.ceil(Math.log2(distinctBins + 1))),
-  );
-  return Math.max(requested, estimated);
+  // "Unique colors" = bins that are individually visually significant
+  // (cover at least ~0.5% of the image), used purely as a display hint.
+  const uniqueColors = points.filter(
+    (p) => p.weight / totalWeight > 0.005,
+  ).length;
+
+  const maxK = Math.min(16, Math.max(2, points.length));
+  const errors = [];
+  for (let k = 1; k <= maxK; k++) {
+    errors.push(weightedKMeansError(points, k));
+  }
+
+  // Elbow detection: walk the error curve and stop once further colors buy
+  // less than 8% of the total possible error reduction.
+  const totalDrop = errors[0] - errors[errors.length - 1] || 1;
+  let recommended = maxK;
+  for (let k = 1; k < errors.length; k++) {
+    const drop = errors[k - 1] - errors[k];
+    if (drop / totalDrop < 0.08) {
+      recommended = k; // k is 1-indexed count already (errors[k] = k+1 colors)
+      break;
+    }
+  }
+  recommended = Math.max(3, Math.min(16, recommended));
+
+  return { recommended, uniqueColors: Math.max(recommended, Math.min(16, uniqueColors || recommended)) };
+}
+
+// Lightweight weighted k-means over precomputed OKLab points, returns the
+// final weighted sum-of-squared-perceptual-error (used only for the elbow
+// scan above, not for the real matching pass).
+function weightedKMeansError(points, k) {
+  if (points.length <= k) {
+    return 0;
+  }
+  const centroids = seedCentroidsFarthestPoint(points, k);
+  const assignment = new Uint16Array(points.length);
+  for (let iter = 0; iter < 6; iter++) {
+    for (let i = 0; i < points.length; i++) {
+      let bestD = Infinity,
+        bestC = 0;
+      for (let c = 0; c < centroids.length; c++) {
+        const d = deltaEOK(points[i].lab, centroids[c]);
+        if (d < bestD) {
+          bestD = d;
+          bestC = c;
+        }
+      }
+      assignment[i] = bestC;
+    }
+    const sums = Array.from({ length: k }, () => ({
+      L: 0,
+      a: 0,
+      b: 0,
+      w: 0,
+    }));
+    for (let i = 0; i < points.length; i++) {
+      const s = sums[assignment[i]];
+      const w = points[i].weight;
+      s.L += points[i].lab[0] * w;
+      s.a += points[i].lab[1] * w;
+      s.b += points[i].lab[2] * w;
+      s.w += w;
+    }
+    for (let c = 0; c < k; c++) {
+      if (sums[c].w > 0) {
+        centroids[c] = [sums[c].L / sums[c].w, sums[c].a / sums[c].w, sums[c].b / sums[c].w];
+      }
+    }
+  }
+  let err = 0;
+  for (let i = 0; i < points.length; i++) {
+    const d = deltaEOK(points[i].lab, centroids[assignment[i]]);
+    err += d * d * points[i].weight;
+  }
+  return err;
+}
+
+function seedCentroidsFarthestPoint(points, k) {
+  const centroids = [];
+  let bestIdx = 0,
+    bestW = -1;
+  for (let i = 0; i < points.length; i++) {
+    if (points[i].weight > bestW) {
+      bestW = points[i].weight;
+      bestIdx = i;
+    }
+  }
+  centroids.push(points[bestIdx].lab.slice());
+  for (let c = 1; c < k; c++) {
+    let bestDist = -1,
+      bestI = 0;
+    for (let i = 0; i < points.length; i++) {
+      let minD = Infinity;
+      for (let j = 0; j < centroids.length; j++) {
+        const d = deltaEOK(points[i].lab, centroids[j]);
+        if (d < minD) minD = d;
+      }
+      if (minD > bestDist) {
+        bestDist = minD;
+        bestI = i;
+      }
+    }
+    centroids.push(points[bestI].lab.slice());
+  }
+  return centroids;
+}
+
+function getAdaptiveLayerCount() {
+  const requested = Math.max(1, state.layers.length);
+  const complexity = estimateColorComplexity();
+  _lastColorRecommendation = complexity;
+  return Math.max(requested, complexity.recommended);
 }
 
 // Update layers structure based on count slider
@@ -1745,6 +2008,48 @@ function updateUIFromState() {
 
   document.getElementById("input-colors-count").value = state.layersCount;
   document.getElementById("label-colors-count").textContent = state.layersCount;
+
+  const paletteSizeInput = document.getElementById("input-palette-size");
+  const paletteSizeLabel = document.getElementById("label-palette-size");
+  if (paletteSizeInput) {
+    if (state.colorMatch.paletteSize) {
+      paletteSizeInput.value = state.colorMatch.paletteSize;
+      if (paletteSizeLabel) {
+        paletteSizeLabel.textContent = state.colorMatch.paletteSize;
+      }
+    } else {
+      paletteSizeInput.value = 6;
+      if (paletteSizeLabel) {
+        paletteSizeLabel.textContent = "Auto";
+      }
+    }
+  }
+  const allowReuseInput = document.getElementById("input-allow-reuse");
+  if (allowReuseInput) {
+    allowReuseInput.checked = state.colorMatch.allowReuse;
+  }
+  const huePriorityInput = document.getElementById("input-hue-priority");
+  const huePriorityLabel = document.getElementById("label-hue-priority");
+  if (huePriorityInput) {
+    huePriorityInput.value = state.colorMatch.huePriority;
+    if (huePriorityLabel) {
+      huePriorityLabel.textContent =
+        Math.round(state.colorMatch.huePriority * 100) + "%";
+    }
+  }
+  const minorityInput = document.getElementById("input-minority-protection");
+  const minorityLabel = document.getElementById("label-minority-protection");
+  if (minorityInput) {
+    minorityInput.value = state.colorMatch.minorityProtection;
+    if (minorityLabel) {
+      minorityLabel.textContent =
+        Math.round(state.colorMatch.minorityProtection * 100) + "%";
+    }
+  }
+  const matchFilamentsInput = document.getElementById("input-match-filaments");
+  if (matchFilamentsInput) {
+    matchFilamentsInput.checked = state.colorMatch.matchToFilaments;
+  }
 
   renderLayersList();
   updatePuzzleInfo();
@@ -3671,6 +3976,43 @@ function deltaEOK(a, b) {
   return Math.sqrt(dL * dL + da * da + db * db);
 }
 
+// Hue/chroma-weighted variant of deltaEOK. huePriority in [0,1]: 0 behaves
+// like plain deltaEOK (lightness and chroma weighted equally), 1 heavily
+// emphasizes hue/chroma differences over lightness so that e.g. a brown and
+// a blue of similar brightness are NOT treated as "close" just because their
+// lightness matches. This is what stops distinct hues from bleeding into
+// each other during clustering.
+function deltaEOKWeighted(a, b, huePriority) {
+  const wL = 1 - huePriority * 0.65;
+  const wC = 1 + huePriority * 1.8;
+  const dL = (a[0] - b[0]) * wL;
+  const da = (a[1] - b[1]) * wC;
+  const db = (a[2] - b[2]) * wC;
+  return Math.sqrt(dL * dL + da * da + db * db);
+}
+
+// Find the closest filament in the loaded library to a given RGB color,
+// using perceptual (OKLab) distance. Returns null if no filaments loaded.
+function nearestFilamentMatch(rgb) {
+  if (!state.filaments || state.filaments.length === 0) {
+    return null;
+  }
+  const targetLab = rgbToOklab(rgb[0], rgb[1], rgb[2]);
+  let best = null;
+  let bestD = Infinity;
+  for (const f of state.filaments) {
+    if (!f.hex || f.hex.length !== 7) continue;
+    const frgb = hexToRgb(f.hex);
+    const flab = rgbToOklab(frgb.r, frgb.g, frgb.b);
+    const d = deltaEOK(targetLab, flab);
+    if (d < bestD) {
+      bestD = d;
+      best = f;
+    }
+  }
+  return best;
+}
+
 // ── K-Means Color Matching ────────────────────────────────────────────────
 function matchImageColors() {
   if (!state.image) {
@@ -3684,12 +4026,26 @@ function matchImageColors() {
     return;
   }
 
+  const cm = state.colorMatch || {};
+  const huePriority = Math.max(0, Math.min(1, cm.huePriority ?? 0.6));
+  const minorityProtection = Math.max(
+    0,
+    Math.min(1, cm.minorityProtection ?? 0.5),
+  );
+
+  const complexity = estimateColorComplexity();
+  _lastColorRecommendation = complexity;
+
   const targetCount = getAdaptiveLayerCount();
   if (targetCount !== state.layers.length) {
     updateLayersCount(targetCount);
     sync2DLayerIndex();
   }
 
+  // k = number of height bands (layers). This can now exceed the number of
+  // *unique* colors actually used — the same filament color is allowed to
+  // reappear at multiple heights, which gives the height curve more
+  // resolution to track hue changes without forcing more materials.
   const k = state.layers.length;
   if (k === 0) {
     return;
@@ -3713,18 +4069,40 @@ function matchImageColors() {
 
     let bin = colorBins.get(key);
     if (!bin) {
-      bin = { indices: [] };
+      bin = { indices: [], rBin, gBin, bBin };
       colorBins.set(key, bin);
     }
     bin.indices.push(i);
   }
 
-  // 2. Extract sampled indices with dampened weights
+  // Weighted average OKLab across the whole image, used to score how
+  // "distinctive" (far from the overall palette) each bin is.
+  let imgSumL = 0,
+    imgSumA = 0,
+    imgSumB = 0,
+    imgSumW = 0;
+  for (const bin of colorBins.values()) {
+    const lab = rgbToOklab(bin.rBin + 8, bin.gBin + 8, bin.bBin + 8);
+    const w = bin.indices.length;
+    imgSumL += lab[0] * w;
+    imgSumA += lab[1] * w;
+    imgSumB += lab[2] * w;
+    imgSumW += w;
+  }
+  const imgAvgLab = [imgSumL / imgSumW, imgSumA / imgSumW, imgSumB / imgSumW];
+
+  // 2. Extract sampled indices with dampened + distinctiveness-boosted weights.
+  // Square root flattens the curve so a big sky doesn't swallow a small
+  // mountain; the distinctiveness boost additionally protects small,
+  // perceptually-unique patches (e.g. a brown mountain against a blue sky)
+  // from being smoothed away entirely, scaled by minorityProtection.
   const sampledIndices = [];
   for (const bin of colorBins.values()) {
     const count = bin.indices.length;
-    // Square root flattens the curve so the red sun doesn't swallow the brown mountain
-    const weight = Math.ceil(Math.sqrt(count));
+    const binLab = rgbToOklab(bin.rBin + 8, bin.gBin + 8, bin.bBin + 8);
+    const distinctiveness = deltaEOK(binLab, imgAvgLab);
+    const distinctBoost = 1 + minorityProtection * Math.min(3, distinctiveness * 6);
+    const weight = Math.max(1, Math.ceil(Math.sqrt(count) * distinctBoost));
     const step = Math.max(1, Math.floor(count / weight));
 
     for (let w = 0; w < weight; w++) {
@@ -3756,7 +4134,7 @@ function matchImageColors() {
 
   // ── Deterministic centroid initialization ──
 
-  // Compute average OKLab of the image
+  // Compute average OKLab of the (weighted) sample pool
   let sumL = 0,
     sumA = 0,
     sumB = 0;
@@ -3772,17 +4150,17 @@ function matchImageColors() {
     sumB / sampledCount,
   ];
 
-  // First centroid: pixel farthest from average in OKLab distance (ensures an extreme)
+  // First centroid: pixel farthest from average in (hue-weighted) OKLab distance
   let centroids = [];
   let bestDist = -1;
   let bestIdx = 0;
   for (let si = 0; si < sampledCount; si++) {
     const idx = indices[si] * 3;
-    const d = deltaEOK(avgLab, [
-      labData[idx],
-      labData[idx + 1],
-      labData[idx + 2],
-    ]);
+    const d = deltaEOKWeighted(
+      avgLab,
+      [labData[idx], labData[idx + 1], labData[idx + 2]],
+      huePriority,
+    );
     if (d > bestDist) {
       bestDist = d;
       bestIdx = indices[si];
@@ -3804,7 +4182,7 @@ function matchImageColors() {
       const plab = [labData[idx], labData[idx + 1], labData[idx + 2]];
       let minD = Infinity;
       for (let j = 0; j < centroids.length; j++) {
-        const d = deltaEOK(plab, centroids[j]);
+        const d = deltaEOKWeighted(plab, centroids[j], huePriority);
         if (d < minD) {
           minD = d;
         }
@@ -3821,7 +4199,7 @@ function matchImageColors() {
     ]);
   }
 
-  // ── K-means iterations in OKLab space ──
+  // ── K-means iterations in hue-weighted OKLab space ──
   const assignment = new Uint16Array(sampledCount);
   const maxIter = 30;
 
@@ -3833,7 +4211,7 @@ function matchImageColors() {
       let minD = Infinity;
       let bestC = 0;
       for (let j = 0; j < k; j++) {
-        const d = deltaEOK(plab, centroids[j]);
+        const d = deltaEOKWeighted(plab, centroids[j], huePriority);
         if (d < minD) {
           minD = d;
           bestC = j;
@@ -3842,7 +4220,8 @@ function matchImageColors() {
       assignment[si] = bestC;
     }
 
-    // Recompute centroids
+    // Recompute centroids (plain average — the weighting already happened
+    // via sample selection, so centroid updates stay unbiased)
     const sums = Array.from({ length: k }, () => ({
       L: 0,
       a: 0,
@@ -3910,7 +4289,8 @@ function matchImageColors() {
     clusterInfo.push({ rgb, luminance: lum, pop: cnt });
   }
 
-  // Sort by luminance (dark → light)
+  // Sort by luminance (dark → light) — required by the physical print, since
+  // height (and therefore stacking order) is driven purely by luminance.
   clusterInfo.sort((a, b) => a.luminance - b.luminance);
 
   // ── Protect against minority dark colors hijacking the base layer ──
@@ -3941,6 +4321,105 @@ function matchImageColors() {
     }
   }
 
+  // ── Palette reduction: allow the same color to repeat across height bands ──
+  // If fewer *unique* colors are wanted than height bands (k), group the k
+  // cluster colors into a smaller palette and snap each band to its nearest
+  // palette entry. Bands keep their own accurate luminance position; only the
+  // color value gets shared, so a brown band and another brown band elsewhere
+  // in the stack can use the same filament without forcing every band to be
+  // globally unique.
+  const allowReuse = cm.allowReuse !== false;
+  let paletteSize = allowReuse
+    ? Math.max(1, Math.min(k, cm.paletteSize || complexity.recommended))
+    : k;
+
+  let finalColors = clusterInfo.map((c) => c.rgb.slice());
+  let finalTd = clusterInfo.map(() => null);
+
+  if (paletteSize < k) {
+    const palettePoints = clusterInfo.map((c) => ({
+      lab: rgbToOklab(c.rgb[0], c.rgb[1], c.rgb[2]),
+      weight: Math.max(1, c.pop),
+      rgb: c.rgb,
+    }));
+    const paletteCentroids = seedCentroidsFarthestPoint(palettePoints, paletteSize);
+    const passign = new Array(palettePoints.length).fill(0);
+
+    for (let iter = 0; iter < 10; iter++) {
+      for (let i = 0; i < palettePoints.length; i++) {
+        let bd = Infinity,
+          bc = 0;
+        for (let c = 0; c < paletteCentroids.length; c++) {
+          const d = deltaEOKWeighted(palettePoints[i].lab, paletteCentroids[c], huePriority);
+          if (d < bd) {
+            bd = d;
+            bc = c;
+          }
+        }
+        passign[i] = bc;
+      }
+      const sums = Array.from({ length: paletteCentroids.length }, () => ({
+        L: 0,
+        a: 0,
+        b: 0,
+        w: 0,
+      }));
+      for (let i = 0; i < palettePoints.length; i++) {
+        const s = sums[passign[i]];
+        const w = palettePoints[i].weight;
+        s.L += palettePoints[i].lab[0] * w;
+        s.a += palettePoints[i].lab[1] * w;
+        s.b += palettePoints[i].lab[2] * w;
+        s.w += w;
+      }
+      for (let c = 0; c < paletteCentroids.length; c++) {
+        if (sums[c].w > 0) {
+          paletteCentroids[c] = [sums[c].L / sums[c].w, sums[c].a / sums[c].w, sums[c].b / sums[c].w];
+        }
+      }
+    }
+
+    const paletteRgbSums = Array.from({ length: paletteCentroids.length }, () => ({
+      r: 0,
+      g: 0,
+      b: 0,
+      w: 0,
+    }));
+    for (let i = 0; i < palettePoints.length; i++) {
+      const s = paletteRgbSums[passign[i]];
+      const w = palettePoints[i].weight;
+      s.r += palettePoints[i].rgb[0] * w;
+      s.g += palettePoints[i].rgb[1] * w;
+      s.b += palettePoints[i].rgb[2] * w;
+      s.w += w;
+    }
+    const paletteRgb = paletteRgbSums.map((s) =>
+      s.w > 0 ? [s.r / s.w, s.g / s.w, s.b / s.w] : [128, 128, 128],
+    );
+
+    for (let i = 0; i < clusterInfo.length; i++) {
+      finalColors[i] = paletteRgb[passign[i]];
+    }
+  }
+
+  // ── Optional: snap final colors to nearest filament in the library ──
+  if (cm.matchToFilaments && state.filaments && state.filaments.length) {
+    const filamentCache = new Map();
+    for (let i = 0; i < finalColors.length; i++) {
+      const key = finalColors[i].map((v) => Math.round(v)).join(",");
+      let match = filamentCache.get(key);
+      if (match === undefined) {
+        match = nearestFilamentMatch(finalColors[i]);
+        filamentCache.set(key, match);
+      }
+      if (match) {
+        const rgb = hexToRgb(match.hex);
+        finalColors[i] = [rgb.r, rgb.g, rgb.b];
+        finalTd[i] = match.td;
+      }
+    }
+  }
+
   // ── Convert to hex and apply to layers ──
   const toHex = (c) => {
     const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
@@ -3951,11 +4430,15 @@ function matchImageColors() {
   };
 
   for (let i = 0; i < k && i < state.layers.length; i++) {
-    state.layers[i].hex = toHex(clusterInfo[i].rgb);
+    state.layers[i].hex = toHex(finalColors[i]);
+    if (finalTd[i] !== null && finalTd[i] !== undefined) {
+      state.layers[i].td = finalTd[i];
+    }
   }
 
   syncColorCountUI();
   renderLayersList();
+  updateColorRecommendationHint();
   debounceUpdate();
 }
 

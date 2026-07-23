@@ -26,6 +26,27 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
       as="style"
     />
+    <style>
+      .hint-text {
+        font-size: 12px;
+        opacity: 0.65;
+        line-height: 1.4;
+        margin-top: 4px;
+        margin-bottom: 8px;
+      }
+      #color-recommendation-hint {
+        margin-top: -4px;
+      }
+      .match-settings {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        margin-top: 4px;
+        padding-top: 12px;
+      }
+      #btn-toggle-match-settings.active {
+        opacity: 1;
+        color: var(--accent, #55ba08);
+      }
+    </style>
     <style class="fa-hide">
       i.fas,
       i.fa-solid,
@@ -276,6 +297,94 @@
                 >
                   <i class="fas fa-shuffle"></i> Auto
                 </button>
+                <button
+                  type="button"
+                  class="btn-secondary"
+                  id="btn-toggle-match-settings"
+                  title="Color matching settings"
+                >
+                  <i class="fas fa-sliders"></i>
+                </button>
+              </div>
+
+              <div class="hint-text hidden" id="color-recommendation-hint"></div>
+
+              <div class="match-settings hidden" id="match-settings-panel">
+                <div class="input-group mb-16">
+                  <div class="slider-row">
+                    <span class="slider-title">Palette Colors (unique)</span>
+                    <span class="slider-val-badge" id="label-palette-size"
+                      >Auto</span
+                    >
+                  </div>
+                  <input
+                    type="range"
+                    id="input-palette-size"
+                    min="1"
+                    max="16"
+                    step="1"
+                  />
+                  <div class="hint-text">
+                    How many distinct filament colors to actually use. Can be
+                    lower than the number of height bands above — colors will
+                    repeat at different heights to keep hue accuracy.
+                  </div>
+                </div>
+
+                <div class="switch-container mb-16">
+                  <div class="slider-title">Allow Color Reuse Across Heights</div>
+                  <label class="switch">
+                    <input type="checkbox" id="input-allow-reuse" />
+                    <span class="slider-switch"></span>
+                  </label>
+                </div>
+
+                <div class="input-group mb-16">
+                  <div class="slider-row">
+                    <span class="slider-title">Hue Priority</span>
+                    <span class="slider-val-badge" id="label-hue-priority"></span>
+                  </div>
+                  <input
+                    type="range"
+                    id="input-hue-priority"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                  />
+                  <div class="hint-text">
+                    Higher = colors are grouped by hue first, so a brown never
+                    gets pulled toward blue/yellow just for similar brightness.
+                  </div>
+                </div>
+
+                <div class="input-group mb-16">
+                  <div class="slider-row">
+                    <span class="slider-title">Protect Small Color Patches</span>
+                    <span
+                      class="slider-val-badge"
+                      id="label-minority-protection"
+                    ></span>
+                  </div>
+                  <input
+                    type="range"
+                    id="input-minority-protection"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                  />
+                  <div class="hint-text">
+                    Higher = small but distinct areas (like a lone landmark
+                    color) are less likely to get averaged away.
+                  </div>
+                </div>
+
+                <div class="switch-container mb-16">
+                  <div class="slider-title">Match Using Filament Database</div>
+                  <label class="switch">
+                    <input type="checkbox" id="input-match-filaments" />
+                    <span class="slider-switch"></span>
+                  </label>
+                </div>
               </div>
 
               <div class="layer-list-scroll" id="layer-list"></div>
