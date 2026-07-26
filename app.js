@@ -1367,6 +1367,7 @@ function processImage() {
   invalidate2DCache();
 
   _lastColorRecommendation = estimateColorComplexity();
+  buildPaletteCache();
   updateColorRecommendationHint();
 
   debounceUpdate();
@@ -1397,7 +1398,14 @@ function updateColorRecommendationHint() {
   }
   const { recommended, uniqueColors } = _lastColorRecommendation;
   hint.classList.remove("hidden");
-  hint.textContent = `Recommended: ~${recommended} colors for a good match (image has ~${uniqueColors} visually distinct colors).`;
+
+  // Show tiered recommendation when palette cache is available
+  if (_paletteCache && _paletteCache.tiers) {
+    const t = _paletteCache.tiers;
+    hint.textContent = `Lofi: ~${t.minimal} colors | Balanced: ~${t.balanced} | Full: ~${t.full} (image has ~${uniqueColors} distinct colors).`;
+  } else {
+    hint.textContent = `Recommended: ~${recommended} colors for a good match (image has ~${uniqueColors} visually distinct colors).`;
+  }
 
   const paletteInput = document.getElementById("input-palette-size");
   const paletteLabel = document.getElementById("label-palette-size");
@@ -1417,12 +1425,14 @@ function updateColorRecommendationHint() {
 // of how many colors are needed to represent the image well.
 function getImageColorBins(binSize) {
   const pixels = state.colorSampleRGB;
+  const alpha = state.rawAlpha;
   const pixelCount = state.colorSampleWidth * state.colorSampleHeight;
   const bins = new Map();
   if (!pixels || pixelCount === 0) {
     return bins;
   }
   for (let i = 0; i < pixelCount; i++) {
+    if (alpha && alpha[i] < 128) continue;
     const r = pixels[i * 3];
     const g = pixels[i * 3 + 1];
     const b = pixels[i * 3 + 2];
@@ -1448,58 +1458,143 @@ function estimateColorComplexity() {
     !state.colorSampleRGB ||
     state.colorSampleWidth * state.colorSampleHeight === 0
   ) {
-    return { recommended: 4, uniqueColors: 4 };
+    return { recommended: 4, uniqueColors: 4, bins: [] };
   }
 
   const bins = getImageColorBins(COLOR_BIN_SIZE);
   const totalPixels = state.colorSampleWidth * state.colorSampleHeight;
 
-  // Representative points for the elbow search: one per bin, weighted by
-  // population and converted to OKLab for perceptual distance.
   const points = [];
   let totalWeight = 0;
   for (const bin of bins.values()) {
     const rgb = [bin.r / bin.count, bin.g / bin.count, bin.b / bin.count];
     const lab = rgbToOklab(rgb[0], rgb[1], rgb[2]);
     const weight = bin.count;
-    points.push({ lab, weight });
+    points.push({ lab, weight, rgb });
     totalWeight += weight;
   }
 
-  // "Unique colors" = bins that are individually visually significant
-  // (cover at least ~0.5% of the image), used purely as a display hint.
   const uniqueColors = points.filter(
     (p) => p.weight / totalWeight > 0.005,
   ).length;
 
   const maxK = Math.min(16, Math.max(2, points.length));
-  const errors = [];
-  for (let k = 1; k <= maxK; k++) {
-    errors.push(weightedKMeansError(points, k));
+  if (points.length <= 2) {
+    return {
+      recommended: Math.max(2, points.length),
+      uniqueColors: Math.max(2, uniqueColors),
+      bins: points,
+    };
   }
 
-  // Elbow detection: walk the error curve and stop once further colors buy
-  // less than 8% of the total possible error reduction.
-  const totalDrop = errors[0] - errors[errors.length - 1] || 1;
-  let recommended = maxK;
-  for (let k = 1; k < errors.length; k++) {
-    const drop = errors[k - 1] - errors[k];
-    if (drop / totalDrop < 0.08) {
-      recommended = k; // k is 1-indexed count already (errors[k] = k+1 colors)
+  // Run k-means for k=1..maxK and collect weighted errors
+  const errors = [];
+  for (let k = 1; k <= maxK; k++) {
+    const centroids = weightedKMeansError(points, k);
+    let err = 0;
+    for (const p of points) {
+      let bestD = Infinity;
+      for (const c of centroids) {
+        const d = deltaEOK(p.lab, c);
+        if (d < bestD) bestD = d;
+      }
+      err += bestD * bestD * p.weight;
+    }
+    errors.push(err);
+  }
+
+  // Normalize errors to 0..1
+  const eMin = errors[errors.length - 1];
+  const eMax = errors[0];
+  const eRange = eMax - eMin || 1;
+  const norm = errors.map((e) => (e - eMin) / eRange);
+
+  // Signal 1: Adaptive elbow detection
+  let elbowK = maxK;
+  for (let k = 1; k < norm.length; k++) {
+    const drop = norm[k - 1] - norm[k];
+    const threshold = 0.15 - (k / maxK) * 0.10;
+    if (drop < threshold) {
+      elbowK = k;
       break;
     }
   }
+
+  // Signal 2: Second derivative (biggest deceleration)
+  let secondDerivK = maxK;
+  if (norm.length >= 3) {
+    let maxD2 = -Infinity;
+    for (let k = 1; k < norm.length - 1; k++) {
+      const d1Before = norm[k - 1] - norm[k];
+      const d1After = norm[k] - norm[k + 1];
+      const d2 = d1Before - d1After;
+      if (d2 > maxD2) {
+        maxD2 = d2;
+        secondDerivK = k + 1;
+      }
+    }
+  }
+
+  // Signal 3: Absolute quality threshold
+  let absoluteK = maxK;
+  const ABS_THRESHOLD = 0.02;
+  for (let k = 1; k < norm.length; k++) {
+    if (norm[k] <= ABS_THRESHOLD) {
+      absoluteK = k;
+      break;
+    }
+  }
+
+  // Signal 4: Population-based minimum
+  const SIGNIFICANT_THRESHOLD = 0.03;
+  const significantGroups = points.filter(
+    (p) => p.weight / totalWeight > SIGNIFICANT_THRESHOLD,
+  ).length;
+  const popK = Math.max(2, significantGroups);
+
+  // Signal 5: Perceptual distance gaps
+  let gapK = maxK;
+  for (let k = 2; k <= maxK; k++) {
+    const centroids = weightedKMeansError(points, k);
+    let maxMinD = 0;
+    for (const p of points) {
+      let minD = Infinity;
+      for (const c of centroids) {
+        const d = deltaEOK(p.lab, c);
+        if (d < minD) minD = d;
+      }
+      if (minD > maxMinD) maxMinD = minD;
+    }
+    if (maxMinD < 5) {
+      gapK = k;
+      break;
+    }
+  }
+
+  // Combine signals via trimmed mean
+  const candidates = [elbowK, secondDerivK, absoluteK, popK, gapK].sort(
+    (a, b) => a - b,
+  );
+  const trimmed = candidates.slice(1, -1);
+  let recommended = Math.round(
+    trimmed.reduce((s, v) => s + v, 0) / trimmed.length,
+  );
+  recommended = Math.max(recommended, Math.min(uniqueColors, 8));
   recommended = Math.max(3, Math.min(16, recommended));
 
-  return { recommended, uniqueColors: Math.max(recommended, Math.min(16, uniqueColors || recommended)) };
+  return {
+    recommended,
+    uniqueColors: Math.max(recommended, Math.min(16, uniqueColors || recommended)),
+    bins: points,
+    signals: { elbow: elbowK, secondDeriv: secondDerivK, absolute: absoluteK, population: popK, perceptual: gapK },
+  };
 }
 
 // Lightweight weighted k-means over precomputed OKLab points, returns the
-// final weighted sum-of-squared-perceptual-error (used only for the elbow
-// scan above, not for the real matching pass).
+// centroid arrays (used for the complexity analysis scan above).
 function weightedKMeansError(points, k) {
   if (points.length <= k) {
-    return 0;
+    return points.map((p) => p.lab.slice());
   }
   const centroids = seedCentroidsFarthestPoint(points, k);
   const assignment = new Uint16Array(points.length);
@@ -1536,19 +1631,16 @@ function weightedKMeansError(points, k) {
       }
     }
   }
-  let err = 0;
-  for (let i = 0; i < points.length; i++) {
-    const d = deltaEOK(points[i].lab, centroids[assignment[i]]);
-    err += d * d * points[i].weight;
-  }
-  return err;
+  return centroids;
 }
 
-function seedCentroidsFarthestPoint(points, k) {
+function seedCentroidsFarthestPoint(points, k, excludeIndices) {
+  const exclude = new Set(excludeIndices || []);
   const centroids = [];
   let bestIdx = 0,
     bestW = -1;
   for (let i = 0; i < points.length; i++) {
+    if (exclude.has(i)) continue;
     if (points[i].weight > bestW) {
       bestW = points[i].weight;
       bestIdx = i;
@@ -1559,6 +1651,7 @@ function seedCentroidsFarthestPoint(points, k) {
     let bestDist = -1,
       bestI = 0;
     for (let i = 0; i < points.length; i++) {
+      if (exclude.has(i)) continue;
       let minD = Infinity;
       for (let j = 0; j < centroids.length; j++) {
         const d = deltaEOK(points[i].lab, centroids[j]);
@@ -1576,6 +1669,15 @@ function seedCentroidsFarthestPoint(points, k) {
 
 function getAdaptiveLayerCount() {
   const requested = Math.max(1, state.layers.length);
+
+  // Use lofi (minimal) tier from the palette cache when available
+  if (_paletteCache && _paletteCache.tiers) {
+    const lofi = _paletteCache.tiers.minimal || _paletteCache.tiers.data?.minimal?.k;
+    if (lofi) {
+      return Math.max(requested, lofi);
+    }
+  }
+
   const complexity = estimateColorComplexity();
   _lastColorRecommendation = complexity;
   return Math.max(requested, complexity.recommended);
@@ -1597,11 +1699,19 @@ function updateLayersCount(newCount) {
         const f = state.filaments[i % state.filaments.length];
         hex = f.hex;
         td = f.td;
+      } else if (_paletteCache) {
+        // Use palette colors from cache instead of presets
+        const palette = getPaletteForK(Math.min(newCount, _paletteCache.maxK));
+        if (palette && palette.length > 0) {
+          const pIdx = i % palette.length;
+          hex = palette[pIdx].hex;
+          td = 2.0;
+        } else {
+          hex = PRESET_COLORS[i % PRESET_COLORS.length];
+          td = 2.0;
+        }
       } else {
-        const colorIdx = i % PRESET_COLORS.length;
-        hex = state.invertHeights
-          ? PRESET_COLORS[PRESET_COLORS.length - 1 - colorIdx]
-          : PRESET_COLORS[colorIdx];
+        hex = PRESET_COLORS[i % PRESET_COLORS.length];
         td = 2.0;
       }
       state.layers.push({
@@ -3991,6 +4101,329 @@ function deltaEOKWeighted(a, b, huePriority) {
   return Math.sqrt(dL * dL + da * da + db * db);
 }
 
+// ── OKLab → sRGB back-conversion ──────────────────────────────────────────────
+function oklabToRgb(lab) {
+  const l_ = lab[0] + 0.3963377774 * lab[1] + 0.2158037573 * lab[2];
+  const m_ = lab[0] - 0.1055613458 * lab[1] - 0.0638541728 * lab[2];
+  const s_ = lab[0] - 0.0894841775 * lab[1] - 1.2914855480 * lab[2];
+  const l = l_ * l_ * l_;
+  const m = m_ * m_ * m_;
+  const s = s_ * s_ * s_;
+  const rlin = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+  const glin = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+  const blin = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+  return [
+    Math.round(255 * linearToSrgb(rlin)),
+    Math.round(255 * linearToSrgb(glin)),
+    Math.round(255 * linearToSrgb(blin)),
+  ];
+}
+
+function linearToSrgb(c) {
+  return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1 / 2.4) - 0.055;
+}
+
+// ── Rare distinct color preservation ──────────────────────────────────────────
+// Finds colors that are rare (0.1%–3% of pixels) but perceptually distinct
+// (dE >= 18 from major clusters). These get "locked" into the palette so
+// k-means cannot average them away.
+function findRareDistinctColors(points, totalWeight) {
+  const RARE_MIN = 0.001;
+  const RARE_MAX = 0.03;
+  const DISTINCT_DE = 18;
+  const MIN_COUNT = 15;
+
+  const majorCentroids = [];
+  for (const p of points) {
+    if (p.weight / totalWeight > RARE_MAX) {
+      majorCentroids.push(p.lab);
+    }
+  }
+  if (majorCentroids.length === 0 && points.length > 0) {
+    majorCentroids.push(points[0].lab);
+  }
+
+  const rare = [];
+  for (const p of points) {
+    const ratio = p.weight / totalWeight;
+    if (ratio < RARE_MIN || ratio > RARE_MAX) continue;
+    if (p.weight < MIN_COUNT) continue;
+    let minDE = Infinity;
+    for (const mc of majorCentroids) {
+      const de = deltaEOK(p.lab, mc);
+      if (de < minDE) minDE = de;
+    }
+    if (minDE >= DISTINCT_DE) {
+      rare.push({ lab: p.lab.slice(), weight: p.weight, dist: minDE });
+    }
+  }
+  rare.sort((a, b) => b.dist - a.dist);
+  return rare.slice(0, 4).map((r) => r.lab);
+}
+
+// ── Weighted K-Means with locked centroids ────────────────────────────────────
+function weightedKMeansWithLocks(points, k, lockedCentroids) {
+  if (points.length === 0) return [];
+  lockedCentroids = lockedCentroids || [];
+  const nLocked = Math.min(lockedCentroids.length, k);
+  const nFree = k - nLocked;
+
+  let centroids = lockedCentroids.map((lab) => lab.slice());
+  if (nFree > 0 && points.length > 1) {
+    const excludeIndices = [];
+    for (let i = 0; i < points.length; i++) {
+      for (const lc of lockedCentroids) {
+        if (deltaEOK(points[i].lab, lc) < 1.0) {
+          excludeIndices.push(i);
+          break;
+        }
+      }
+    }
+    const freeSeeds = seedCentroidsFarthestPoint(points, nFree, excludeIndices);
+    centroids = centroids.concat(freeSeeds);
+  }
+
+  const lockedMask = new Uint8Array(centroids.length);
+  for (let i = 0; i < nLocked; i++) lockedMask[i] = 1;
+
+  const assignment = new Uint16Array(points.length);
+  let sums = [];
+
+  for (let iter = 0; iter < 12; iter++) {
+    for (let i = 0; i < points.length; i++) {
+      let bestD = Infinity, bestC = 0;
+      for (let c = 0; c < centroids.length; c++) {
+        const d = deltaEOK(points[i].lab, centroids[c]);
+        if (d < bestD) {
+          bestD = d;
+          bestC = c;
+        }
+      }
+      assignment[i] = bestC;
+    }
+    sums = Array.from({ length: centroids.length }, () => ({
+      L: 0, a: 0, b: 0, w: 0,
+    }));
+    for (let i = 0; i < points.length; i++) {
+      const s = sums[assignment[i]];
+      const w = points[i].weight;
+      s.L += points[i].lab[0] * w;
+      s.a += points[i].lab[1] * w;
+      s.b += points[i].lab[2] * w;
+      s.w += w;
+    }
+    for (let c = 0; c < centroids.length; c++) {
+      if (lockedMask[c]) continue;
+      if (sums[c].w > 0) {
+        centroids[c] = [sums[c].L / sums[c].w, sums[c].a / sums[c].w, sums[c].b / sums[c].w];
+      }
+    }
+  }
+  return centroids.map((lab, i) => ({
+    lab,
+    weight: sums[i]?.w || 0,
+    locked: !!lockedMask[i],
+  }));
+}
+
+// ── Quality Curve Computation ─────────────────────────────────────────────────
+// Runs k-means for k=2..12 and computes per-pixel dE to nearest palette color.
+// Returns avg/max/p95 dE for each K, plus the cluster data.
+function computeQualityCurve(points, totalWeight, samplePixels, sampleWidth, sampleHeight) {
+  const results = [];
+  for (let k = 2; k <= 12; k++) {
+    const locked = findRareDistinctColors(points, totalWeight);
+    const actualK = k + locked.length;
+    const clusters = weightedKMeansWithLocks(points, actualK, locked);
+    const paletteLab = clusters.map((c) => c.lab);
+
+    // Compute quality against actual image pixels
+    const pixelCount = sampleWidth * sampleHeight;
+    const STEP = Math.max(1, Math.floor(pixelCount / 2000));
+    const deSamples = [];
+    const alpha = state.rawAlpha;
+
+    for (let i = 0; i < pixelCount; i += STEP) {
+      if (alpha && alpha[i] < 128) continue;
+      const r = samplePixels[i * 3];
+      const g = samplePixels[i * 3 + 1];
+      const b = samplePixels[i * 3 + 2];
+      const srcLab = rgbToOklab(r, g, b);
+      let bestD = Infinity;
+      for (let c = 0; c < paletteLab.length; c++) {
+        const d = deltaEOK(srcLab, paletteLab[c]);
+        if (d < bestD) bestD = d;
+      }
+      deSamples.push(bestD);
+    }
+
+    deSamples.sort((a, b) => a - b);
+    const avgDE = deSamples.length > 0 ? deSamples.reduce((s, d) => s + d, 0) / deSamples.length : 0;
+    const maxDE = deSamples.length > 0 ? deSamples[deSamples.length - 1] : 0;
+    const p95DE = deSamples.length > 0 ? deSamples[Math.floor(deSamples.length * 0.95)] || 0 : 0;
+
+    // Convert clusters to RGB for palette display
+    const paletteRGB = clusters.map((c) => oklabToRgb(c.lab));
+
+    results.push({ k, avgDE, maxDE, p95DE, clusters, paletteRGB, paletteLab });
+  }
+  return results;
+}
+
+// ── Tiered Recommendation (lofi / minimal / balanced / full) ──────────────────
+function findTieredRecommendation(qualityData) {
+  if (qualityData.length === 0) return { minimal: 4, balanced: 6, full: 8 };
+
+  const improvements = [];
+  for (let i = 1; i < qualityData.length; i++) {
+    const prev = qualityData[i - 1];
+    const curr = qualityData[i];
+    improvements.push({
+      k: curr.k,
+      avgDrop: prev.avgDE - curr.avgDE,
+      p95Drop: prev.p95DE - curr.p95DE,
+      avgDE: curr.avgDE,
+      p95DE: curr.p95DE,
+    });
+  }
+
+  // TIER 1: MINIMAL — first k where improvement < 25% of peak
+  const peakDrop = Math.max(...improvements.map((d) => d.avgDrop));
+  let minimal = qualityData[0].k;
+  for (let i = 0; i < improvements.length; i++) {
+    if (improvements[i].avgDrop < peakDrop * 0.25) {
+      minimal = improvements[i].k;
+      break;
+    }
+  }
+  minimal = Math.max(3, Math.min(minimal, 7));
+
+  // TIER 2: BALANCED — first k where avgDE <= 6 or cumulative drop >= 65%
+  const totalDrop = qualityData[0].avgDE - qualityData[qualityData.length - 1].avgDE;
+  let balanced = minimal + 1;
+  for (const d of qualityData) {
+    if (d.k <= minimal) continue;
+    if (d.avgDE <= 6.0) {
+      balanced = d.k;
+      break;
+    }
+    const cumDrop = qualityData[0].avgDE - d.avgDE;
+    if (cumDrop / totalDrop >= 0.65) {
+      balanced = d.k;
+      break;
+    }
+  }
+  balanced = Math.max(minimal + 1, Math.min(balanced, 9));
+
+  // TIER 3: FULL FIDELITY — first k where avgDE <= 3 or improvement < 0.4
+  let full = balanced + 1;
+  for (const d of qualityData) {
+    if (d.k <= balanced) continue;
+    if (d.avgDE <= 3.0) {
+      full = d.k;
+      break;
+    }
+  }
+  for (const imp of improvements) {
+    if (imp.k > balanced && imp.avgDrop < 0.4) {
+      full = Math.min(full, imp.k);
+      break;
+    }
+  }
+  full = Math.max(balanced + 1, Math.min(full, qualityData[qualityData.length - 1].k));
+
+  const maxK = qualityData[qualityData.length - 1].k;
+  minimal = Math.max(3, Math.min(minimal, maxK - 2));
+  balanced = Math.max(minimal + 1, Math.min(balanced, maxK - 1));
+  full = Math.max(balanced + 1, Math.min(full, maxK));
+  if (balanced <= minimal) balanced = Math.min(minimal + 1, maxK);
+  if (full <= balanced) full = Math.min(balanced + 1, maxK);
+
+  return {
+    minimal,
+    balanced,
+    full,
+    improvements,
+    data: {
+      minimal: qualityData.find((d) => d.k === minimal),
+      balanced: qualityData.find((d) => d.k === balanced),
+      full: qualityData.find((d) => d.k === full),
+    },
+  };
+}
+
+// ── Pre-computed Palette Cache ────────────────────────────────────────────────
+// When an image is loaded, we compute the full palette for k=1..maxK and store
+// it. When the user adjusts the color count slider, we just pick the right K
+// from the cache instead of re-running k-means from scratch.
+let _paletteCache = null; // { points, totalWeight, qualityData, tiers, maxK, palettes }
+
+function buildPaletteCache() {
+  if (!state.colorSampleRGB || state.colorSampleWidth * state.colorSampleHeight === 0) {
+    _paletteCache = null;
+    return;
+  }
+
+  const bins = getImageColorBins(COLOR_BIN_SIZE);
+  const points = [];
+  let totalWeight = 0;
+  for (const bin of bins.values()) {
+    const rgb = [bin.r / bin.count, bin.g / bin.count, bin.b / bin.count];
+    const lab = rgbToOklab(rgb[0], rgb[1], rgb[2]);
+    points.push({ lab, weight: bin.count });
+    totalWeight += bin.count;
+  }
+
+  const qualityData = computeQualityCurve(
+    points, totalWeight,
+    state.colorSampleRGB, state.colorSampleWidth, state.colorSampleHeight
+  );
+  const tiers = findTieredRecommendation(qualityData);
+  const maxK = Math.min(16, Math.max(2, points.length));
+
+  // Pre-compute clean palettes (no locked centroids) for k=1..16
+  // This matches what test-colors.html shows for each k value
+  const palettes = {};
+  for (let k = 1; k <= 16; k++) {
+    if (k > maxK && k > points.length) break;
+    const actualK = Math.min(k, points.length);
+    const clusters = weightedKMeansWithLocks(points, actualK, []);
+    palettes[k] = clusters.map((c) => {
+      const rgb = oklabToRgb(c.lab);
+      const hex =
+        "#" +
+        rgb.map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0")).join("");
+      return { lab: c.lab, rgb, hex, weight: c.weight };
+    });
+  }
+
+  _paletteCache = { points, totalWeight, qualityData, tiers, maxK, palettes };
+}
+
+// Get palette for a specific K from the pre-computed cache.
+// Returns array of { lab, rgb, hex } sorted by luminance (dark→light).
+function getPaletteForK(k) {
+  if (!_paletteCache) return null;
+
+  // Use pre-computed clean palettes (no locked centroids)
+  if (_paletteCache.palettes && _paletteCache.palettes[k]) {
+    return _paletteCache.palettes[k].slice().sort((a, b) => a.lab[0] - b.lab[0]);
+  }
+
+  // Fallback for k values not in cache
+  const { points } = _paletteCache;
+  const actualK = Math.min(k, points.length);
+  const clusters = weightedKMeansWithLocks(points, actualK, []);
+
+  return clusters.map((c) => {
+    const rgb = oklabToRgb(c.lab);
+    const hex =
+      "#" +
+      rgb.map((v) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, "0")).join("");
+    return { lab: c.lab, rgb, hex, weight: c.weight };
+  }).sort((a, b) => a.lab[0] - b.lab[0]);
+}
+
 // Find the closest filament in the loaded library to a given RGB color,
 // using perceptual (OKLab) distance. Returns null if no filaments loaded.
 function nearestFilamentMatch(rgb) {
@@ -4019,7 +4452,6 @@ function matchImageColors() {
     return;
   }
 
-  // Use full-resolution pixel data from processImage (no separate 64x64 resample)
   const pixels = state.colorSampleRGB;
   const pixelCount = state.colorSampleWidth * state.colorSampleHeight;
   if (!pixels || pixelCount === 0) {
@@ -4027,13 +4459,16 @@ function matchImageColors() {
   }
 
   const cm = state.colorMatch || {};
-  const huePriority = Math.max(0, Math.min(1, cm.huePriority ?? 0.6));
-  const minorityProtection = Math.max(
-    0,
-    Math.min(1, cm.minorityProtection ?? 0.5),
-  );
 
-  const complexity = estimateColorComplexity();
+  // Ensure we have a palette cache
+  if (!_paletteCache) {
+    buildPaletteCache();
+  }
+  if (!_paletteCache) {
+    return;
+  }
+
+  const complexity = _lastColorRecommendation || estimateColorComplexity();
   _lastColorRecommendation = complexity;
 
   const targetCount = getAdaptiveLayerCount();
@@ -4042,367 +4477,61 @@ function matchImageColors() {
     sync2DLayerIndex();
   }
 
-  // k = number of height bands (layers). This can now exceed the number of
-  // *unique* colors actually used — the same filament color is allowed to
-  // reappear at multiple heights, which gives the height curve more
-  // resolution to track hue changes without forcing more materials.
   const k = state.layers.length;
   if (k === 0) {
     return;
   }
 
-  // Precompute OKLab for all sample pixels
-  // 1. Group similar colors into bins to prevent massive areas from dominating
-  const colorBins = new Map();
-  const BIN_SIZE = 16; // Adjust this to group colors more or less aggressively
-
-  for (let i = 0; i < pixelCount; i++) {
-    const r = pixels[i * 3];
-    const g = pixels[i * 3 + 1];
-    const b = pixels[i * 3 + 2];
-
-    // Snap colors to the nearest bin
-    const rBin = Math.floor(r / BIN_SIZE) * BIN_SIZE;
-    const gBin = Math.floor(g / BIN_SIZE) * BIN_SIZE;
-    const bBin = Math.floor(b / BIN_SIZE) * BIN_SIZE;
-    const key = `${rBin},${gBin},${bBin}`;
-
-    let bin = colorBins.get(key);
-    if (!bin) {
-      bin = { indices: [], rBin, gBin, bBin };
-      colorBins.set(key, bin);
-    }
-    bin.indices.push(i);
-  }
-
-  // Weighted average OKLab across the whole image, used to score how
-  // "distinctive" (far from the overall palette) each bin is.
-  let imgSumL = 0,
-    imgSumA = 0,
-    imgSumB = 0,
-    imgSumW = 0;
-  for (const bin of colorBins.values()) {
-    const lab = rgbToOklab(bin.rBin + 8, bin.gBin + 8, bin.bBin + 8);
-    const w = bin.indices.length;
-    imgSumL += lab[0] * w;
-    imgSumA += lab[1] * w;
-    imgSumB += lab[2] * w;
-    imgSumW += w;
-  }
-  const imgAvgLab = [imgSumL / imgSumW, imgSumA / imgSumW, imgSumB / imgSumW];
-
-  // 2. Extract sampled indices with dampened + distinctiveness-boosted weights.
-  // Square root flattens the curve so a big sky doesn't swallow a small
-  // mountain; the distinctiveness boost additionally protects small,
-  // perceptually-unique patches (e.g. a brown mountain against a blue sky)
-  // from being smoothed away entirely, scaled by minorityProtection.
-  const sampledIndices = [];
-  for (const bin of colorBins.values()) {
-    const count = bin.indices.length;
-    const binLab = rgbToOklab(bin.rBin + 8, bin.gBin + 8, bin.bBin + 8);
-    const distinctiveness = deltaEOK(binLab, imgAvgLab);
-    const distinctBoost = 1 + minorityProtection * Math.min(3, distinctiveness * 6);
-    const weight = Math.max(1, Math.ceil(Math.sqrt(count) * distinctBoost));
-    const step = Math.max(1, Math.floor(count / weight));
-
-    for (let w = 0; w < weight; w++) {
-      const pixelIndex = bin.indices[w * step];
-      if (pixelIndex !== undefined) {
-        sampledIndices.push(pixelIndex);
-      }
-    }
-  }
-
-  const sampledCount = sampledIndices.length;
-  const indices = new Uint32Array(sampledCount);
-  const labData = new Float64Array(pixelCount * 3); // Sized to original so K-means indexing maps correctly
-
-  // 3. Precompute OKLab ONLY for our curated, balanced sample pool
-  for (let i = 0; i < sampledCount; i++) {
-    const pIdx = sampledIndices[i];
-    indices[i] = pIdx;
-
-    const r = pixels[pIdx * 3];
-    const g = pixels[pIdx * 3 + 1];
-    const b = pixels[pIdx * 3 + 2];
-    const lab = rgbToOklab(r, g, b);
-
-    labData[pIdx * 3] = lab[0];
-    labData[pIdx * 3 + 1] = lab[1];
-    labData[pIdx * 3 + 2] = lab[2];
-  }
-
-  // ── Deterministic centroid initialization ──
-
-  // Compute average OKLab of the (weighted) sample pool
-  let sumL = 0,
-    sumA = 0,
-    sumB = 0;
-  for (let si = 0; si < sampledCount; si++) {
-    const idx = indices[si] * 3;
-    sumL += labData[idx];
-    sumA += labData[idx + 1];
-    sumB += labData[idx + 2];
-  }
-  const avgLab = [
-    sumL / sampledCount,
-    sumA / sampledCount,
-    sumB / sampledCount,
-  ];
-
-  // First centroid: pixel farthest from average in (hue-weighted) OKLab distance
-  let centroids = [];
-  let bestDist = -1;
-  let bestIdx = 0;
-  for (let si = 0; si < sampledCount; si++) {
-    const idx = indices[si] * 3;
-    const d = deltaEOKWeighted(
-      avgLab,
-      [labData[idx], labData[idx + 1], labData[idx + 2]],
-      huePriority,
-    );
-    if (d > bestDist) {
-      bestDist = d;
-      bestIdx = indices[si];
-    }
-  }
-  centroids.push([
-    labData[bestIdx * 3],
-    labData[bestIdx * 3 + 1],
-    labData[bestIdx * 3 + 2],
-  ]);
-
-  // Remaining centroids: farthest-point sampling (k-means++ style, deterministic)
-  const initStep = Math.max(1, Math.floor(sampledCount / 600));
-  for (let c = 1; c < k; c++) {
-    bestDist = -1;
-    bestIdx = 0;
-    for (let si = 0; si < sampledCount; si += initStep) {
-      const idx = indices[si] * 3;
-      const plab = [labData[idx], labData[idx + 1], labData[idx + 2]];
-      let minD = Infinity;
-      for (let j = 0; j < centroids.length; j++) {
-        const d = deltaEOKWeighted(plab, centroids[j], huePriority);
-        if (d < minD) {
-          minD = d;
-        }
-      }
-      if (minD > bestDist) {
-        bestDist = minD;
-        bestIdx = indices[si];
-      }
-    }
-    centroids.push([
-      labData[bestIdx * 3],
-      labData[bestIdx * 3 + 1],
-      labData[bestIdx * 3 + 2],
-    ]);
-  }
-
-  // ── K-means iterations in hue-weighted OKLab space ──
-  const assignment = new Uint16Array(sampledCount);
-  const maxIter = 30;
-
-  for (let iter = 0; iter < maxIter; iter++) {
-    // Assign each pixel to nearest centroid
-    for (let si = 0; si < sampledCount; si++) {
-      const idx = indices[si] * 3;
-      const plab = [labData[idx], labData[idx + 1], labData[idx + 2]];
-      let minD = Infinity;
-      let bestC = 0;
-      for (let j = 0; j < k; j++) {
-        const d = deltaEOKWeighted(plab, centroids[j], huePriority);
-        if (d < minD) {
-          minD = d;
-          bestC = j;
-        }
-      }
-      assignment[si] = bestC;
-    }
-
-    // Recompute centroids (plain average — the weighting already happened
-    // via sample selection, so centroid updates stay unbiased)
-    const sums = Array.from({ length: k }, () => ({
-      L: 0,
-      a: 0,
-      b: 0,
-      count: 0,
-    }));
-    for (let si = 0; si < sampledCount; si++) {
-      const c = assignment[si];
-      const idx = indices[si] * 3;
-      sums[c].L += labData[idx];
-      sums[c].a += labData[idx + 1];
-      sums[c].b += labData[idx + 2];
-      sums[c].count++;
-    }
-
-    let changed = false;
-    for (let j = 0; j < k; j++) {
-      if (sums[j].count === 0) {
-        continue;
-      }
-      const newL = sums[j].L / sums[j].count;
-      const newa = sums[j].a / sums[j].count;
-      const newb = sums[j].b / sums[j].count;
-      const drift =
-        Math.abs(centroids[j][0] - newL) +
-        Math.abs(centroids[j][1] - newa) +
-        Math.abs(centroids[j][2] - newb);
-      if (drift > 0.001) {
-        changed = true;
-      }
-      centroids[j] = [newL, newa, newb];
-    }
-    if (!changed) {
-      break;
-    }
-  }
-
-  // ── Compute RGB centroids and cluster populations ──
-  const rgbSums = Array.from({ length: k }, () => ({
-    r: 0,
-    g: 0,
-    b: 0,
-    count: 0,
-  }));
-  for (let si = 0; si < sampledCount; si++) {
-    const c = assignment[si];
-    const idx = indices[si] * 3;
-    rgbSums[c].r += pixels[idx];
-    rgbSums[c].g += pixels[idx + 1];
-    rgbSums[c].b += pixels[idx + 2];
-    rgbSums[c].count++;
-  }
-
-  const clusterInfo = [];
-  for (let j = 0; j < k; j++) {
-    const cnt = rgbSums[j].count;
-    if (cnt === 0) {
-      // Empty cluster: use centroid OKLab back to sRGB as fallback
-      const lab = centroids[j];
-      clusterInfo.push({ rgb: [128, 128, 128], luminance: 128, pop: 0 });
-      continue;
-    }
-    const rgb = [rgbSums[j].r / cnt, rgbSums[j].g / cnt, rgbSums[j].b / cnt];
-    const lum = 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2];
-    clusterInfo.push({ rgb, luminance: lum, pop: cnt });
-  }
-
-  // Sort by luminance (dark → light) — required by the physical print, since
-  // height (and therefore stacking order) is driven purely by luminance.
-  clusterInfo.sort((a, b) => a.luminance - b.luminance);
-
-  // ── Protect against minority dark colors hijacking the base layer ──
-  // If the darkest cluster is less populous than the next and within similar
-  // luminance, swap so the dominant nearby color becomes the base instead.
-  const MAX_SWAP_LUM_DIFF = 30;
-
-  if (clusterInfo.length >= 2 && clusterInfo[0].pop < clusterInfo[1].pop) {
-    const lumDiff = clusterInfo[1].luminance - clusterInfo[0].luminance;
-    if (lumDiff <= MAX_SWAP_LUM_DIFF) {
-      [clusterInfo[0], clusterInfo[1]] = [clusterInfo[1], clusterInfo[0]];
-    }
-  }
-
-  // Symmetric protection for the lightest (top) layer
-  const last = clusterInfo.length - 1;
-  if (
-    clusterInfo.length >= 2 &&
-    clusterInfo[last].pop < clusterInfo[last - 1].pop
-  ) {
-    const lumDiff =
-      clusterInfo[last].luminance - clusterInfo[last - 1].luminance;
-    if (lumDiff <= MAX_SWAP_LUM_DIFF) {
-      [clusterInfo[last], clusterInfo[last - 1]] = [
-        clusterInfo[last - 1],
-        clusterInfo[last],
-      ];
-    }
-  }
-
-  // ── Palette reduction: allow the same color to repeat across height bands ──
-  // If fewer *unique* colors are wanted than height bands (k), group the k
-  // cluster colors into a smaller palette and snap each band to its nearest
-  // palette entry. Bands keep their own accurate luminance position; only the
-  // color value gets shared, so a brown band and another brown band elsewhere
-  // in the stack can use the same filament without forcing every band to be
-  // globally unique.
+  // Determine how many unique palette colors to use
   const allowReuse = cm.allowReuse !== false;
-  let paletteSize = allowReuse
+  const paletteSize = allowReuse
     ? Math.max(1, Math.min(k, cm.paletteSize || complexity.recommended))
     : k;
 
-  let finalColors = clusterInfo.map((c) => c.rgb.slice());
-  let finalTd = clusterInfo.map(() => null);
+  // Get pre-computed palette (clean k-means, no locked centroids)
+  const palette = getPaletteForK(paletteSize);
+  if (!palette || palette.length === 0) {
+    return;
+  }
 
-  if (paletteSize < k) {
-    const palettePoints = clusterInfo.map((c) => ({
-      lab: rgbToOklab(c.rgb[0], c.rgb[1], c.rgb[2]),
-      weight: Math.max(1, c.pop),
-      rgb: c.rgb,
-    }));
-    const paletteCentroids = seedCentroidsFarthestPoint(palettePoints, paletteSize);
-    const passign = new Array(palettePoints.length).fill(0);
+  // Build final colors — assign palette colors to layers
+  const finalColors = [];
+  const finalTd = [];
 
-    for (let iter = 0; iter < 10; iter++) {
-      for (let i = 0; i < palettePoints.length; i++) {
-        let bd = Infinity,
-          bc = 0;
-        for (let c = 0; c < paletteCentroids.length; c++) {
-          const d = deltaEOKWeighted(palettePoints[i].lab, paletteCentroids[c], huePriority);
-          if (d < bd) {
-            bd = d;
-            bc = c;
+  if (paletteSize >= k) {
+    // Enough palette colors for all layers — use first k (luminance-sorted)
+    for (let i = 0; i < k; i++) {
+      finalColors.push(palette[i].rgb);
+      finalTd.push(null);
+    }
+  } else {
+    // Fewer palette colors than layers — snap each layer to nearest palette entry
+    // Get a k-color palette to determine each layer's ideal color, then snap
+    const layerPalette = getPaletteForK(k);
+    if (layerPalette && layerPalette.length >= k) {
+      const paletteLabs = palette.map((p) => p.lab);
+      for (let i = 0; i < k; i++) {
+        const layerLab = layerPalette[i].lab;
+        let bestD = Infinity, bestP = 0;
+        for (let p = 0; p < paletteLabs.length; p++) {
+          const d = deltaEOK(layerLab, paletteLabs[p]);
+          if (d < bestD) {
+            bestD = d;
+            bestP = p;
           }
         }
-        passign[i] = bc;
+        finalColors.push(palette[bestP].rgb);
+        finalTd.push(null);
       }
-      const sums = Array.from({ length: paletteCentroids.length }, () => ({
-        L: 0,
-        a: 0,
-        b: 0,
-        w: 0,
-      }));
-      for (let i = 0; i < palettePoints.length; i++) {
-        const s = sums[passign[i]];
-        const w = palettePoints[i].weight;
-        s.L += palettePoints[i].lab[0] * w;
-        s.a += palettePoints[i].lab[1] * w;
-        s.b += palettePoints[i].lab[2] * w;
-        s.w += w;
+    } else {
+      for (let i = 0; i < k; i++) {
+        finalColors.push(palette[i % palette.length].rgb);
+        finalTd.push(null);
       }
-      for (let c = 0; c < paletteCentroids.length; c++) {
-        if (sums[c].w > 0) {
-          paletteCentroids[c] = [sums[c].L / sums[c].w, sums[c].a / sums[c].w, sums[c].b / sums[c].w];
-        }
-      }
-    }
-
-    const paletteRgbSums = Array.from({ length: paletteCentroids.length }, () => ({
-      r: 0,
-      g: 0,
-      b: 0,
-      w: 0,
-    }));
-    for (let i = 0; i < palettePoints.length; i++) {
-      const s = paletteRgbSums[passign[i]];
-      const w = palettePoints[i].weight;
-      s.r += palettePoints[i].rgb[0] * w;
-      s.g += palettePoints[i].rgb[1] * w;
-      s.b += palettePoints[i].rgb[2] * w;
-      s.w += w;
-    }
-    const paletteRgb = paletteRgbSums.map((s) =>
-      s.w > 0 ? [s.r / s.w, s.g / s.w, s.b / s.w] : [128, 128, 128],
-    );
-
-    for (let i = 0; i < clusterInfo.length; i++) {
-      finalColors[i] = paletteRgb[passign[i]];
     }
   }
 
-  // ── Optional: snap final colors to nearest filament in the library ──
+  // Optional: snap final colors to nearest filament in the library
   if (cm.matchToFilaments && state.filaments && state.filaments.length) {
     const filamentCache = new Map();
     for (let i = 0; i < finalColors.length; i++) {
@@ -4420,7 +4549,7 @@ function matchImageColors() {
     }
   }
 
-  // ── Convert to hex and apply to layers ──
+  // Convert to hex and apply to layers
   const toHex = (c) => {
     const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
     const r = clamp(c[0]).toString(16).padStart(2, "0");
