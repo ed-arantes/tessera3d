@@ -5,6 +5,7 @@ This project is intended to be deployed on Cloudflare Pages with Functions enabl
 
 Quick steps (Dashboard)
 -----------------------
+
 1. Go to the Cloudflare Dashboard → Pages → Create a project.
 2. Connect your GitHub repo `tessera3d` and choose the branch you want to publish (e.g. `main`).
 3. In the Build settings:
@@ -19,11 +20,13 @@ Quick steps (Dashboard)
 
 Test endpoints
 --------------
+
 - Health: `https://<project>.pages.dev/api/health` should return JSON: `{ "status": "ok", ... }`.
 - Signup: POST to `https://<project>.pages.dev/api/signup` with JSON body `{ "username":"...", "password":"..." }`.
 
 Local testing (Wrangler)
 ------------------------
+
 You can test locally using Wrangler Pages dev. Install Wrangler locally (npx will run it without a global install):
 
 ```powershell
@@ -34,6 +37,7 @@ npx wrangler pages dev . --bindings DB=<your-d1-name>
 
 Notes and troubleshooting
 -------------------------
+
 - If the frontend is served from a different origin than Pages (e.g. `workers.dev`), the client must call the Pages origin. `auth.js` is already configured to use the same origin when `AUTH_URL` is blank.
 - If you get 404 for `/api/*`, ensure the Functions directory is set to `functions` in the Pages project settings and that the correct branch was deployed.
 - To verify the deployed JS is updated, open DevTools → Sources → look for `auth.js` and confirm it contains `parseResponse`.

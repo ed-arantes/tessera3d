@@ -2,8 +2,8 @@ export function jsonResponse(data, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
-      'Content-Type': 'application/json; charset=utf-8'
-    }
+      "Content-Type": "application/json; charset=utf-8",
+    },
   });
 }
 
@@ -22,10 +22,10 @@ export async function readJsonBody(request) {
 export async function hashPassword(password) {
   const encoder = new TextEncoder();
   const data = encoder.encode(password);
-  const digest = await crypto.subtle.digest('SHA-256', data);
+  const digest = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export function createToken() {
@@ -33,19 +33,25 @@ export function createToken() {
 }
 
 export async function getUserByUsername(db, username) {
-  return db.prepare('SELECT username, passwordHash, token, createdAt FROM users WHERE LOWER(username) = LOWER(?)')
+  return db
+    .prepare(
+      "SELECT username, passwordHash, token, createdAt FROM users WHERE LOWER(username) = LOWER(?)",
+    )
     .bind(username)
     .first();
 }
 
 export async function getUserByToken(db, token) {
-  return db.prepare('SELECT username, passwordHash, token, createdAt FROM users WHERE token = ?')
+  return db
+    .prepare(
+      "SELECT username, passwordHash, token, createdAt FROM users WHERE token = ?",
+    )
     .bind(token)
     .first();
 }
 
 export function extractToken(request) {
-  const header = request.headers.get('Authorization') || '';
+  const header = request.headers.get("Authorization") || "";
   const match = header.match(/^Bearer\s+(.+)$/i);
   return match ? match[1].trim() : header.trim() || null;
 }
