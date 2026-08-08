@@ -51,7 +51,10 @@ const state = {
 
   // Color matching settings (auto-match tuning)
   colorMatch: {
+<<<<<<< HEAD
     algorithm: "lab-simple", // Test default: same simple CIELAB k-means used by the lab
+=======
+>>>>>>> 3b6665d452ad3b1b5e941f0f7bee873684d4e2a8
     paletteSize: null, // null = auto (use recommended unique-color count); else 1-16 user override
     huePriority: 0.6, // 0..1, how strongly hue/chroma is weighted vs lightness when clustering
     minorityProtection: 0.5, // 0..1, how hard small-but-coherent color patches are protected from being averaged away
@@ -1889,6 +1892,7 @@ function removeLayerAt(index) {
 // avoids forcing unrelated hues with similar grayscale luminance into one band.
 function distributeColorLayerHeights() {
   const count = state.layers.length;
+<<<<<<< HEAD
   if (count <= 1) return;
   const base = state.baseThickness, max = state.maxHeight;
   state.layers[0].startHeight = 0;
@@ -1905,6 +1909,8 @@ function autoDistributeHeights() {
     return;
   }
   const count = state.layers.length;
+=======
+>>>>>>> 3b6665d452ad3b1b5e941f0f7bee873684d4e2a8
   if (count <= 1) {
     return;
   }
@@ -4478,6 +4484,7 @@ function nearestFilamentMatch(rgb) {
 }
 
 // ── K-Means Color Matching ────────────────────────────────────────────────
+<<<<<<< HEAD
 // Lab test matcher: simple CIELAB k-means, intentionally separate from the
 // production OKLab palette cache so both algorithms can be compared.
 function matchImageColorsLabSimple() {
@@ -4496,6 +4503,8 @@ function matchImageColorsLabSimple() {
   state.layers.forEach((layer,i)=>{layer.hex=toHex(palette[i%palette.length])});distributeColorLayerHeights();_cachedHeights=null;_cachedHeightsKey=null;syncColorCountUI();renderLayersList();updateColorRecommendationHint();debounceUpdate();
 }
 
+=======
+>>>>>>> 3b6665d452ad3b1b5e941f0f7bee873684d4e2a8
 function matchImageColors() {
   if (!state.image) {
     return;
@@ -4509,11 +4518,14 @@ function matchImageColors() {
 
   const cm = state.colorMatch || {};
 
+<<<<<<< HEAD
   if (cm.algorithm === "lab-simple") {
     matchImageColorsLabSimple();
     return;
   }
 
+=======
+>>>>>>> 3b6665d452ad3b1b5e941f0f7bee873684d4e2a8
   // Ensure we have a palette cache
   if (!_paletteCache) {
     buildPaletteCache();
