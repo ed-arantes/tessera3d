@@ -18,6 +18,23 @@ Quick steps (Dashboard)
    - If your D1 database uses a different name, set an environment variable mapping in Pages and ensure it matches one of `DB`, `D1`, `TESSERA`, `TESSERA_DB`, or `DATABASE`.
 6. Deploy the project. After a few minutes your site will be available on `https://<project>.pages.dev`.
 
+Development access gate
+-----------------------
+
+The Pages Functions middleware currently has `DEV_ACCESS_ENABLED = true` in
+`functions/_middleware.js`. With it enabled, the server protects the whole
+site before static files or APIs are served.
+
+1. In Pages settings, create an encrypted secret named `DEV_SITE_PASSWORD`.
+2. Set its value to the development password.
+3. Deploy the project and use the server-rendered access page.
+4. Set `DEV_ACCESS_ENABLED = false` in `functions/_middleware.js` before a
+   public production deployment.
+
+The password is never placed in frontend JavaScript or HTML. The unlock
+session uses an expiring, signed, HttpOnly cookie. This is a development gate,
+not a replacement for the application account system.
+
 Test endpoints
 --------------
 

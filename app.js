@@ -759,13 +759,23 @@ function setupEventListeners() {
     "input-width",
     "widthMm",
     (v) => Math.min(500, Math.max(10, parseFloat(v))),
-    () => { debounceUpdate(); updatePuzzleInfo(); },
+    () => {
+      _cachedHeights = null;
+      invalidate2DCache();
+      debounceUpdate();
+      updatePuzzleInfo();
+    },
   );
   setupInputListener(
     "input-height",
     "heightMm",
     (v) => Math.min(500, Math.max(10, parseFloat(v))),
-    () => { debounceUpdate(); updatePuzzleInfo(); },
+    () => {
+      _cachedHeights = null;
+      invalidate2DCache();
+      debounceUpdate();
+      updatePuzzleInfo();
+    },
   );
   setupInputListener(
     "input-max-height",
@@ -859,7 +869,13 @@ function setupEventListeners() {
 
   const checkboxSimulate = document.getElementById("input-simulate-td");
   if (checkboxSimulate) {
+    checkboxSimulate.checked = false;
+    checkboxSimulate.disabled = true;
+    state.simulateTransmission = false;
     checkboxSimulate.addEventListener("change", () => {
+      if (checkboxSimulate.disabled) {
+        return;
+      }
       state.simulateTransmission = checkboxSimulate.checked;
       if (
         state.simulateTransmission &&
@@ -1415,9 +1431,9 @@ function updateColorRecommendationHint() {
   // Show tiered recommendation when palette cache is available
   if (_paletteCache && _paletteCache.tiers) {
     const t = _paletteCache.tiers;
-    hint.textContent = `Lofi: ~${t.minimal} colors | Balanced: ~${t.balanced} | Full: ~${t.full} (image has ~${uniqueColors} distinct colors).`;
+    hint.textContent = `Colors: Lofi: ~${t.minimal} | Balanced: ~${t.balanced} | Full: ~${t.full}`;
   } else {
-    hint.textContent = `Recommended: ~${recommended} colors for a good match (image has ~${uniqueColors} visually distinct colors).`;
+    hint.textContent = `Colors: Recommended: ~${recommended}`;
   }
 
   const paletteInput = document.getElementById("input-palette-size");
@@ -2113,7 +2129,8 @@ function updateUIFromState() {
   }
   const checkboxSimulate = document.getElementById("input-simulate-td");
   if (checkboxSimulate) {
-    checkboxSimulate.checked = state.simulateTransmission;
+    checkboxSimulate.checked = false;
+    checkboxSimulate.disabled = true;
   }
   document.getElementById("input-puzzle-enable").checked = state.puzzleEnabled;
   document.getElementById("input-puzzle-cols").value = state.puzzleCols;
@@ -2488,6 +2505,41 @@ function computeTransmissionColor(h, layerIndex) {
 
 // ── 2D Rendering ─────────────────────────────────────────────────────────────
 
+function get2DDisplayMetrics() {
+  const cols = state.gridCols;
+  const rows = state.gridRows;
+  const parent = canvas2D?.parentElement;
+  const canvasW = parent ? Math.max(40, parent.clientWidth - 40) : 300;
+  const canvasH = parent ? Math.max(40, parent.clientHeight - 40) : 300;
+  const metadataScreenHeight = 44;
+  const metadataGapScreen = 8;
+  const availableH = Math.max(20, canvasH - metadataScreenHeight - metadataGapScreen);
+  const pixelsPerMm = Math.min(
+    canvasW / Math.max(1, state.widthMm),
+    availableH / Math.max(1, state.heightMm),
+  );
+  const imgW = Math.max(cols, Math.round(state.widthMm * pixelsPerMm));
+  const imgH = Math.max(rows, Math.round(state.heightMm * pixelsPerMm));
+  const displayScale = Math.max(
+    0.1,
+    Math.min(1, canvasW / imgW, canvasH / (imgH + metadataScreenHeight + metadataGapScreen)),
+  );
+
+  return {
+    cols,
+    rows,
+    canvasW,
+    canvasH,
+    imgW,
+    imgH,
+    cellW: imgW / cols,
+    cellH: imgH / rows,
+    displayScale,
+    metadataGap: metadataGapScreen / displayScale,
+    metadataHeight: metadataScreenHeight / displayScale,
+  };
+}
+
 function draw2DSimulation() {
   if (!state.rawLuminance || !canvas2D) {
     return;
@@ -2498,19 +2550,11 @@ function draw2DSimulation() {
   const heights = getHeightsGrid();
   const idx = current2DLayerIndex;
 
-  const canvasW = canvas2D.parentElement
-    ? canvas2D.parentElement.clientWidth - 40
-    : 300;
-  const canvasH = canvas2D.parentElement
-    ? canvas2D.parentElement.clientHeight - 40
-    : 300;
-  const cellSize = Math.max(
-    2,
-    Math.floor(Math.min(canvasW / cols, canvasH / rows)),
-  );
-  const imgW = cols * cellSize;
-  const imgH = rows * cellSize;
-  const targetHeight = imgH + 60;
+  const metrics = get2DDisplayMetrics();
+  const { canvasW, canvasH, imgW, imgH, cellW, cellH } = metrics;
+  const metadataScale = 1 / metrics.displayScale;
+  const { metadataGap, metadataHeight } = metrics;
+  const targetHeight = imgH + metadataGap + metadataHeight;
 
   const renderKey = get2DRenderCacheKey();
   const needsRebuild =
@@ -2597,7 +2641,7 @@ function draw2DSimulation() {
     for (const pixIdx of ffLastFillSet) {
       const px = pixIdx % cols;
       const py = Math.floor(pixIdx / cols);
-      ctx.fillRect(px * cellSize, py * cellSize, cellSize, cellSize);
+      ctx.fillRect(px * cellW, py * cellH, cellW, cellH);
     }
     // Draw marching-ants border (simple thick outline)
     ctx.strokeStyle = "rgba(85,186,8,0.9)";
@@ -2621,28 +2665,28 @@ function draw2DSimulation() {
         ) {
           const ex1 =
             nx < px
-              ? px * cellSize
+              ? px * cellW
               : nx > px
-                ? (px + 1) * cellSize
-                : px * cellSize;
+                ? (px + 1) * cellW
+                : px * cellW;
           const ey1 =
             ny < py
-              ? py * cellSize
+              ? py * cellH
               : ny > py
-                ? (py + 1) * cellSize
-                : py * cellSize;
+                ? (py + 1) * cellH
+                : py * cellH;
           const ex2 =
             nx < px
-              ? px * cellSize
+              ? px * cellW
               : nx > px
-                ? (px + 1) * cellSize
-                : (px + 1) * cellSize;
+                ? (px + 1) * cellW
+                : (px + 1) * cellW;
           const ey2 =
             ny < py
-              ? py * cellSize
+              ? py * cellH
               : ny > py
-                ? (py + 1) * cellSize
-                : (py + 1) * cellSize;
+                ? (py + 1) * cellH
+                : (py + 1) * cellH;
           ctx.beginPath();
           ctx.moveTo(ex1, ey1);
           ctx.lineTo(ex2, ey2);
@@ -2659,7 +2703,7 @@ function draw2DSimulation() {
       if (ffRegionMask[i] === ffSelectedRegionId) {
         const px = i % cols;
         const py = Math.floor(i / cols);
-        ctx.fillRect(px * cellSize, py * cellSize, cellSize, cellSize);
+        ctx.fillRect(px * cellW, py * cellH, cellW, cellH);
       }
     }
   }
@@ -2671,7 +2715,8 @@ function draw2DSimulation() {
       rows,
       state.puzzleCols,
       state.puzzleRows,
-      cellSize,
+      cellW,
+      cellH,
       state.puzzleWave,
     );
   } else {
@@ -2679,43 +2724,56 @@ function draw2DSimulation() {
     ctx.lineWidth = 0.5;
     for (let x = 0; x <= cols; x++) {
       ctx.beginPath();
-      ctx.moveTo(x * cellSize, 0);
-      ctx.lineTo(x * cellSize, imgH);
+      ctx.moveTo(x * cellW, 0);
+      ctx.lineTo(x * cellW, imgH);
       ctx.stroke();
     }
     for (let y = 0; y <= rows; y++) {
       ctx.beginPath();
-      ctx.moveTo(0, y * cellSize);
-      ctx.lineTo(imgW, y * cellSize);
+      ctx.moveTo(0, y * cellH);
+      ctx.lineTo(imgW, y * cellH);
       ctx.stroke();
     }
   }
 
-  const barY = imgH + 8;
+  // Keep the grid/puzzle overlays transparent wherever the source image is
+  // transparent. Drawing semi-transparent strokes on the main canvas would
+  // otherwise give cleared pixels a faint tinted halo.
+  ctx.save();
+  ctx.globalCompositeOperation = "destination-in";
+  ctx.drawImage(_2dBaseCacheCanvas, 0, 0, imgW, imgH);
+  ctx.restore();
+
+  const barY = imgH + metadataGap;
   ctx.fillStyle = "#f4f5f7";
-  ctx.fillRect(0, barY, canvas2D.width, 56);
+  ctx.fillRect(0, barY, canvas2D.width, metadataHeight);
 
   ctx.fillStyle = "#111827";
-  ctx.font = "600 30px Poppins, sans-serif";
+  ctx.font = `600 ${16 * metadataScale}px Poppins, sans-serif`;
   ctx.textAlign = "left";
-  ctx.fillText(`Layer ${idx + 1} of ${state.layers.length}`, 12, barY + 40);
+  ctx.textBaseline = "middle";
+  ctx.fillText(
+    `Layer ${idx + 1} of ${state.layers.length}`,
+    12 * metadataScale,
+    barY + metadataHeight / 2,
+  );
 
   // Right-aligned color swatches - layer 1 shows 1, layer 2 shows 2, etc.
-  const swatchSize = 24;
-  const swatchGap = 5;
+  const swatchSize = 20 * metadataScale;
+  const swatchGap = 5 * metadataScale;
   const numSwatches = idx + 1;
   const totalSwatchesW =
-    numSwatches * swatchSize + (numSwatches - 1) * swatchGap + 8;
-  let sx = canvas2D.width - totalSwatchesW - 12;
-  const sy = barY + (56 - swatchSize) / 2;
+    numSwatches * swatchSize + (numSwatches - 1) * swatchGap + 8 * metadataScale;
+  let sx = canvas2D.width - totalSwatchesW - 12 * metadataScale;
+  const sy = barY + (metadataHeight - swatchSize) / 2;
   for (let i = 0; i < numSwatches; i++) {
     const isCurrent = i === idx;
-    const s = isCurrent ? swatchSize + 8 : swatchSize;
-    const yOff = isCurrent ? -4 : 0;
+    const s = isCurrent ? swatchSize + 6 * metadataScale : swatchSize;
+    const yOff = isCurrent ? -3 * metadataScale : 0;
     ctx.fillStyle = state.layers[i].hex;
     ctx.fillRect(sx, sy + yOff, s, s);
     ctx.strokeStyle = isCurrent ? "#111827" : "rgba(0,0,0,0.12)";
-    ctx.lineWidth = isCurrent ? 2.5 : 1;
+    ctx.lineWidth = (isCurrent ? 2 : 1) * metadataScale;
     ctx.strokeRect(sx, sy + yOff, s, s);
     sx += s + swatchGap;
   }
@@ -2808,22 +2866,16 @@ function onCanvas2DClick(e) {
   const cols = state.gridCols;
   const rows = state.gridRows;
 
-  // Compute cell size (same as draw2DSimulation)
-  const canvasW = canvas2D.parentElement.clientWidth - 40;
-  const canvasH = canvas2D.parentElement.clientHeight - 40;
-  const cellSize = Math.max(
-    2,
-    Math.floor(Math.min(canvasW / cols, canvasH / rows)),
-  );
-  const imgH = rows * cellSize;
+  const metrics = get2DDisplayMetrics();
+  const { imgW, imgH, cellW, cellH } = metrics;
 
   // Ignore clicks in the info bar below the image
   if (cy >= imgH) {
     return;
   }
 
-  const gridX = Math.floor(cx / cellSize);
-  const gridY = Math.floor(cy / cellSize);
+  const gridX = Math.floor((cx / imgW) * cols);
+  const gridY = Math.floor((cy / imgH) * rows);
   if (gridX < 0 || gridX >= cols || gridY < 0 || gridY >= rows) {
     return;
   }
@@ -3410,53 +3462,69 @@ function drawPuzzleCuts(
   gridRows,
   puzzleCols,
   puzzleRows,
-  cellSize,
+  cellW,
+  cellH,
   waviness,
 ) {
   const edges = generateEdges(puzzleCols, puzzleRows, state.puzzleRandomness, state.puzzleMaxOffset);
   const { vEdges, vEdgeParams, hEdges, hEdgeParams } = edges;
 
-  const pieceW = (gridCols * cellSize) / puzzleCols;
-  const pieceH = (gridRows * cellSize) / puzzleRows;
+  const gridW = gridCols * cellW;
+  const gridH = gridRows * cellH;
+  const pieceW = gridW / puzzleCols;
+  const pieceH = gridH / puzzleRows;
+  const pixelsPerMm = gridW / state.widthMm;
+  const cutWidth = Math.max(2.5, Math.min(8, state.puzzleClearanceMm * pixelsPerMm * 1.5));
+  const haloWidth = Math.max(5, cutWidth * 2.4);
+  const boundaryWidth = Math.max(3, Math.min(8, state.puzzleClearanceMm * pixelsPerMm * 1.8));
+
+  const drawCutPaths = () => {
+    for (let r = 0; r < puzzleRows - 1; r++) {
+      for (let c = 0; c < puzzleCols; c++) {
+        const x0 = c * pieceW;
+        const y0 = (r + 1) * pieceH;
+        const x1 = (c + 1) * pieceW;
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        drawJigsawLine(ctx, x0, y0, x1, y0, hEdges[r][c], hEdgeParams[r][c], waviness, false);
+        ctx.stroke();
+      }
+    }
+
+    for (let r = 0; r < puzzleRows; r++) {
+      for (let c = 0; c < puzzleCols - 1; c++) {
+        const x0 = (c + 1) * pieceW;
+        const y0 = r * pieceH;
+        const y1 = (r + 1) * pieceH;
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        drawJigsawLine(ctx, x0, y0, x0, y1, vEdges[r][c], vEdgeParams[r][c], waviness, false);
+        ctx.stroke();
+      }
+    }
+  };
 
   ctx.save();
-  ctx.strokeStyle = "rgba(0,0,0,0.35)";
-  const gridW = gridCols * cellSize;
-  const pixelsPerMm = gridW / state.widthMm;
-  ctx.lineWidth = Math.max(1, Math.min(8, state.puzzleClearanceMm * pixelsPerMm * 1.5));
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
 
-  // Horizontal cuts (between puzzle rows)
-  for (let r = 0; r < puzzleRows - 1; r++) {
-    for (let c = 0; c < puzzleCols; c++) {
-      const x0 = c * pieceW;
-      const y0 = (r + 1) * pieceH;
-      const x1 = (c + 1) * pieceW;
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      drawJigsawLine(ctx, x0, y0, x1, y0, hEdges[r][c], hEdgeParams[r][c], waviness, false);
-      ctx.stroke();
-    }
-  }
+  // A bright, thick halo keeps cuts visible over dark artwork.
+  ctx.strokeStyle = "rgba(255,255,255,0.95)";
+  ctx.lineWidth = haloWidth;
+  drawCutPaths();
 
-  // Vertical cuts (between puzzle columns)
-  for (let r = 0; r < puzzleRows; r++) {
-    for (let c = 0; c < puzzleCols - 1; c++) {
-      const x0 = (c + 1) * pieceW;
-      const y0 = r * pieceH;
-      const y1 = (r + 1) * pieceH;
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      drawJigsawLine(ctx, x0, y0, x0, y1, vEdges[r][c], vEdgeParams[r][c], waviness, false);
-      ctx.stroke();
-    }
-  }
+  // A dark center keeps the same cuts visible over light artwork.
+  ctx.strokeStyle = "rgba(17,24,39,0.95)";
+  ctx.lineWidth = cutWidth;
+  drawCutPaths();
 
   // Outer boundary
-  ctx.strokeStyle = "rgba(0,0,0,0.25)";
-  ctx.lineWidth = Math.max(1.5, Math.min(8, state.puzzleClearanceMm * pixelsPerMm * 1.8));
-  ctx.strokeRect(0, 0, gridCols * cellSize, gridRows * cellSize);
+  ctx.strokeStyle = "rgba(255,255,255,0.95)";
+  ctx.lineWidth = boundaryWidth + 2;
+  ctx.strokeRect(0, 0, gridW, gridH);
+  ctx.strokeStyle = "rgba(17,24,39,0.95)";
+  ctx.lineWidth = boundaryWidth;
+  ctx.strokeRect(0, 0, gridW, gridH);
   ctx.restore();
 }
 
@@ -4772,61 +4840,6 @@ function hexToRGBValue(hex) {
 }
 
 // ── Background gradient layers ──────────────────────────────────────────────
-(function initBgLayers() {
-  const layers = [
-    {
-      bg: "radial-gradient(ellipse 60% 50% at 20% 25%, rgba(85,186,8,0.16) 0%, transparent 70%)",
-      anim: "bg-drift-1",
-      dur: "55s",
-    },
-    {
-      bg: "radial-gradient(ellipse 55% 45% at 80% 20%, rgba(59,130,246,0.13) 0%, transparent 65%)",
-      anim: "bg-drift-2",
-      dur: "62s",
-    },
-    {
-      bg: "radial-gradient(ellipse 50% 55% at 45% 75%, rgba(139,92,246,0.11) 0%, transparent 60%)",
-      anim: "bg-drift-3",
-      dur: "58s",
-    },
-    {
-      bg: "radial-gradient(ellipse 65% 40% at 30% 55%, rgba(253,186,116,0.09) 0%, transparent 65%)",
-      anim: "bg-drift-4",
-      dur: "52s",
-    },
-    {
-      bg: "radial-gradient(ellipse 40% 50% at 70% 50%, rgba(85,186,8,0.09) 0%, transparent 55%)",
-      anim: "bg-drift-1",
-      dur: "60s",
-    },
-    {
-      bg: "radial-gradient(ellipse 50% 45% at 15% 80%, rgba(200,230,200,0.12) 0%, transparent 60%)",
-      anim: "bg-drift-2",
-      dur: "50s",
-    },
-    {
-      bg: "radial-gradient(ellipse 45% 40% at 85% 70%, rgba(210,230,255,0.10) 0%, transparent 55%)",
-      anim: "bg-drift-3",
-      dur: "56s",
-    },
-    {
-      bg: "radial-gradient(ellipse 55% 50% at 50% 40%, rgba(255,255,255,0.15) 0%, transparent 60%)",
-      anim: "bg-drift-4",
-      dur: "64s",
-    },
-  ];
-
-  layers.forEach((def, i) => {
-    const el = document.createElement("div");
-    el.className = "bg-layer";
-    el.style.cssText =
-      `background:${def.bg};` +
-      `animation:${def.anim} ${def.dur} ease-in-out infinite;` +
-      `animation-delay:${-i * 7}s;`;
-    document.body.prepend(el);
-  });
-})();
-
 // ── Tab Switcher ─────────────────────────────────────────────────────────────
 function switchTab(tab) {
   if (tab === "3d" && document.getElementById("tab-3d")?.disabled) {
