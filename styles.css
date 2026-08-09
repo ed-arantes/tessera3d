@@ -89,7 +89,7 @@ body {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 20px 0;
+  padding: 10px 0;
   position: relative;
   z-index: 1;
 }
@@ -124,8 +124,8 @@ body {
   font-style: normal;
 }
 .hero-lead {
-  max-width: 620px;
-  margin: 65px auto 0;
+  max-width: 100%;
+  margin: 20px auto 0;
   color: var(--text-muted);
   font-size: 17px;
   line-height: 1.75;
@@ -170,7 +170,7 @@ body {
 }
 .window-bar { display: none; }
 .preview-window { overflow: hidden; border: 1px solid rgba(255,255,255,.9); border-radius: 18px; background: rgba(255,255,255,.6); box-shadow: 0 24px 60px rgba(55,65,81,.17); backdrop-filter: blur(14px); }
-.preview-badge { position: absolute; right: -28px; bottom: -25px; display: flex; gap: 9px; align-items: center; padding: 12px 17px; border: 1px solid #fff; border-radius: 12px; background: rgba(255,255,255,.9); box-shadow: 0 12px 28px rgba(15,23,42,.12); }
+.preview-badge { position: absolute; right: -28px; bottom: -25px; display: flex; gap: 9px; align-items: center; padding: 12px 17px; border: 1px solid var(--accent); border-radius: 12px; background: var(--accent); box-shadow: 0 12px 28px rgba(85,186,8,.25); }
 .preview-badge > span { color: var(--accent); font-size: 22px; }.preview-badge b, .preview-badge small { display: block; }.preview-badge b { font-size: 11px; }.preview-badge small { margin-top: 3px; color: var(--text-muted); font-size: 9px; }
 .mock-editor { display: block; min-height: 0; line-height: 0; }
 .preview-img { width: 100%; height: auto; display: block; }
@@ -1853,7 +1853,7 @@ input:checked + .slider-switch:before {
 .marketing-body .site-nav .nav-cta { min-width: 130px; height: var(--h-md); padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: var(--font-body); font-size: var(--text-btn); font-weight: 600; }
 .marketing-body .site-nav { gap: 8px; }
 .marketing-body .brand small { font-size: var(--text-sm); }
-.marketing-body .preview-badge-copy { display: flex; flex-direction: column; color: var(--text-muted); font-size: var(--text-xs); font-weight: 700; line-height: 1.5; }
+.marketing-body .preview-badge-copy { display: flex; flex-direction: column; color: var(--text-inverse); font-size: var(--text-xs); font-weight: 700; line-height: 1.5; }
 .marketing-body:not(.wiki-body) .hero-lead,
 .marketing-body:not(.wiki-body) .feature-card p,
 .marketing-body:not(.wiki-body) .workflow p,
@@ -1904,7 +1904,7 @@ button,
 .marketing-body .hero-note > span,
 .marketing-body .preview-badge > span { font-size: 0; }
 .marketing-body .hero-note > span::after,
-.marketing-body .preview-badge > span::after { content: "\f005"; font-family: "Font Awesome 6 Free"; font-size: 12px; font-weight: 900; }
+.marketing-body .preview-badge > span::after { content: "\f005"; font-family: "Font Awesome 6 Free"; font-size: 12px; font-weight: 900; color: var(--text-inverse); }
 .marketing-body .preview-badge > span::after { font-size: 22px; }
 .marketing-body .feature-icon { font-size: 0; }
 .marketing-body .feature-icon::before { font-family: "Font Awesome 6 Free"; font-size: 18px; font-weight: 900; }
