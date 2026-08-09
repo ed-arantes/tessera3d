@@ -1,7 +1,7 @@
 // Development-only server-side access gate.
 // Set DEV_ACCESS_ENABLED to false before production deployment.
 const DEV_ACCESS_ENABLED = true;
-const ACCESS_COOKIE = "0512";
+const ACCESS_COOKIE = "tessera_dev_access";
 const ACCESS_TTL_SECONDS = 60 * 60 * 12;
 
 function fromBase64Url(value) {
