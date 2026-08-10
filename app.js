@@ -40,10 +40,16 @@ const state = {
 
   // Color Layers
   layers: [
-    { hex: "#0a0a0a", startHeight: 0.0, td: 0.5 }, // Base layer (usually dark)
-    { hex: "#3b82f6", startHeight: 0.8, td: 2.0 }, // Transition colors
+    { hex: "#0a0a0a", startHeight: 0.0, td: 0.5 },
+    { hex: "#3b82f6", startHeight: 0.8, td: 2.0 },
     { hex: "#ef4444", startHeight: 1.6, td: 2.0 },
-    { hex: "#ffffff", startHeight: 2.4, td: 3.0 }, // Top highlight (usually light)
+    { hex: "#10b981", startHeight: 2.4, td: 2.0 },
+    { hex: "#f59e0b", startHeight: 3.2, td: 2.0 },
+    { hex: "#8b5cf6", startHeight: 4.0, td: 2.0 },
+    { hex: "#ec4899", startHeight: 4.8, td: 2.0 },
+    { hex: "#f97316", startHeight: 5.6, td: 2.0 },
+    { hex: "#06b6d4", startHeight: 6.4, td: 2.0 },
+    { hex: "#ffffff", startHeight: 7.2, td: 3.0 },
   ],
 
   // Filament library from D1
